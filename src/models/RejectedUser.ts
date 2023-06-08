@@ -7,13 +7,13 @@ const ExpireAtSchema = new Schema<ExpireAtInterface>({
     type: Date,
     default: () => Date.now() + (milisecondsInADay * 10)
 })
-const _RejectedUser = new Schema<RejectedUserInterface>({
+const RejectedUserSchema = new Schema<RejectedUserInterface>({
     _id: String,
     rejectedUserId: String,
     reason: String,
     expireAt: ExpireAtSchema
 
 }, { timestamps: true })
-const RejectedUser = models.RejectedUsers || model<RejectedUserInterface>('RejectedUsers', _RejectedUser);
+const RejectedUser = models.RejectedUsers || model<RejectedUserInterface>('RejectedUsers', RejectedUserSchema);
 
 export { RejectedUser }
