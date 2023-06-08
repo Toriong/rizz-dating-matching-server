@@ -4,4 +4,4 @@ export type ModelType = typeof Model
 export type NumberFn = () => number;
 export type FnPromiseReturnUnkown = () => Promise<unknown>
 export type FnPromiseReturnAny = () => Promise<any>
-export type FnPromiseReturnDocument = () => Promise<Document>
+export type FnReturnsPromiseDocument = () => Promise<Document>

@@ -7,9 +7,9 @@ export interface ExpireAtInterface {
 }
 
 export interface RejectedUserInterface {
-    _id: string;
+    rejectorUserId: string;
     rejectedUserId: string;
-    reason?: string;
+    reason?: string | null;
     expireAt?: ExpireAtInterface
 }
 
