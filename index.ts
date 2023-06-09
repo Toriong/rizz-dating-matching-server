@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, Router } from 'express';
 import dotenv from 'dotenv';
 
 // NOTES: 
@@ -10,7 +10,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app: Express = express();
+const router = Router();
 const { PORT } = process.env;
+const insertRejectedUserRoute = require('/src/routes/insert.ts');
+const updateRejectedUserRoute = require('/src/routes/update.ts');
+const deleteRejectedUserRoute = require('/src/routes/delete.ts');
 
 // GOAL MAIN: store the rejected user into the database
 
@@ -18,9 +22,15 @@ const { PORT } = process.env;
 
 // GOAL #3: create a routes in this file that will route the request to the designated service
 
+app.use('/insert-rejected-user', insertRejectedUserRoute);
+app.use('/update-rejected-user', updateRejectedUserRoute);
+app.use('/delete-rejected-user', deleteRejectedUserRoute);
+
 app.get('/', (req: Request, res: Response) => {
   res.send('Server is up and running!');
 });
+
+router.route('')
 
 app.listen(PORT, () => {
   console.log(`The server is live⚡️! Server is running at http://localhost:${PORT}`);
