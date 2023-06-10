@@ -1,5 +1,6 @@
 import express, { Express, Request, Response, Router } from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors'
 
 // NOTES: 
 // this server will handle the following:
@@ -8,29 +9,30 @@ import dotenv from 'dotenv';
 // 3. for pro members, they have an option to never see the rejected user again
 
 dotenv.config();
-
+const ROOT_API_PATH = 'rejected-users-api'
 const app: Express = express();
-const router = Router();
 const { PORT } = process.env;
 const insertRejectedUserRoute = require('/src/routes/insert.ts');
 const updateRejectedUserRoute = require('/src/routes/update.ts');
 const deleteRejectedUserRoute = require('/src/routes/delete.ts');
+const getRejectedUserRoute = require('/src/routes/get.ts');
 
-// GOAL MAIN: store the rejected user into the database
+app.use(cors({
+  origin: ["http://localhost:19006/", "*"]
+}));
 
-// GOAL #2: create a service that will store all of the rejected users into the db
+app.use(`/${ROOT_API_PATH}/insert-rejected-user`, insertRejectedUserRoute);
 
-// GOAL #3: create a routes in this file that will route the request to the designated service
+app.use(`/${ROOT_API_PATH}/update-rejected-user`, updateRejectedUserRoute);
 
-app.use('/insert-rejected-user', insertRejectedUserRoute);
-app.use('/update-rejected-user', updateRejectedUserRoute);
-app.use('/delete-rejected-user', deleteRejectedUserRoute);
+app.use(`/${ROOT_API_PATH}/delete-rejected-user`, deleteRejectedUserRoute);
+
+app.use(`/${ROOT_API_PATH}/get-rejected-user`, getRejectedUserRoute);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Server is up and running!');
 });
 
-router.route('')
 
 app.listen(PORT, () => {
   console.log(`The server is live⚡️! Server is running at http://localhost:${PORT}`);

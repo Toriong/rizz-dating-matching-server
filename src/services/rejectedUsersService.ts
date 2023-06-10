@@ -2,7 +2,6 @@ import { RejectedUser } from '../models/RejectedUser.js';
 import { CRUDResult, RejectedUserInterface } from '../types-and-interfaces/interfaces.js';
 import { FnReturnsPromiseDocument, ModelType } from '../types-and-interfaces/types.js';
 
-// GOAL: create a route that will take route the user to this function in order to insert the rejected user into the database
 
 
 
