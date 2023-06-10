@@ -5,13 +5,7 @@ const router = Router()
 
 
 router.route('get-rejected-users').get(async (request: Request, response: Response) => {
-    // GOAL: get the rejected users from the database based on the id of the user that will be in the params of the request
-    // the rejected users are retrieved from the database 
-    // all of the documents are retrieved based on the id of that was sent to the server in the request object, by querying the database
-    // access the RejectedUser document
-    // the id of the current user is retrieved in the request object 
-    // get the id of the current user in the request object
-    // the request is sent to the server to get all of the user that were rejected by the current user
+    
     const { userId } = request.query;
 
     if((typeof userId !== 'string') || !userId){
@@ -28,3 +22,5 @@ router.route('get-rejected-users').get(async (request: Request, response: Respon
         return response.status(500).json({ msg: errMsg })
     }
 })
+
+export default router;

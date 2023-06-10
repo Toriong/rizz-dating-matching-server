@@ -1,6 +1,8 @@
 import express, { Express, Request, Response, Router } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors'
+import { createRequire } from 'module'
+
 
 // NOTES: 
 // this server will handle the following:
@@ -12,24 +14,25 @@ dotenv.config();
 const ROOT_API_PATH = 'rejected-users-api'
 const app: Express = express();
 const { PORT } = process.env;
-const insertRejectedUserRoute = require('/src/routes/insert.ts');
-const updateRejectedUserRoute = require('/src/routes/update.ts');
-const deleteRejectedUserRoute = require('/src/routes/delete.ts');
-const getRejectedUserRoute = require('/src/routes/get.ts');
+const insertRejectedUserRoute = createRequire('/src/routes/insert.ts');
+const updateRejectedUserRoute = createRequire('/src/routes/update.ts');
+const deleteRejectedUserRoute = createRequire('/src/routes/delete.ts');
+const getRejectedUserRoute = createRequire('/src/routes/get.ts');
 
 app.use(cors({
   origin: ["http://localhost:19006/", "*"]
 }));
 
-app.use(`/${ROOT_API_PATH}/insert-rejected-user`, insertRejectedUserRoute);
+app.use(`/${ROOT_API_PATH}/insert`, insertRejectedUserRoute);
 
-app.use(`/${ROOT_API_PATH}/update-rejected-user`, updateRejectedUserRoute);
+app.use(`/${ROOT_API_PATH}/put`, updateRejectedUserRoute);
 
-app.use(`/${ROOT_API_PATH}/delete-rejected-user`, deleteRejectedUserRoute);
+app.use(`/${ROOT_API_PATH}/delete`, deleteRejectedUserRoute);
 
-app.use(`/${ROOT_API_PATH}/get-rejected-user`, getRejectedUserRoute);
+app.use(`/${ROOT_API_PATH}/get`, getRejectedUserRoute);
 
 app.get('/', (req: Request, res: Response) => {
+  console.log('Received a request!')
   res.send('Server is up and running!');
 });
 

@@ -17,8 +17,9 @@ const router = Router();
 
 
 
-router.route('/insert-rejected-user')
+router.route('rejected-users-api/insert')
     .post(async (request, response) => {
+        console.log('Received a request to insert a rejected user.')
         const { rejectedUserId, rejectorUserId, reason } = request.body
 
         if (!rejectedUserId || !rejectorUserId) {
@@ -41,6 +42,7 @@ router.route('/insert-rejected-user')
 
             return response.status(500).json({ devMsg: `Failed to insert the rejected user into the db. Error message ${error}.` })
         }
+
         // GOAL 1: the request has valid body, pass the body to the insertRejectedUser function
 
         // GOAL 2: validate the request body, check if it has the required properties:
@@ -54,3 +56,9 @@ router.route('/insert-rejected-user')
         // the request's body is attained, check if id of the rejector and rejected are present. Both of them are required   
 
     })
+// router.route('rejected-users-api/insert').get((request, response) => {
+//     response.send('Hi there')
+// })
+
+
+export default router;
