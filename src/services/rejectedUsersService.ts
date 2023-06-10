@@ -3,7 +3,7 @@ import { CRUDResult, RejectedUserInterface } from '../types-and-interfaces/inter
 import { FnReturnsPromiseDocument, ModelType } from '../types-and-interfaces/types.js';
 
 // GOAL: create a route that will take route the user to this function in order to insert the rejected user into the database
- 
+
 
 
 interface CustomModel extends ModelType {
@@ -27,7 +27,20 @@ async function insertRejectedUser(rejectedUserDocument: RejectedUserInterface): 
     }
 }
 
-async function deleteRejectedUser(rejectedUserDocument: RejectedUserInterface): Promise<CRUDResult | void>  {
+async function deleteRejectedUser(rejectedUserDocument: RejectedUserInterface): Promise<CRUDResult | void> {
+
 }
 
-export { insertRejectedUser }
+async function getRejectedUsers(userId: string): Promise<CRUDResult> {
+    try {
+        const rejectedUsers = await RejectedUser.find({ rejectorUserId: userId })
+
+        return { status: 200, data: rejectedUsers }
+    } catch (error) {
+        console.error('An error ha occurred in getting  the rejected users from the database. Error message: ', error)
+        return { status: 500, msg: 'An error ha occurred in getting  the rejected users from the database. Error message: ' + error }
+    }
+}
+
+
+export { insertRejectedUser, getRejectedUsers }

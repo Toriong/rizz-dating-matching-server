@@ -15,5 +15,6 @@ export interface RejectedUserInterface {
 
 export interface CRUDResult{
     status: number,
-    msg?: String
+    msg?: String,
+    data?: RejectedUserInterface | unknown
 }
