@@ -2,13 +2,13 @@ import { Router, query } from 'express'
 import GLOBAL_VALS from '../globalVals.js';
 import { deleteRejectedUser } from '../services/rejectedUsersService.js';
 
-const router = Router()
+export const deleteRejectedUserRoute = Router()
 
-router.delete(`/${GLOBAL_VALS.rootApiPath}/delete-doc-id/:docId`, async (request, response) => {
+deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rootApiPath}/delete-doc-id/:docId`, async (request, response) => {
     // GOAL: delete a rejected user by way of the id of the document
 })
 
-router.delete(`/${GLOBAL_VALS.rootApiPath}/delete-doc-id/:userIds/:isDeletingByRejectorId`, async (request, response) => {
+deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rootApiPath}/delete-doc-id/:userIds/:isDeletingByRejectorId`, async (request, response) => {
     const { userIds, isDeletingByRejectorId } = request.params
 
     if (!userIds || typeof isDeletingByRejectorId !== 'boolean' || typeof userIds !== 'string') {
@@ -22,4 +22,3 @@ router.delete(`/${GLOBAL_VALS.rootApiPath}/delete-doc-id/:userIds/:isDeletingByR
     return response.status(result.status).json({ msg: result.msg })
 })
 
-export default router;

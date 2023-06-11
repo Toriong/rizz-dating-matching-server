@@ -37,7 +37,6 @@ interface RejectedUsersQuery{
     rejectorUserId?: QueryVal
 }
 
-
 async function deleteRejectedUser(queryObj: RejectedUsersQuery): Promise<CRUDResult> {
     try{
         const results = await RejectedUser.deleteMany(queryObj)
@@ -49,7 +48,6 @@ async function deleteRejectedUser(queryObj: RejectedUsersQuery): Promise<CRUDRes
         return { status: 500, msg: "An error has occurred in deleting the rejectedUsers from database." }
     }
 }
-
 
 async function getRejectedUsers(queryObj: RejectedUsersQuery): Promise<CRUDResult> {
     try {
