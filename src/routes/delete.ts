@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import GLOBAL_VALS from '../globalVals.js';
 
 const router = Router()
 
@@ -8,8 +9,9 @@ const router = Router()
 
 // when the user manually deletes the rejected user from the database
 
-router.delete('/',async (request, response) => {
-
+router.delete(`/${GLOBAL_VALS.rootApiPath}/delete`,async (request, response) => {
+    // delete the rejected users from the databae by the id of the users
+    
 })
 
 export default router;
