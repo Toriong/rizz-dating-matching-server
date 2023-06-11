@@ -28,23 +28,32 @@ async function insertRejectedUser(rejectedUserDocument: RejectedUserInterface): 
     }
 }
 
-async function deleteRejectedUser(userIds: string[]): Promise<CRUDResult | void> {
+interface QueryVal{
+    $in: string[]
+}
+
+interface RejectedUsersQuery{
+    rejectedUserId?: QueryVal,
+    rejectorUserId?: QueryVal
+}
+
+
+async function deleteRejectedUser(queryObj: RejectedUsersQuery): Promise<CRUDResult> {
     try{
-        // GOAL: delete the rejected users from the database by way of their ids
-        // the target users or user was deleted from the database by their ids or id
-        // using the ids, delete all docuements that contain the ids of the users or user 
-        // the conditional is received
-        // in the get request, get the conditional of the deletion of the rejected users (rejectedUserId or rejectorUserId)
-        // parse the ids  
-        // the id of the users or users were recevied from the client
+        const results = await RejectedUser.deleteMany(queryObj)
+
+        return { status: 200, msg: `Number of rejectedUsers documents that were deleted: ${results.deletedCount}` }
     } catch(error){
         console.error('An error has occurred in deleting the rejected user from the database. Error message: ', error)
+
+        return { status: 500, msg: "An error has occurred in deleting the rejectedUsers from database." }
     }
 }
 
-async function getRejectedUsers(userId: string): Promise<CRUDResult> {
+
+async function getRejectedUsers(queryObj: RejectedUsersQuery): Promise<CRUDResult> {
     try {
-        const rejectedUsers = await RejectedUser.find({ rejectorUserId: userId })
+        const rejectedUsers = await RejectedUser.find(queryObj)
 
         return { status: 200, data: rejectedUsers }
     } catch (error) {
@@ -54,4 +63,4 @@ async function getRejectedUsers(userId: string): Promise<CRUDResult> {
 }
 
 
-export { insertRejectedUser, getRejectedUsers }
+export { insertRejectedUser, getRejectedUsers, deleteRejectedUser }

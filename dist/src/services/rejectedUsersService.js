@@ -24,14 +24,22 @@ function insertRejectedUser(rejectedUserDocument) {
         }
     });
 }
-function deleteRejectedUser(rejectedUserDocument) {
-    return __awaiter(this, void 0, void 0, function* () {
-    });
-}
-function getRejectedUsers(userId) {
+function deleteRejectedUser(queryObj) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const rejectedUsers = yield RejectedUser.find({ rejectorUserId: userId });
+            const results = yield RejectedUser.deleteMany(queryObj);
+            return { status: 200, msg: `Number of rejectedUsers documents that were deleted: ${results.deletedCount}` };
+        }
+        catch (error) {
+            console.error('An error has occurred in deleting the rejected user from the database. Error message: ', error);
+            return { status: 500, msg: "An error has occurred in deleting the rejectedUsers from database." };
+        }
+    });
+}
+function getRejectedUsers(queryObj) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const rejectedUsers = yield RejectedUser.find(queryObj);
             return { status: 200, data: rejectedUsers };
         }
         catch (error) {
@@ -40,4 +48,4 @@ function getRejectedUsers(userId) {
         }
     });
 }
-export { insertRejectedUser, getRejectedUsers };
+export { insertRejectedUser, getRejectedUsers, deleteRejectedUser };
