@@ -3,7 +3,7 @@ import { NumberFn } from "./types.js";
 
 export interface ExpireAtInterface {
     type: Date;
-    default: NumberFn
+    expires: number
 }
 
 export interface RejectedUserInterface {
@@ -11,7 +11,7 @@ export interface RejectedUserInterface {
     rejectorUserId: string;
     rejectedUserId: string;
     reason?: string | null;
-    expireAt?: ExpireAtInterface
+    createdAt?: ExpireAtInterface
 }
 
 export interface CRUDResult{

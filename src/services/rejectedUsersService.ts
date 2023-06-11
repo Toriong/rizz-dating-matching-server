@@ -11,6 +11,7 @@ interface CustomModel extends ModelType {
 
 async function insertRejectedUser(rejectedUserDocument: RejectedUserInterface): Promise<CRUDResult> {
     try {
+        const rejectedUser = { ...rejectedUserDocument, expiresAt: new Date(Date.now() + (86_400_000 * 10)) }
         const newRejectedUser: CustomModel = new RejectedUser({ ...rejectedUserDocument })
         const rejectedUserSaveResult = await newRejectedUser.save()
 
