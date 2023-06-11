@@ -8,8 +8,8 @@ const router = Router()
 
 // when the user manually deletes the rejected user from the database
 
-router.route('/rejected-user').delete(async (request, response) => {
-    
+router.delete('/',async (request, response) => {
+
 })
 
-export default router
+export default router;

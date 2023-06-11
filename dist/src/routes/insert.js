@@ -7,9 +7,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { Router } from "express";
+import express from 'express';
 import { insertRejectedUser } from "../services/rejectedUsersService.js";
-const router = Router();
+const router = express.Router();
 // create a route that will handle the request from the client that will inert all of the users
 // into the database 
 // this server will handle the following logic:
@@ -18,8 +18,7 @@ const router = Router();
 // showing up on the feed of the rejected user 
 // delete the rejected users from the database if the user wants to delete them 
 // delete all documents of the rejector when the rejector wants to their account
-router.route('rejected-users-api/insert')
-    .post((request, response) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/", (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('Received a request to insert a rejected user.');
     const { rejectedUserId, rejectorUserId, reason } = request.body;
     if (!rejectedUserId || !rejectorUserId) {

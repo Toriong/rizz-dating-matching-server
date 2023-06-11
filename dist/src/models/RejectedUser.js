@@ -1,9 +1,12 @@
 import Mongoose from 'mongoose';
+function getDefaultExpirationDate() {
+    return Date.now() + (milisecondsInADay * 10);
+}
 const { Schema, models, model, } = Mongoose;
 const milisecondsInADay = 86400000;
+// set a default value for the below
 const ExpireAtSchema = new Schema({
     type: Date,
-    default: () => Date.now() + (milisecondsInADay * 10)
 });
 const RejectedUserSchema = new Schema({
     rejectorUserId: String,

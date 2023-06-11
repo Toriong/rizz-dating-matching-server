@@ -9,6 +9,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { Router } from 'express';
 const router = Router();
-router.route('update-rejected-user').put((request, response) => __awaiter(void 0, void 0, void 0, function* () {
+router.put("/", (request, response) => __awaiter(void 0, void 0, void 0, function* () {
 }));
 export default router;

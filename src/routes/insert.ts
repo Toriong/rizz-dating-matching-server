@@ -1,8 +1,8 @@
-import { Router } from "express";
+import express from 'express'
 import { RejectedUserInterface } from "../types-and-interfaces/interfaces.js";
 import { insertRejectedUser } from "../services/rejectedUsersService.js";
 
-const router = Router();
+const router = express.Router();
 // create a route that will handle the request from the client that will inert all of the users
 // into the database 
 
@@ -17,8 +17,7 @@ const router = Router();
 
 
 
-router.route('rejected-users-api/insert')
-    .post(async (request, response) => {
+router.post("/", async (request, response) => {
         console.log('Received a request to insert a rejected user.')
         const { rejectedUserId, rejectorUserId, reason } = request.body
 

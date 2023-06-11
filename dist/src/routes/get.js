@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { Router } from 'express';
 import { getRejectedUsers } from '../services/rejectedUsersService.js';
 const router = Router();
-router.route('get-rejected-users').get((request, response) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/', (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const { userId } = request.query;
     if ((typeof userId !== 'string') || !userId) {
         return response.status(404).json({ msg: 'The id of the user is either not present in the request object or has an invalid data type.' });
