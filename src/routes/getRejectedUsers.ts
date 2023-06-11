@@ -1,12 +1,8 @@
 import { Router, Request, Response } from 'express'
 import { getRejectedUsers } from '../services/rejectedUsersService.js';
 import GLOBAL_VALS from '../globalVals.js';
-import { request } from 'http';
 
 export const getRejectedUserRouter = Router()
-
-
-
 
 getRejectedUserRouter.get(`/${GLOBAL_VALS.rootApiPath}/get-rejected-users`, async (request: Request, response: Response) => {
     let { userIds, isQueryingByRejectorUserId } = request.query;
