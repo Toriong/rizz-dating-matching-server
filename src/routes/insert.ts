@@ -16,9 +16,11 @@ export const insertRouter = Router();
 // delete all documents of the rejector when the rejector wants to their account
 
 insertRouter.post(`/${GLOBAL_VALS.rootApiPath}/insert`, async (request: Request, response: Response) => {
-    const { rejectedUserId, rejectorUserId, reason } = request.body
+    console.log('The request body is: ', request.body)
+    const { rejectedUserId, rejectorUserId, reason } = request.body ?? {}
 
     if (!rejectedUserId || !rejectorUserId) {
+        console.error('Either the rejectedUserId or the rejectorUserId was not provided in the request body.')
         return response.status(404).json({ 
             devMsg: "The ids of the rejector and the rejected must be provided.", 
             clientMsg: "Something went wrong. We've tracked the user whom you rejected. Please try again. If the error persist, please reset the app. You can find the users that were failed to be rejected in your messages tab." 

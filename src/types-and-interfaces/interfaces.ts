@@ -11,7 +11,7 @@ export interface RejectedUserInterface {
     rejectorUserId: string;
     rejectedUserId: string;
     reason?: string | null;
-    createdAt?: ExpireAtInterface
+    expireAt?: ExpireAtInterface
 }
 
 export interface CRUDResult{

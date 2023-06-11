@@ -11,10 +11,10 @@ import { RejectedUser } from '../models/RejectedUser.js';
 function insertRejectedUser(rejectedUserDocument) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const rejectedUser = Object.assign(Object.assign({}, rejectedUserDocument), { expiresAt: new Date(Date.now() + (86400000 * 10)) });
             const newRejectedUser = new RejectedUser(Object.assign({}, rejectedUserDocument));
             const rejectedUserSaveResult = yield newRejectedUser.save();
             rejectedUserSaveResult.validateSync();
+            console.log('A new document was inserted into the db.');
             return { status: 200 };
         }
         catch (error) {
