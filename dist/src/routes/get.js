@@ -8,20 +8,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Router } from 'express';
-import { getRejectedUsers } from '../services/rejectedUsersService.js';
-const router = Router();
-router.get('/', (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userId } = request.query;
-    if ((typeof userId !== 'string') || !userId) {
-        return response.status(404).json({ msg: 'The id of the user is either not present in the request object or has an invalid data type.' });
-    }
-    try {
-        const rejectedUsers = yield getRejectedUsers(userId);
-        return response.status(200).json({ msg: 'The rejected users have been successfully retrieved from the database.', rejectedUsers: rejectedUsers });
-    }
-    catch (error) {
-        const errMsg = `An error has occurred in getting the rejected users from the database. Error message: ${error}`;
-        return response.status(500).json({ msg: errMsg });
-    }
+import GLOBAL_VALS from '../globalVals.js';
+export const getRejectedUserRouter = Router();
+getRejectedUserRouter.get(`/${GLOBAL_VALS.rootApiPath}/get-rejected-users`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    response.send('Server is up and running! Hey there, fuck you!');
+    // const { userId } = request.query;
+    // if ((typeof userId !== 'string') || !userId) {
+    //     return response.status(404).json({ msg: 'The id of the user is either not present in the request object or has an invalid data type.' })
+    // }
+    // try {
+    //     const rejectedUsers = await getRejectedUsers(userId)
+    //     return response.status(200).json({ msg: 'The rejected users have been successfully retrieved from the database.', rejectedUsers: rejectedUsers })
+    // } catch (error) {
+    //     const errMsg = `An error has occurred in getting the rejected users from the database. Error message: ${error}`
+    //     return response.status(500).json({ msg: errMsg })
+    // }
 }));
-export default router;

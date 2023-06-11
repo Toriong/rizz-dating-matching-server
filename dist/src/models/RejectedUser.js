@@ -13,6 +13,6 @@ const RejectedUserSchema = new Schema({
     rejectedUserId: String,
     reason: String,
     expireAt: ExpireAtSchema
-}, { timestamps: true, _id: false });
+}, { timestamps: true });
 const RejectedUser = models.RejectedUsers || model('RejectedUsers', RejectedUserSchema);
 export { RejectedUser };

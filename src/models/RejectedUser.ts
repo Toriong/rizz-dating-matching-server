@@ -17,7 +17,7 @@ const RejectedUserSchema = new Schema<RejectedUserInterface>({
     reason: String,
     expireAt: ExpireAtSchema
 
-}, { timestamps: true, _id: false })
+}, { timestamps: true })
 const RejectedUser = models.RejectedUsers || model<RejectedUserInterface>('RejectedUsers', RejectedUserSchema);
 
 export { RejectedUser }
