@@ -5,17 +5,7 @@ import GLOBAL_VALS from '../globalVals.js';
 
 export const insertRouter = Router();
 
-// create a route that will handle the request from the client that will inert all of the users
-// into the database 
-
-// this server will handle the following logic:
-// insert the rejected users into the database
-// update the document of the rejected user by permanently blocking the rejected. this will prevent the rejected user from 
-// showing up on the feed of the rejected user 
-// delete the rejected users from the database if the user wants to delete them 
-// delete all documents of the rejector when the rejector wants to their account
-
-insertRouter.post(`/${GLOBAL_VALS.rootApiPath}/insert`, async (request: Request, response: Response) => {
+insertRouter.post(`/${GLOBAL_VALS.rootApiPath}/insert-rejected-users`, async (request: Request, response: Response) => {
     console.log('The request body is: ', request.body)
     const { rejectedUserId, rejectorUserId, reason } = request.body ?? {}
 

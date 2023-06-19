@@ -20,10 +20,19 @@ getRejectedUserRouter.get(`/${GLOBAL_VALS.rootApiPath}/get-rejected-users`, asyn
 
     try {
         userIds = Array.isArray(userIds) ? userIds : [userIds]
+        console.log('Will get rejected users...')
         const queryObj = isQueryingByRejectorUserId ? { rejectorUserId: { $in: userIds } } : { rejectedUserId: { $in: userIds } }
-        const rejectedUsers = await getRejectedUsers(queryObj);
+        const { status, data, msg } = await getRejectedUsers(queryObj);
 
-        return response.status(200).json({ msg: 'The rejected users have been successfully retrieved from the database.', rejectedUsers: rejectedUsers })
+        if((status !== 200) && (typeof msg === 'string')){
+            throw new Error(msg)
+        }
+
+        if(status !== 200){
+            throw new Error('An error has occurred in getting the rejected users from the database.')
+        }
+
+        return response.status(status).json({ msg: 'The rejected users have been successfully retrieved from the database.', rejectedUsers: data })
     } catch (error) {
         const errMsg = `An error has occurred in getting the rejected users from the database. Error message: ${error}`
 
