@@ -1,5 +1,5 @@
 import express from 'express';
-import { insertRouter } from './insert.js';
+import { insertRouter } from './insertRejectedUsers.js';
 import { getRejectedUserRouter } from './getRejectedUsers.js';
 import { deleteRejectedUserRoute } from './deleteRejectedUser.js';
 

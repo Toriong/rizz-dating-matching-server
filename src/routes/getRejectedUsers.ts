@@ -4,7 +4,7 @@ import GLOBAL_VALS from '../globalVals.js';
 
 export const getRejectedUserRouter = Router()
 
-getRejectedUserRouter.get(`/${GLOBAL_VALS.rootApiPath}/get-rejected-users`, async (request: Request, response: Response) => {
+getRejectedUserRouter.get(`/${GLOBAL_VALS.rejectedUsersRootPath}/get-rejected-users`, async (request: Request, response: Response) => {
     let { userIds, isQueryingByRejectorUserId } = request.query;
     isQueryingByRejectorUserId = ((typeof isQueryingByRejectorUserId === 'string') && ['true', 'false'].includes(isQueryingByRejectorUserId)) ? JSON.parse(isQueryingByRejectorUserId) : isQueryingByRejectorUserId 
 

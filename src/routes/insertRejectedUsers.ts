@@ -5,7 +5,7 @@ import GLOBAL_VALS from '../globalVals.js';
 
 export const insertRouter = Router();
 
-insertRouter.post(`/${GLOBAL_VALS.rootApiPath}/insert-rejected-users`, async (request: Request, response: Response) => {
+insertRouter.post(`/${GLOBAL_VALS.rejectedUsersRootPath}/insert-rejected-users`, async (request: Request, response: Response) => {
     console.log('The request body is: ', request.body)
     const { rejectedUserId, rejectorUserId, reason } = request.body ?? {}
 
