@@ -10,9 +10,9 @@ const app: Express = express();
 const { PORT, MONGO_DB_CONNECTION_STR } = process.env;
 
 mongoose.connect(MONGO_DB_CONNECTION_STR as string).then(() => {
-  console.log("Connection to the mongodb database via mongoose was successful!")
+  console.log("[mongoose]: Connection to the mongodb database via mongoose was successful!")
 }).catch(error => {
-  console.log(`Error in connecting to DB via mongoose: ${error}`)
+  console.log(`[mongoose]: Error in connecting to DB via mongoose: ${error}`)
 });
 
 app.use(express.json());
@@ -24,5 +24,5 @@ app.use(cors({
 app.use("/", routes);
 
 app.listen(PORT, () => {
-  console.log(`The server is live⚡️! Server is running at http://localhost:${PORT}`);
+  console.log(`[server]: The server is live⚡️! Server is running at http://localhost:${PORT}`);
 });

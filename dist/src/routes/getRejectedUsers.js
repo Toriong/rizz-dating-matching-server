@@ -11,7 +11,7 @@ import { Router } from 'express';
 import { getRejectedUsers } from '../services/rejectedUsersService.js';
 import GLOBAL_VALS from '../globalVals.js';
 export const getRejectedUserRouter = Router();
-getRejectedUserRouter.get(`/${GLOBAL_VALS.rootApiPath}/get-rejected-users`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+getRejectedUserRouter.get(`/${GLOBAL_VALS.rejectedUsersRootPath}/get-rejected-users`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     let { userIds, isQueryingByRejectorUserId } = request.query;
     isQueryingByRejectorUserId = ((typeof isQueryingByRejectorUserId === 'string') && ['true', 'false'].includes(isQueryingByRejectorUserId)) ? JSON.parse(isQueryingByRejectorUserId) : isQueryingByRejectorUserId;
     if ((typeof userIds !== 'string') || !userIds || (isQueryingByRejectorUserId === undefined) || (typeof isQueryingByRejectorUserId !== 'boolean')) {

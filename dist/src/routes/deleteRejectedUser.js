@@ -12,10 +12,10 @@ import GLOBAL_VALS from '../globalVals.js';
 import { deleteRejectedUser } from '../services/rejectedUsersService.js';
 import { getParsedBoolStr } from '../helper-fns/routerHelperFns.js';
 export const deleteRejectedUserRoute = Router();
-deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rootApiPath}/delete-by-doc-id`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rejectedUsersRootPath}/delete-by-doc-id`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     // GOAL: delete a rejected user by way of the id of the document
 }));
-deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rootApiPath}/delete-by-user-id`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rejectedUsersRootPath}/delete-by-user-id`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     let { userIds, isDeletingByRejectorUserId } = request.query;
     isDeletingByRejectorUserId = (typeof isDeletingByRejectorUserId === 'string') ? getParsedBoolStr(isDeletingByRejectorUserId) : isDeletingByRejectorUserId;
     if (!userIds || (typeof isDeletingByRejectorUserId !== 'boolean') || (typeof userIds !== 'string')) {

@@ -5,11 +5,11 @@ import { getParsedBoolStr } from '../helper-fns/routerHelperFns.js';
 
 export const deleteRejectedUserRoute = Router()
 
-deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rootApiPath}/delete-by-doc-id`, async (request, response) => {
+deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rejectedUsersRootPath}/delete-by-doc-id`, async (request, response) => {
     // GOAL: delete a rejected user by way of the id of the document
 })
 
-deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rootApiPath}/delete-by-user-id`, async (request, response) => {
+deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rejectedUsersRootPath}/delete-by-user-id`, async (request, response) => {
     let { userIds, isDeletingByRejectorUserId } = request.query
     isDeletingByRejectorUserId = (typeof isDeletingByRejectorUserId === 'string') ? getParsedBoolStr(isDeletingByRejectorUserId) : isDeletingByRejectorUserId
 

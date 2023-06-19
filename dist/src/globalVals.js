@@ -1,4 +1,5 @@
 const GLOBAL_VALS = {
-    rootApiPath: 'rejected-users-api'
+    rejectedUsersRootPath: 'rejected-users',
+    matchesRootPath: 'matches'
 };
 export default GLOBAL_VALS;
