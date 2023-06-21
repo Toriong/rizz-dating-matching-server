@@ -1,7 +1,7 @@
 import Mongoose from 'mongoose';
 import { RejectedUserInterface } from '../types-and-interfaces/interfaces.js';
 
-const { Schema, models, model, Model } = Mongoose;
+const { Schema, models, model } = Mongoose;
 let RejectedUser = models.RejectedUsers;
 
 if (!models.RejectedUsers) {
