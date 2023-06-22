@@ -1,5 +1,5 @@
-import Mongoose from 'mongoose';
-import { mongoosePagination, Pagination } from "mongoose-paginate-ts";
+import Mongoose, { Document, Model } from 'mongoose';
+import { mongoosePagination, Pagination, PaginationModel } from "mongoose-paginate-ts";
 
 const { Schema, models, model } = Mongoose;
 
@@ -9,16 +9,14 @@ interface UserNames {
     nickName?: string
 }
 
-interface CustomMongooseDoc extends Mongoose.Model<any> {
-    paginate: paginateFn
-}
+
 
 interface UserLocation {
     longitude: number,
     latitude: number,
 }
 
-interface UserBaseSchema extends CustomMongooseDoc {
+interface UserBaseModelSchema {
     _id: String,
     name: UserNames,
     password: String,
@@ -34,7 +32,9 @@ interface UserBaseSchema extends CustomMongooseDoc {
 type paginateFn = () => null;
 
 
-type UserSchemaType = CustomMongooseDoc & UserBaseSchema
+interface UserSchemaType extends Mongoose.Model<Document> {
+    paginate: paginateFn
+}
 
 let User = models.Users;
 
@@ -52,7 +52,7 @@ if (!models.Users) {
         longitude: Number,
         latitude: Number,
     }, { _id: false })
-    const UserSchema = new Schema<UserSchemaType>({
+    const UserSchema = new Schema<UserBaseModelSchema>({
         _id: String,
         name: UserNames,
         password: String,
@@ -72,4 +72,4 @@ if (!models.Users) {
 
 
 
-export default User;
+export { User, UserSchemaType };

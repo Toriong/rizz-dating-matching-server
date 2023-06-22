@@ -30,4 +30,4 @@ if (!models.Users) {
     UserSchema.plugin(mongoosePagination);
     User = model('users', UserSchema);
 }
-export default User;
+export { User };
