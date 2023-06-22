@@ -1,5 +1,5 @@
 import Mongoose from 'mongoose';
-const { Schema, models, model, Model } = Mongoose;
+const { Schema, models, model } = Mongoose;
 let RejectedUser = models.RejectedUsers;
 if (!models.RejectedUsers) {
     const milisecondsInADay = 86400000;
