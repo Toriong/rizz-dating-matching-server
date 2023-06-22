@@ -1,5 +1,5 @@
 import Mongoose from 'mongoose';
-import mongoosePaginate from 'mongoose-paginate-v2';
+import { mongoosePagination } from "mongoose-paginate-ts";
 const { Schema, models, model } = Mongoose;
 let User = models.Users;
 if (!models.Users) {
@@ -24,7 +24,7 @@ if (!models.Users) {
         phoneNum: Number,
         ratingNum: Number,
     }, { timestamps: true });
-    UserSchema.plugin(mongoosePaginate);
+    UserSchema.plugin(mongoosePagination);
     User = model('users', UserSchema);
 }
 export default User;

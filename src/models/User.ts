@@ -1,6 +1,5 @@
 import Mongoose from 'mongoose';
-import mongoosePaginate from 'mongoose-paginate-v2'
-
+import { mongoosePagination, Pagination } from "mongoose-paginate-ts";
 
 const { Schema, models, model } = Mongoose;
 let User = models.Users;
@@ -16,7 +15,7 @@ interface UserLocation {
     latitude: number,
 }
 
-interface UserSchemaInterface extends Mongoose.Document {
+interface UserBaseSchema {
     _id: String,
     name: UserNames,
     password: String,
@@ -26,9 +25,10 @@ interface UserSchemaInterface extends Mongoose.Document {
     hobbies: [String],
     email: String,
     phoneNum: Number,
-    ratingNum: Number,
+    ratingNum: Number
 }
 
+type UserSchemaType = Mongoose.Document & UserBaseSchema
 
 if (!models.Users) {
     const UserNames = new Schema<UserNames>({
@@ -40,7 +40,7 @@ if (!models.Users) {
         longitude: Number,
         latitude: Number,
     }, { _id: false })
-    const UserSchema = new Schema<UserSchemaInterface>({
+    const UserSchema = new Schema({
         _id: String,
         name: UserNames,
         password: String,
@@ -53,8 +53,9 @@ if (!models.Users) {
         ratingNum: Number,
     }, { timestamps: true })
 
-    UserSchema.plugin(mongoosePaginate)
-    User = model('users', UserSchema);
+    UserSchema.plugin(mongoosePagination)
+
+    User = model<UserSchemaType, Pagination<UserSchemaType>>('users', UserSchema);
 }
 
 
