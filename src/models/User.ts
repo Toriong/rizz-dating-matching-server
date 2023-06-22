@@ -2,7 +2,6 @@ import Mongoose from 'mongoose';
 import { mongoosePagination, Pagination } from "mongoose-paginate-ts";
 
 const { Schema, models, model } = Mongoose;
-let User = models.Users;
 
 interface UserNames {
     first: string,
@@ -10,12 +9,16 @@ interface UserNames {
     nickName?: string
 }
 
+interface CustomMongooseDoc extends Mongoose.Model<any> {
+    paginate: paginateFn
+}
+
 interface UserLocation {
     longitude: number,
     latitude: number,
 }
 
-interface UserBaseSchema {
+interface UserBaseSchema extends CustomMongooseDoc {
     _id: String,
     name: UserNames,
     password: String,
@@ -28,7 +31,16 @@ interface UserBaseSchema {
     ratingNum: Number
 }
 
-type UserSchemaType = Mongoose.Document & UserBaseSchema
+type paginateFn = () => null;
+
+
+type UserSchemaType = CustomMongooseDoc & UserBaseSchema
+
+let User = models.Users;
+
+// GOAL: create a function that will be the pagination function, this will return a promise of all of the users that the current user queried for 
+// the result of the pagination function is a promise
+// the pagination function will take in the query options, create a interface for the query options  
 
 if (!models.Users) {
     const UserNames = new Schema<UserNames>({
@@ -40,7 +52,7 @@ if (!models.Users) {
         longitude: Number,
         latitude: Number,
     }, { _id: false })
-    const UserSchema = new Schema({
+    const UserSchema = new Schema<UserSchemaType>({
         _id: String,
         name: UserNames,
         password: String,
@@ -55,7 +67,7 @@ if (!models.Users) {
 
     UserSchema.plugin(mongoosePagination)
 
-    User = model<UserSchemaType, Pagination<UserSchemaType>>('users', UserSchema);
+    User = model('users', UserSchema);
 }
 
 

@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 function getMatches() {
     return __awaiter(this, void 0, void 0, function* () {
         // GOAL: perform pagination of the users collection
+        // const users = await Users.
     });
 }
 export { getMatches };
