@@ -10,7 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { User as Users } from "../../models/User.js";
 function getMatches(userQueryOpts) {
     return __awaiter(this, void 0, void 0, function* () {
+        console.log('userQueryOpts: ', userQueryOpts);
         try {
+            console.log('generating query options...');
             const METERS_IN_A_MILE = 1609.34;
             const { userLocation, radiusInMilesInt, desiredSex, desiredAgeRange, paginationPageNum } = userQueryOpts;
             const { latitude, longitude } = userLocation;
@@ -24,13 +26,18 @@ function getMatches(userQueryOpts) {
                 sex: desiredSex,
                 birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) }
             };
+            console.log('paginationQueryOpts: ', paginationQueryOpts);
             const paginationArgsOpts = {
                 query: paginationQueryOpts,
                 sort: { ratingNum: -1 },
                 page: paginationPageNum,
                 limit: 5
             };
+            console.log('query options has been generated.');
+            console.log('paginationArgsOpts: ', paginationArgsOpts);
+            console.log('getting matches for the user on the client side...');
             const potentialMatchesPageInfo = yield Users.paginate(paginationArgsOpts);
+            console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo);
             return { status: 200, data: potentialMatchesPageInfo };
         }
         catch (error) {

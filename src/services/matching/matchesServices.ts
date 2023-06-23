@@ -9,7 +9,13 @@ interface GetMatchesResult{
 }
 
 async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResult> {
+
+    console.log('userQueryOpts: ', userQueryOpts)
+
     try{
+
+        console.log('generating query options...')
+
         const METERS_IN_A_MILE = 1609.34;
         const { userLocation, radiusInMilesInt, desiredSex, desiredAgeRange, paginationPageNum } = userQueryOpts;
         const { latitude, longitude } = userLocation;
@@ -23,13 +29,25 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
             sex: desiredSex,
             birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) }
         }
+
+        console.log('paginationQueryOpts: ', paginationQueryOpts)
+
         const paginationArgsOpts:PaginationArgsOpts = {
             query: paginationQueryOpts,
             sort: { ratingNum: -1 },
             page: paginationPageNum,
             limit: 5
         }
+
+        console.log('query options has been generated.')
+
+        console.log('paginationArgsOpts: ', paginationArgsOpts)
+
+        console.log('getting matches for the user on the client side...')
+
         const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate(paginationArgsOpts)
+
+        console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo)
 
         return { status: 200, data: potentialMatchesPageInfo }
     } catch(error){

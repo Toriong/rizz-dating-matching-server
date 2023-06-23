@@ -51,10 +51,16 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.log('isQueriyOptsValid: ', isQueryOptsValid)
 
     if(!isQueryOptsValid){
+        console.error('An errror has occurred. Invalid query parameters.')
         return response.status(400).json({ msg: 'Invalid query parameters.' })
     }
 
+    console.log("Will get the user's matches and send them to the client.")
+
     const queryMatchesResults = await getMatches(userQueryOpts);
+    
+    console.log('queryMatchesResults: ', queryMatchesResults)
+
     const { status, data, msg } = queryMatchesResults;
     const responseBody = (status === 200) ? { potentialMatchesPageInfo: data } : { msg: msg }
 

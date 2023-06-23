@@ -46,9 +46,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     const isQueryOptsValid = checkIfQueryOptsAreValid(userQueryOpts);
     console.log('isQueriyOptsValid: ', isQueryOptsValid);
     if (!isQueryOptsValid) {
+        console.error('An errror has occurred. Invalid query parameters.');
         return response.status(400).json({ msg: 'Invalid query parameters.' });
     }
+    console.log("Will get the user's matches and send them to the client.");
     const queryMatchesResults = yield getMatches(userQueryOpts);
+    console.log('queryMatchesResults: ', queryMatchesResults);
     const { status, data, msg } = queryMatchesResults;
     const responseBody = (status === 200) ? { potentialMatchesPageInfo: data } : { msg: msg };
     return response.status(status).json(responseBody);
