@@ -5,8 +5,23 @@ import { UserLocation } from '../types-and-interfaces/interfaces.js';
 type Sex = 'male' | 'female'
 type SortObjVal = 'asc' | 'ascending' | 'desc' | 'descending' | 1 | -1;
 type KeysForPaginationQuerying = Pick<UserBaseModelSchema, "birthDate" | "sex">;
+enum GemoetryLocationType {
+    type = "Point"
+}
+interface GeometryObj {
+    type: GemoetryLocationType,
+    coordinates: [number, number]
+}
+interface PaginationQueryingOpts extends KeysForPaginationQuerying {
+    location: {
+        $near: {
+            $geometry: GeometryObj,
+            $maxDistance: number,
+            $minDistance: number
+        }
+    }
+}
 type SelectType = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
-type PaginateFn = (paginationArgsOpts: PaginationArgsOpts) => Promise<ReturnTypeOfPaginateFn>;
 interface UserBaseModelSchema {
     _id: String,
     name: UserNames,
@@ -28,11 +43,6 @@ interface UserNames {
 interface SortObj {
     ratingNum: SortObjVal
 }
-interface PaginationArgsOpts {
-    query: KeysForPaginationQuerying,
-    select?: SelectType,
-    sort: SortObj
-}
 interface ReturnTypeOfPaginateFn {
     totalDocs: number | undefined;
     limit: number | undefined;
@@ -46,6 +56,12 @@ interface ReturnTypeOfPaginateFn {
     hasMore: Boolean | undefined
     docs: UserBaseModelSchema[]
 }
+interface PaginationArgsOpts {
+    query: PaginationQueryingOpts,
+    select?: SelectType,
+    sort: SortObj
+}
+type PaginateFn = (paginationArgsOpts: PaginationArgsOpts) => Promise<ReturnTypeOfPaginateFn>;
 interface PaginatedModel extends Mongoose.Model<Document> {
     paginate: PaginateFn
 }
@@ -90,4 +106,4 @@ if (!models.Users) {
 
 
 
-export { User, PaginatedModel, ReturnTypeOfPaginateFn };
+export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts };
