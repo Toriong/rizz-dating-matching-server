@@ -1,26 +1,17 @@
 import Mongoose, { Document, Model } from 'mongoose';
 import { mongoosePagination, Pagination, PaginationModel } from "mongoose-paginate-ts";
 
-const { Schema, models, model } = Mongoose;
-
-interface UserNames {
-    first: string,
-    last: string,
-    nickName?: string
-}
-
-
-
-interface UserLocation {
-    longitude: number,
-    latitude: number,
-}
-
+type Sex = 'male' | 'female'
+type SortObjVal = 'asc' | 'ascending' | 'desc' | 'descending' | 1 | -1;
+type KeysForPaginationQuerying = Pick<UserBaseModelSchema, "birthDate" | "sex">;
+type SelectType = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
+type PaginateFn = (paginationArgsOpts: PaginationArgsOpts) => Promise<ReturnTypeOfPaginateFn>;
 interface UserBaseModelSchema {
     _id: String,
     name: UserNames,
     password: String,
-    birthDate: String,
+    birthDate: Number,
+    sex: Sex,
     location: UserLocation,
     bio: String,
     hobbies: [String],
@@ -28,14 +19,41 @@ interface UserBaseModelSchema {
     phoneNum: Number,
     ratingNum: Number
 }
-
-type paginateFn = () => null;
-
-
+interface UserNames {
+    first: string,
+    last: string,
+    nickName?: string
+}
+interface UserLocation {
+    longitude: number,
+    latitude: number,
+}
+interface SortObj {
+    ratingNum: SortObjVal
+}
+interface PaginationArgsOpts {
+    query: KeysForPaginationQuerying,
+    select?: SelectType,
+    sort: SortObj
+}
+interface ReturnTypeOfPaginateFn {
+    totalDocs: number | undefined;
+    limit: number | undefined;
+    totalPages: number | undefined;
+    page: number | undefined;
+    pagingCounter: number | undefined;
+    hasPrevPage: Boolean | undefined
+    hasNextPage: Boolean | undefined
+    prevPage: number | undefined;
+    nextPage: number | undefined;
+    hasMore: Boolean | undefined
+    docs: UserBaseModelSchema[]
+}
 interface UserSchemaType extends Mongoose.Model<Document> {
-    paginate: paginateFn
+    paginate: PaginateFn
 }
 
+const { Schema, models, model } = Mongoose;
 let User = models.Users;
 
 // GOAL: create a function that will be the pagination function, this will return a promise of all of the users that the current user queried for 
@@ -72,4 +90,4 @@ if (!models.Users) {
 
 
 
-export { User, UserSchemaType };
+export { User, UserSchemaType, ReturnTypeOfPaginateFn };
