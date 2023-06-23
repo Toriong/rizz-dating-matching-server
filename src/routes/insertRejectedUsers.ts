@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
-import { RejectedUserInterface } from "../types-and-interfaces/interfaces.js";
 import { insertRejectedUser } from "../services/rejectedUsersService.js";
 import GLOBAL_VALS from '../globalVals.js';
+import { RejectedUserInterface } from '../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
 
 export const insertRouter = Router();
 

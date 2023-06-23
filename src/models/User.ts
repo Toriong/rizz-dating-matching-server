@@ -1,6 +1,6 @@
 import Mongoose, { Document, Model } from 'mongoose';
-import { mongoosePagination, Pagination, PaginationModel } from "mongoose-paginate-ts";
-import { UserLocation } from '../types-and-interfaces/interfaces.js';
+import { mongoosePagination } from "mongoose-paginate-ts";
+import { UserLocation } from '../types-and-interfaces/interfaces/userQueryInterfaces.js';
 
 type Sex = 'Male' | 'Female' | 'female' | 'male'
 type SortObjVal = 'asc' | 'ascending' | 'desc' | 'descending' | 1 | -1;

@@ -1,9 +1,7 @@
 import { RejectedUser } from '../models/RejectedUser.js';
-import { CRUDResult, RejectedUserInterface } from '../types-and-interfaces/interfaces.js';
+import { CRUDResult } from '../types-and-interfaces/interfaces/globalInterfaces.js';
+import { RejectedUserInterface } from '../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
 import { FnReturnsPromiseDocument, ModelType } from '../types-and-interfaces/types.js';
-
-
-
 
 interface CustomModel extends ModelType {
     save: FnReturnsPromiseDocument

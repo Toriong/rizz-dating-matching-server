@@ -1,14 +1,6 @@
 import { User as Users, PaginatedModel, PaginationQueryingOpts, PaginationArgsOpts, ReturnTypeOfPaginateFn } from "../../models/User.js"
-import { UserLocation } from "../../types-and-interfaces/interfaces.js"
+import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 
-type Sex = 'Female' | 'Male'
-interface UserQueryOpts {
-    desiredSex: Sex,
-    userLocation: UserLocation,
-    radiusInMilesInt: number,
-    desiredAgeRange: [Date, Date],
-    paginationPageNum: number
-}
 
 interface GetMatchesResult{
     status: number,
