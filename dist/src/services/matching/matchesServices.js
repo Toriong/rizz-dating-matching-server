@@ -7,15 +7,36 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-function getMatches(currentUserLocation) {
+import { User as Users } from "../../models/User.js";
+function getMatches(userQueryOpts) {
     return __awaiter(this, void 0, void 0, function* () {
-        // GOAL #1: perform pagination of the users collection based on the following criteria:
-        // the location of the user (location.longitude, location.latitude)
-        // the age of the user (birthDate)
-        // the sex of the user
-        // get only the highest rated users (user.ratingNum)
-        const paginationOptions = {};
-        // const potentialMatches = (User as PaginatedModel).paginate()
+        try {
+            const METERS_IN_A_MILE = 1609.34;
+            const { userLocation, radiusInMilesInt, desiredSex, desiredAgeRange, paginationPageNum } = userQueryOpts;
+            const { latitude, longitude } = userLocation;
+            const paginationQueryOpts = {
+                location: {
+                    $near: {
+                        $geometry: { type: "Point", coordinates: [latitude, longitude] },
+                        $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                    }
+                },
+                sex: desiredSex,
+                birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) }
+            };
+            const paginationArgsOpts = {
+                query: paginationQueryOpts,
+                sort: { ratingNum: -1 },
+                page: paginationPageNum,
+                limit: 5
+            };
+            const potentialMatches = yield Users.paginate(paginationArgsOpts);
+            return { status: 200, data: potentialMatches };
+        }
+        catch (error) {
+            const errMsg = `An error has occurred in getting matches for user: ${error}`;
+            return { status: 500, msg: errMsg };
+        }
         // GOAL #2: check if the result users have been either:
         // rejected by the current user (the user on the client side)
         // or has rejected the current user  

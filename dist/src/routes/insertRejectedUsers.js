@@ -13,7 +13,6 @@ import GLOBAL_VALS from '../globalVals.js';
 export const insertRouter = Router();
 insertRouter.post(`/${GLOBAL_VALS.rejectedUsersRootPath}/insert-rejected-users`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    console.log('The request body is: ', request.body);
     const { rejectedUserId, rejectorUserId, reason } = (_a = request.body) !== null && _a !== void 0 ? _a : {};
     if (!rejectedUserId || !rejectorUserId) {
         console.error('Either the rejectedUserId or the rejectorUserId was not provided in the request body.');

@@ -1,9 +1,5 @@
 import Mongoose from 'mongoose';
 import { mongoosePagination } from "mongoose-paginate-ts";
-var GemoetryLocationType;
-(function (GemoetryLocationType) {
-    GemoetryLocationType["type"] = "Point";
-})(GemoetryLocationType || (GemoetryLocationType = {}));
 const { Schema, models, model } = Mongoose;
 let User = models.Users;
 if (!models.Users) {
