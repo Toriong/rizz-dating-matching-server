@@ -39,6 +39,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // if all of the parameters are present, then proceed to get the matches
     const query: unknown = request.query
 
+    console.log('query: ', query)
+
     if (query === undefined || !query) {
         return response.status(400).json({ msg: 'Missing query parameters.' })
     }
@@ -46,13 +48,15 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const userQueryOpts = query as UserQueryOpts;
     const isQueryOptsValid = checkIfQueryOptsAreValid(userQueryOpts);
 
+    console.log('isQueriyOptsValid: ', isQueryOptsValid)
+
     if(!isQueryOptsValid){
         return response.status(400).json({ msg: 'Invalid query parameters.' })
     }
 
     const queryMatchesResults = await getMatches(userQueryOpts);
     const { status, data, msg } = queryMatchesResults;
-    const jsonBody = (status === 200) ? { potentialMatches: data } : { msg: msg }
+    const responseBody = (status === 200) ? { potentialMatchesPageInfo: data } : { msg: msg }
 
-    return response.status(status).json(jsonBody)
+    return response.status(status).json(responseBody)
 })

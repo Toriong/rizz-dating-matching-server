@@ -29,9 +29,9 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
             page: paginationPageNum,
             limit: 5
         }
-        const potentialMatches = await (Users as PaginatedModel).paginate(paginationArgsOpts)
+        const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate(paginationArgsOpts)
 
-        return { status: 200, data: potentialMatches }
+        return { status: 200, data: potentialMatchesPageInfo }
     } catch(error){
         const errMsg = `An error has occurred in getting matches for user: ${error}`
 

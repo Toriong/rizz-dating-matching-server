@@ -30,8 +30,8 @@ function getMatches(userQueryOpts) {
                 page: paginationPageNum,
                 limit: 5
             };
-            const potentialMatches = yield Users.paginate(paginationArgsOpts);
-            return { status: 200, data: potentialMatches };
+            const potentialMatchesPageInfo = yield Users.paginate(paginationArgsOpts);
+            return { status: 200, data: potentialMatchesPageInfo };
         }
         catch (error) {
             const errMsg = `An error has occurred in getting matches for user: ${error}`;

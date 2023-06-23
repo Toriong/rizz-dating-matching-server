@@ -38,16 +38,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // if any of the parameters are missing, return an error message
     // if all of the parameters are present, then proceed to get the matches
     const query = request.query;
+    console.log('query: ', query);
     if (query === undefined || !query) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
     }
     const userQueryOpts = query;
     const isQueryOptsValid = checkIfQueryOptsAreValid(userQueryOpts);
+    console.log('isQueriyOptsValid: ', isQueryOptsValid);
     if (!isQueryOptsValid) {
         return response.status(400).json({ msg: 'Invalid query parameters.' });
     }
     const queryMatchesResults = yield getMatches(userQueryOpts);
     const { status, data, msg } = queryMatchesResults;
-    const jsonBody = (status === 200) ? { potentialMatches: data } : { msg: msg };
-    return response.status(status).json(jsonBody);
+    const responseBody = (status === 200) ? { potentialMatchesPageInfo: data } : { msg: msg };
+    return response.status(status).json(responseBody);
 }));
