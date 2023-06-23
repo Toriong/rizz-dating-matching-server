@@ -49,7 +49,7 @@ interface ReturnTypeOfPaginateFn {
     hasMore: Boolean | undefined
     docs: UserBaseModelSchema[]
 }
-interface UserSchemaType extends Mongoose.Model<Document> {
+interface PaginatedModel extends Mongoose.Model<Document> {
     paginate: PaginateFn
 }
 
@@ -90,4 +90,4 @@ if (!models.Users) {
 
 
 
-export { User, UserSchemaType, ReturnTypeOfPaginateFn };
+export { User, PaginatedModel, ReturnTypeOfPaginateFn };

@@ -19,3 +19,8 @@ export interface CRUDResult{
     msg?: String,
     data?: RejectedUserInterface | unknown
 }
+
+export interface UserLocation {
+    longitude: number,
+    latitude: number,
+}
