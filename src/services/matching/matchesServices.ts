@@ -34,7 +34,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         const paginationQueryOpts: PaginationQueryingOpts = {
             location: {
                 $near: {
-                    $geometry: { type: "Point", coordinates: [latitude, longitude] },
+                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
                     $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
                 }
             },
@@ -65,32 +65,17 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         //         $geometry: { type: "Point", coordinates: [longitude, latitude]  },
         //     }
         // },
-        let minAgeDateStr: string | Moment = getFormattedBirthDate(new Date(minAge))
-        minAgeDateStr = moment.utc(minAgeDateStr)
-        let maxAgeDateStr: string | Moment = getFormattedBirthDate(new Date(maxAge))
-        maxAgeDateStr = moment.utc(maxAgeDateStr)
-        const pageOpts = { page: paginationPageNum, limit: 5 }
-        const potentialMatchesPageInfo = await Users.find({ sex: desiredSex, birthDate: { $gte: minAgeDateStr.toDate() } }, null, pageOpts).sort({ ratingNum: 'desc' })
+        // let minAgeDateStr: string | Moment = getFormattedBirthDate(new Date(minAge))
+        // minAgeDateStr = moment.utc(minAgeDateStr)
+        // let maxAgeDateStr: string | Moment = getFormattedBirthDate(new Date(maxAge))
+        // maxAgeDateStr = moment.utc(maxAgeDateStr)
+        const pageOpts = { page: 1, limit: 5 }
+        console.log('paginationQueryOpts: ', paginationQueryOpts);
+        await (Users as any).createIndexes([{ location: '2dsphere' }])
+        const potentialMatchesPageInfo = await (Users as any).find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' })
 
-        console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo.length)
 
-        // const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate({
-        //     query: {
-        //         location: {
-        //             $near: {
-        //                 $geometry: { type: "Point", coordinates: [latitude, longitude] },
-        //                 $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
-        //             }
-        //         },
-        //         sex: desiredSex,
-        // birthDate: { $gt: minAge, $lt: maxAge }
-        //     },
-        //     page: 1,
-        //     limit: 5,
-        //     sort: { ratingNum: -1 }
-        //     // birthDate: { $gt: desiredAgeRange[0], $lt: desiredAgeRange[1] }
-        // })
-
+        console.log("potentialMatchesPageInfo: ", potentialMatchesPageInfo.length)
 
         // console.log('potentialMatchesPageInfo?.docs: ', potentialMatchesPageInfo?.docs)
 

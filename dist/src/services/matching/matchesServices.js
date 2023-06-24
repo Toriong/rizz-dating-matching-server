@@ -27,7 +27,7 @@ function getMatches(userQueryOpts) {
             const paginationQueryOpts = {
                 location: {
                     $near: {
-                        $geometry: { type: "Point", coordinates: [latitude, longitude] },
+                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
                         $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
                     }
                 },
@@ -50,29 +50,15 @@ function getMatches(userQueryOpts) {
             //         $geometry: { type: "Point", coordinates: [longitude, latitude]  },
             //     }
             // },
-            let minAgeDateStr = getFormattedBirthDate(new Date(minAge));
-            minAgeDateStr = moment.utc(minAgeDateStr);
-            let maxAgeDateStr = getFormattedBirthDate(new Date(maxAge));
-            maxAgeDateStr = moment.utc(maxAgeDateStr);
-            const pageOpts = { page: paginationPageNum, limit: 5 };
-            const potentialMatchesPageInfo = yield Users.find({ sex: desiredSex, birthDate: { $gte: minAgeDateStr.toDate() } }, null, pageOpts).sort({ ratingNum: 'desc' });
-            console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo.length);
-            // const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate({
-            //     query: {
-            //         location: {
-            //             $near: {
-            //                 $geometry: { type: "Point", coordinates: [latitude, longitude] },
-            //                 $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
-            //             }
-            //         },
-            //         sex: desiredSex,
-            // birthDate: { $gt: minAge, $lt: maxAge }
-            //     },
-            //     page: 1,
-            //     limit: 5,
-            //     sort: { ratingNum: -1 }
-            //     // birthDate: { $gt: desiredAgeRange[0], $lt: desiredAgeRange[1] }
-            // })
+            // let minAgeDateStr: string | Moment = getFormattedBirthDate(new Date(minAge))
+            // minAgeDateStr = moment.utc(minAgeDateStr)
+            // let maxAgeDateStr: string | Moment = getFormattedBirthDate(new Date(maxAge))
+            // maxAgeDateStr = moment.utc(maxAgeDateStr)
+            const pageOpts = { page: 1, limit: 5 };
+            console.log('paginationQueryOpts: ', paginationQueryOpts);
+            yield Users.createIndexes([{ location: '2dsphere' }]);
+            const potentialMatchesPageInfo = yield Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' });
+            console.log("potentialMatchesPageInfo: ", potentialMatchesPageInfo.length);
             // console.log('potentialMatchesPageInfo?.docs: ', potentialMatchesPageInfo?.docs)
             return { status: 200 };
         }
