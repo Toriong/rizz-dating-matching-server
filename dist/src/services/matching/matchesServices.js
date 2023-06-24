@@ -50,11 +50,33 @@ function getMatches(userQueryOpts) {
             //         '01H2S38KJAF0WDQAGHFNFP78X8',
             // [1]   '01H2S38CK68Z9AE4H0ZSX4SS7C',
             // [1]   '01H2S38HGJXEM5Q0RSS05FSJXX'
+            // GOAL: connect to the firebase database in order to check if the current user received a match request from the specified user or has sent a match request to the specified user
+            // BRAIN DUMP:
+            // the user can respond to a match in the following ways:
+            // by sending match request to the user
+            // or rejecting the user
+            // CASE: the user received a match request from the specified user
+            // GOAL: delete this user from the potential matches array
+            // CASE: sent a match request to a user
+            // GOAL: delete this user from the potential matches array
+            // CASE: the current user has rejected the potential match user or the potential match user has rejected the current user
+            // GOAL: delete this user from the potential matches array
+            // send the following info back to the client:
+            // the users to display on the client side
+            // if it is the last page for the user to page through
             const pageOpts = { page: paginationPageNum, limit: 5 };
             yield Users.createIndexes([{ location: '2dsphere' }]);
-            const potentialMatchesPageInfo = yield Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' });
-            // console.log("potentialMatchesPageInfo mapped arr: ", (potentialMatchesPageInfo as UserBaseModelSchema[]).map(({ _id }) => _id))
-            // console.log('potentialMatchesPageInfo?.docs: ', potentialMatchesPageInfo?.docs)
+            const potentialMatches = yield Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' });
+            // determine if the pagination is the last pagination page that the user can perform
+            // CASE: there are less than 5 users in the pagination
+            // GOAL: the user is on the last pagination page, set isLast to true
+            // GOAL: using the ids of the users of the potential matches, check if they have rejected the current user. If so, then filter that user out
+            // CASE: there is at least one user that rejected the current user, get the next pagination pages, on the fourth pagination, there is a replacement for the user that rejected the current user
+            // GOAL: get the next pagination
+            // CASE: 
+            // the users in the second, third, fourth paginations, has rejected the current user
+            // for the fifth pagination, two users were rejected by the current user
+            // GOAL: on the fifth pagination, get the user with the highest rating, and replace the users that rejected the current user or was rejected by the current user
             return { status: 200 };
         }
         catch (error) {
