@@ -40,23 +40,33 @@ function getMatches(userQueryOpts) {
             // console.log('paginationArgsOpts: ', paginationArgsOpts)
             console.log('getting matches for the user on the client side...');
             // const potentialMatchesPageInfo = await (Users as any).paginate({ query: { sex: 'Female' }, birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) } })
-            const potentialMatchesPageInfo = yield Users.paginate({
-                query: {
-                    // location: {
-                    //     $near: {
-                    //         $geometry: { type: "Point", coordinates: [latitude, longitude] },
-                    //         $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
-                    //     }
-                    // },
-                    sex: desiredSex,
-                    // birthDate: { $gt: minAge, $lt: maxAge }
+            const potentialMatchesPageInfo = yield Users.find({
+                location: {
+                    $near: {
+                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                    }
                 },
-                page: 1,
-                limit: 5,
-                sort: { ratingNum: -1 }
-                // birthDate: { $gt: desiredAgeRange[0], $lt: desiredAgeRange[1] }
+                sex: desiredSex,
+                // birthDate: { $gt: minAge, $lt: maxAge }
             });
-            console.log('potentialMatchesPageInfo?.docs: ', potentialMatchesPageInfo === null || potentialMatchesPageInfo === void 0 ? void 0 : potentialMatchesPageInfo.docs);
+            console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo.length);
+            // const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate({
+            //     query: {
+            //         location: {
+            //             $near: {
+            //                 $geometry: { type: "Point", coordinates: [latitude, longitude] },
+            //                 $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+            //             }
+            //         },
+            //         sex: desiredSex,
+            // birthDate: { $gt: minAge, $lt: maxAge }
+            //     },
+            //     page: 1,
+            //     limit: 5,
+            //     sort: { ratingNum: -1 }
+            //     // birthDate: { $gt: desiredAgeRange[0], $lt: desiredAgeRange[1] }
+            // })
+            // console.log('potentialMatchesPageInfo?.docs: ', potentialMatchesPageInfo?.docs)
             return { status: 200 };
         }
         catch (error) {

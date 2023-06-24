@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import { Router, Request, Response } from 'express'
 import { insertRejectedUser } from "../../services/rejectedUsersService.js";
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesServices.js';
 import { UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
+import { PaginatedModel } from '../../models/User.js';
 
 export const getMatchesRoute = Router();
 
@@ -37,7 +39,7 @@ function getQueryOptionsValidationArr(queryOpts: RequestQuery): QueryValidationI
     const { latitude, longitude } = userLocation ?? {};
     const areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
     const areDesiredAgeRangeValsValid = { receivedType: typeof desiredAgeRange, recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate), correctVal: 'object', fieldName: 'desiredAgeRange', isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange }
-    const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseInt(longitude) === 'number') && (typeof parseInt(latitude) === 'number'))
+    const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseFloat(longitude) === 'number') && (typeof parseFloat(latitude) === 'number'))
     const isLongAndLatValid = { receivedType: typeof userLocation, recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)), correctVal: 'number', fieldName: 'userLocation', isCorrectValType: isLongAndLatValueTypeValid, val: userLocation, areFiedNamesPresent: !!latitude && !!longitude }
     const sexValidationObj = { receivedType: typeof validSexes, correctVal: validSexes, fieldName: 'desiredSex', isCorrectValType: validSexes.includes(desiredSex), val: desiredSex }
     const paginationPageNumValidationObj = { receivedType: typeof paginationPageNum, correctVal: 'number', fieldName: 'paginationPageNum', isCorrectValType: typeof parseInt(paginationPageNum) === 'number', val: paginationPageNum }
@@ -89,8 +91,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.log("Will get the user's matches and send them to the client.")
 
     // access the userQuerOpts.desireDateRange, loop through it using the map method, and change the date strings to date objects
-
-    const userlocationValsUpdated = { longitude: parseInt(userQueryOpts.userLocation.longitude), latitude: parseInt(userQueryOpts.userLocation.latitude) }
+    const userlocationValsUpdated = { longitude: parseFloat(userQueryOpts.userLocation.longitude), latitude: parseFloat(userQueryOpts.userLocation.latitude) }
     const dateRangesUpdated = userQueryOpts.desiredAgeRange.map(date => new Date(date)) as [Date, Date]
     const valOfRadiusFieldUpdated = parseInt(userQueryOpts.radiusInMilesInt)
     const paginationPageNumUpdated = parseInt(userQueryOpts.paginationPageNum)

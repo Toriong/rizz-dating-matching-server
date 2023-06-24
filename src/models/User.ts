@@ -68,42 +68,41 @@ interface PaginatedModel extends Mongoose.Model<Document> {
 }
 
 const { Schema, models, model } = Mongoose;
-let User = models.Users;
 
-if (!models.Users) {
-    const UserNames = new Schema<UserNames>({
-        first: String,
-        last: String,
-        nickName: String
-    }, { _id: false })
-    const UserLocation = new Schema({
-        type: {
-            type: String,
-            enum: ['Point'],
-            required: true
-        },
-        coordinates: {
-            type: [Number],
-            required: true
-        }
-    });
-    const UserSchema = new Schema<UserBaseModelSchema>({
-        _id: String,
-        name: UserNames,
-        password: String,
-        birthDate: String,
-        location: UserLocation,
-        bio: String,
-        hobbies: [String],
-        email: String,
-        phoneNum: Number,
-        ratingNum: Number,
-    }, { timestamps: true })
+const UserNames = new Schema<UserNames>({
+    first: String,
+    last: String,
+    nickName: String
+}, { _id: false })
+const UserLocation = new Schema({
+    type: {
+        type: String,
+        enum: ['Point'],
+        required: true
+    },
+    coordinates: {
+        type: [Number],
+        required: true
+    }
+});
+const UserSchema = new Schema<UserBaseModelSchema>({
+    _id: String,
+    name: UserNames,
+    password: String,
+    birthDate: String,
+    location: UserLocation,
+    bio: String,
+    hobbies: [String],
+    email: String,
+    phoneNum: Number,
+    ratingNum: Number,
+}, { timestamps: true })
 
-    UserSchema.plugin(mongoosePagination)
+UserSchema.index({ location: '2dsphere' })
 
-    User = model('users', UserSchema);
-}
+UserSchema.plugin(mongoosePagination)
+
+const User = model('users', UserSchema);
 
 
 
