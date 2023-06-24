@@ -2,7 +2,7 @@ import { User as Users, PaginatedModel, PaginationQueryingOpts, PaginationArgsOp
 import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 
 
-interface GetMatchesResult{
+interface GetMatchesResult {
     status: number,
     data?: ReturnTypeOfPaginateFn,
     msg?: string
@@ -12,7 +12,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
 
     console.log('userQueryOpts: ', userQueryOpts)
 
-    try{
+    try {
 
         console.log('generating query options...')
 
@@ -32,7 +32,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
 
         console.log('paginationQueryOpts: ', paginationQueryOpts)
 
-        const paginationArgsOpts:PaginationArgsOpts = {
+        const paginationArgsOpts: PaginationArgsOpts = {
             query: paginationQueryOpts,
             sort: { ratingNum: -1 },
             page: paginationPageNum,
@@ -45,12 +45,17 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
 
         console.log('getting matches for the user on the client side...')
 
-        const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate(paginationArgsOpts)
+        const USERS: any = Users;
+
+        console.log('USERS.paginate: ', USERS.paginate)
+
+
+        const potentialMatchesPageInfo = await (Users as any).paginate(paginationArgsOpts)
 
         console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo)
 
-        return { status: 200, data: potentialMatchesPageInfo }
-    } catch(error){
+        return { status: 200 }
+    } catch (error) {
         const errMsg = `An error has occurred in getting matches for user: ${error}`
 
         return { status: 500, msg: errMsg }

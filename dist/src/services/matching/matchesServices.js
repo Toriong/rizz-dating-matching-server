@@ -36,9 +36,11 @@ function getMatches(userQueryOpts) {
             console.log('query options has been generated.');
             console.log('paginationArgsOpts: ', paginationArgsOpts);
             console.log('getting matches for the user on the client side...');
+            const USERS = Users;
+            console.log('USERS.paginate: ', USERS.paginate);
             const potentialMatchesPageInfo = yield Users.paginate(paginationArgsOpts);
             console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo);
-            return { status: 200, data: potentialMatchesPageInfo };
+            return { status: 200 };
         }
         catch (error) {
             const errMsg = `An error has occurred in getting matches for user: ${error}`;

@@ -11,16 +11,23 @@ import { Router } from 'express';
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesServices.js';
 export const getMatchesRoute = Router();
-function checkIfQueryOptsAreValid(queryOpts) {
+function validateFormOfObj(key, obj) {
+    const receivedType = typeof obj[key];
+    return { fieldName: key, receivedType };
+}
+function getQueryOptionsValidationArr(queryOpts) {
+    console.log('checking options of query. queryOpts: ', queryOpts);
     const validSexes = ['Male', 'Female'];
     const { userLocation, desiredAgeRange, desiredSex, paginationPageNum, radiusInMilesInt } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
     const { latitude, longitude } = userLocation !== null && userLocation !== void 0 ? userLocation : {};
-    const isUserLocationValid = (!!latitude && !!longitude) && (typeof latitude === 'number') && (typeof longitude === 'number');
-    const isDesiredAgeRangeValid = Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2) && desiredAgeRange.every(date => date instanceof Date);
-    const isDesireSexValid = !!desiredSex && validSexes.includes(desiredSex);
-    const isPaginationPageNumValid = !!paginationPageNum && (typeof paginationPageNum === 'number');
-    const isRadisusInMilesInt = !!radiusInMilesInt && (typeof radiusInMilesInt === 'number');
-    return isUserLocationValid && isDesiredAgeRangeValid && isDesireSexValid && isPaginationPageNumValid && isRadisusInMilesInt;
+    const areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
+    const areDesiredAgeRangeValsValid = { receivedType: typeof desiredAgeRange, recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate), correctVal: 'object', fieldName: 'desiredAgeRange', isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange };
+    const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseInt(longitude) === 'number') && (typeof parseInt(latitude) === 'number'));
+    const isLongAndLatValid = { receivedType: typeof userLocation, recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)), correctVal: 'number', fieldName: 'userLocation', isCorrectValType: isLongAndLatValueTypeValid, val: userLocation, areFiedNamesPresent: !!latitude && !!longitude };
+    const sexValidationObj = { receivedType: typeof validSexes, correctVal: validSexes, fieldName: 'desiredSex', isCorrectValType: validSexes.includes(desiredSex), val: desiredSex };
+    const paginationPageNumValidationObj = { receivedType: typeof paginationPageNum, correctVal: 'number', fieldName: 'paginationPageNum', isCorrectValType: typeof parseInt(paginationPageNum) === 'number', val: paginationPageNum };
+    const radiusValidationObj = { receivedType: typeof radiusInMilesInt, correctVal: 'number', fieldName: 'radiusInMilesInt', isCorrectValType: typeof parseInt(radiusInMilesInt) === 'number', val: radiusInMilesInt };
+    return [radiusValidationObj, paginationPageNumValidationObj, sexValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     // GOAL #1: get the users based on the following criteria:
@@ -42,14 +49,24 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if (query === undefined || !query) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
     }
-    const userQueryOpts = query;
-    const isQueryOptsValid = checkIfQueryOptsAreValid(userQueryOpts);
-    console.log('isQueriyOptsValid: ', isQueryOptsValid);
-    if (!isQueryOptsValid) {
+    let userQueryOpts = query;
+    const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
+    const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType);
+    // filter in all of the query options validtion results with the field of isCorrectValType of false
+    if (!areQueryOptsValid) {
+        const invalidQueryOpts = queryOptsValidArr.filter(({ isCorrectValType }) => !isCorrectValType);
+        console.table(invalidQueryOpts);
         console.error('An errror has occurred. Invalid query parameters.');
         return response.status(400).json({ msg: 'Invalid query parameters.' });
     }
     console.log("Will get the user's matches and send them to the client.");
+    // access the userQuerOpts.desireDateRange, loop through it using the map method, and change the date strings to date objects
+    const userlocationValsUpdated = { longitude: parseInt(userQueryOpts.userLocation.longitude), latitude: parseInt(userQueryOpts.userLocation.latitude) };
+    const dateRangesUpdated = userQueryOpts.desiredAgeRange.map(date => new Date(date));
+    const valOfRadiusFieldUpdated = parseInt(userQueryOpts.radiusInMilesInt);
+    const paginationPageNumUpdated = parseInt(userQueryOpts.paginationPageNum);
+    userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { paginationPageNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, desiredAgeRange: dateRangesUpdated, radiusInMilesInt: valOfRadiusFieldUpdated });
+    console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts);
     console.log('queryMatchesResults: ', queryMatchesResults);
     const { status, data, msg } = queryMatchesResults;
