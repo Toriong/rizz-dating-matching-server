@@ -8,7 +8,7 @@ interface UserQueryOpts {
     desiredSex: Sex,
     userLocation: UserLocation,
     radiusInMilesInt: number,
-    desiredAgeRange: [Date, Date],
+    desiredAgeRange: [String, String],
     paginationPageNum: number
 }
 

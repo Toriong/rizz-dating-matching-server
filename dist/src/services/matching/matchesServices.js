@@ -16,7 +16,6 @@ function getMatches(userQueryOpts) {
             const METERS_IN_A_MILE = 1609.34;
             const { userLocation, radiusInMilesInt, desiredSex, desiredAgeRange, paginationPageNum } = userQueryOpts;
             const [minAge, maxAge] = desiredAgeRange;
-            console.log('minAge: ', typeof minAge);
             const { latitude, longitude } = userLocation;
             console.log('typeof latitude: ', typeof latitude);
             const paginationQueryOpts = {
@@ -45,8 +44,8 @@ function getMatches(userQueryOpts) {
             //         $geometry: { type: "Point", coordinates: [longitude, latitude]  },
             //     }
             // },
-            const potentialMatchesPageInfo = yield Users.find({ sex: desiredSex });
-            console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo.length);
+            const pageOpts = { page: paginationPageNum, limit: 5 };
+            const potentialMatchesPageInfo = yield Users.find({ sex: desiredSex, birthDate: { $gt: minAge, $lt: maxAge } }, null, pageOpts).sort({ ratingNum: 'desc' });
             // const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate({
             //     query: {
             //         location: {
