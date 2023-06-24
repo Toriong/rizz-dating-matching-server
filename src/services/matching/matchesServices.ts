@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { User as Users, PaginatedModel, PaginationQueryingOpts, PaginationArgsOpts, ReturnTypeOfPaginateFn } from "../../models/User.js"
+import { User as Users, PaginatedModel, PaginationQueryingOpts, PaginationArgsOpts, ReturnTypeOfPaginateFn, UserBaseModelSchema } from "../../models/User.js"
 import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 import { get } from "http";
 import moment, { Moment } from "moment";
@@ -35,7 +35,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
             location: {
                 $near: {
                     $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                    $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                    $maxDistance: 10_000 * METERS_IN_A_MILE,
                 }
             },
             sex: desiredSex,
@@ -43,17 +43,6 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         }
 
         console.log('paginationQueryOpts: ', paginationQueryOpts)
-
-        const paginationArgsOpts: PaginationArgsOpts = {
-            query: paginationQueryOpts,
-            sort: { ratingNum: -1 },
-            page: paginationPageNum,
-            limit: 5
-        }
-
-        console.log('query options has been generated.')
-
-        // console.log('paginationArgsOpts: ', paginationArgsOpts)
 
         console.log('getting matches for the user on the client side...');
 
@@ -69,13 +58,19 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         // minAgeDateStr = moment.utc(minAgeDateStr)
         // let maxAgeDateStr: string | Moment = getFormattedBirthDate(new Date(maxAge))
         // maxAgeDateStr = moment.utc(maxAgeDateStr)
-        const pageOpts = { page: 1, limit: 5 }
-        console.log('paginationQueryOpts: ', paginationQueryOpts);
+
+        // for the first query: 
+//         '01H2S38KJAF0WDQAGHFNFP78X8',
+// [1]   '01H2S38CK68Z9AE4H0ZSX4SS7C',
+// [1]   '01H2S38HGJXEM5Q0RSS05FSJXX'
+
+        const pageOpts = { page: paginationPageNum, limit: 5 }
         await (Users as any).createIndexes([{ location: '2dsphere' }])
-        const potentialMatchesPageInfo = await (Users as any).find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' })
+        const potentialMatchesPageInfo = await Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' })
 
 
-        console.log("potentialMatchesPageInfo: ", potentialMatchesPageInfo.length)
+
+        // console.log("potentialMatchesPageInfo mapped arr: ", (potentialMatchesPageInfo as UserBaseModelSchema[]).map(({ _id }) => _id))
 
         // console.log('potentialMatchesPageInfo?.docs: ', potentialMatchesPageInfo?.docs)
 

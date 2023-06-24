@@ -28,21 +28,13 @@ function getMatches(userQueryOpts) {
                 location: {
                     $near: {
                         $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                        $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                        $maxDistance: 10000 * METERS_IN_A_MILE,
                     }
                 },
                 sex: desiredSex,
                 birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
             };
             console.log('paginationQueryOpts: ', paginationQueryOpts);
-            const paginationArgsOpts = {
-                query: paginationQueryOpts,
-                sort: { ratingNum: -1 },
-                page: paginationPageNum,
-                limit: 5
-            };
-            console.log('query options has been generated.');
-            // console.log('paginationArgsOpts: ', paginationArgsOpts)
             console.log('getting matches for the user on the client side...');
             // const potentialMatchesPageInfo = await (Users as any).paginate({ query: { sex: 'Female' }, birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) } })
             // location: {
@@ -54,11 +46,14 @@ function getMatches(userQueryOpts) {
             // minAgeDateStr = moment.utc(minAgeDateStr)
             // let maxAgeDateStr: string | Moment = getFormattedBirthDate(new Date(maxAge))
             // maxAgeDateStr = moment.utc(maxAgeDateStr)
-            const pageOpts = { page: 1, limit: 5 };
-            console.log('paginationQueryOpts: ', paginationQueryOpts);
+            // for the first query: 
+            //         '01H2S38KJAF0WDQAGHFNFP78X8',
+            // [1]   '01H2S38CK68Z9AE4H0ZSX4SS7C',
+            // [1]   '01H2S38HGJXEM5Q0RSS05FSJXX'
+            const pageOpts = { page: paginationPageNum, limit: 5 };
             yield Users.createIndexes([{ location: '2dsphere' }]);
             const potentialMatchesPageInfo = yield Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' });
-            console.log("potentialMatchesPageInfo: ", potentialMatchesPageInfo.length);
+            // console.log("potentialMatchesPageInfo mapped arr: ", (potentialMatchesPageInfo as UserBaseModelSchema[]).map(({ _id }) => _id))
             // console.log('potentialMatchesPageInfo?.docs: ', potentialMatchesPageInfo?.docs)
             return { status: 200 };
         }
