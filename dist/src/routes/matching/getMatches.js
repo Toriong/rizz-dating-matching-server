@@ -62,10 +62,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log("Will get the user's matches and send them to the client.");
     // access the userQuerOpts.desireDateRange, loop through it using the map method, and change the date strings to date objects
     const userlocationValsUpdated = { longitude: parseFloat(userQueryOpts.userLocation.longitude), latitude: parseFloat(userQueryOpts.userLocation.latitude) };
-    const dateRangesUpdated = userQueryOpts.desiredAgeRange.map(date => new Date(date));
     const valOfRadiusFieldUpdated = parseInt(userQueryOpts.radiusInMilesInt);
     const paginationPageNumUpdated = parseInt(userQueryOpts.paginationPageNum);
-    userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { paginationPageNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, desiredAgeRange: dateRangesUpdated, radiusInMilesInt: valOfRadiusFieldUpdated });
+    userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { paginationPageNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, radiusInMilesInt: valOfRadiusFieldUpdated });
     console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts);
     console.log('queryMatchesResults: ', queryMatchesResults);

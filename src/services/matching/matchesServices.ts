@@ -1,12 +1,21 @@
 import mongoose from "mongoose";
 import { User as Users, PaginatedModel, PaginationQueryingOpts, PaginationArgsOpts, ReturnTypeOfPaginateFn } from "../../models/User.js"
 import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
+import { get } from "http";
+import moment, { Moment } from "moment";
 
 
 interface GetMatchesResult {
     status: number,
     data?: ReturnTypeOfPaginateFn,
     msg?: string
+}
+
+function getFormattedBirthDate(birthDate: Date): string {
+    const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`
+    const day = (birthDate.getDay().toString().length > 1) ? birthDate.getDay() + 1 : `0${birthDate.getDay() + 1}`
+
+    return `${birthDate.getFullYear()}-${month}-${day}`
 }
 
 async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResult> {
@@ -30,7 +39,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
                 }
             },
             sex: desiredSex,
-            birthDate: { $gt: minAge, $lt: maxAge }
+            birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         }
 
         console.log('paginationQueryOpts: ', paginationQueryOpts)
@@ -56,10 +65,14 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         //         $geometry: { type: "Point", coordinates: [longitude, latitude]  },
         //     }
         // },
+        let minAgeDateStr: string | Moment = getFormattedBirthDate(new Date(minAge))
+        minAgeDateStr = moment.utc(minAgeDateStr)
+        let maxAgeDateStr: string | Moment = getFormattedBirthDate(new Date(maxAge))
+        maxAgeDateStr = moment.utc(maxAgeDateStr)
         const pageOpts = { page: paginationPageNum, limit: 5 }
-        const potentialMatchesPageInfo = await Users.find({ sex: desiredSex, birthDate: { $gt: minAge, $lt: maxAge } }, null, pageOpts).sort({ ratingNum: 'desc' })
+        const potentialMatchesPageInfo = await Users.find({ sex: desiredSex, birthDate: { $gte: minAgeDateStr.toDate() } }, null, pageOpts).sort({ ratingNum: 'desc' })
 
-
+        console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo.length)
 
         // const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate({
         //     query: {

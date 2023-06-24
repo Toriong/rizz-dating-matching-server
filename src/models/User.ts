@@ -25,7 +25,10 @@ interface UserBaseModelSchema {
     _id: String,
     name: UserNames,
     password: String,
-    birthDate: Number,
+    birthDate: {
+        type: Date,
+        required: boolean
+    },
     sex: Sex,
     location: UserLocation,
     bio: String,
@@ -89,7 +92,10 @@ const UserSchema = new Schema<UserBaseModelSchema>({
     _id: String,
     name: UserNames,
     password: String,
-    birthDate: String,
+    birthDate: {
+        type: Date,
+        required: true
+    },
     location: UserLocation,
     bio: String,
     hobbies: [String],

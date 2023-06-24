@@ -19,9 +19,8 @@ interface QueryValidationInterface {
     recievedTypeOfValsInArr?: ({ fieldName: string, receivedType: string } | string)[]
 }
 
-interface RequestQuery extends Omit<UserQueryOpts, 'userLocation' | 'desiredAgeRange' | 'radiusInMilesInt'| 'paginationPageNum'> {
+interface RequestQuery extends Omit<UserQueryOpts, 'userLocation' | 'radiusInMilesInt'| 'paginationPageNum'> {
     userLocation: { latitude: string, longitude: string }
-    desiredAgeRange: string[]
     radiusInMilesInt: string
     paginationPageNum: string
 }
@@ -92,10 +91,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     // access the userQuerOpts.desireDateRange, loop through it using the map method, and change the date strings to date objects
     const userlocationValsUpdated = { longitude: parseFloat(userQueryOpts.userLocation.longitude), latitude: parseFloat(userQueryOpts.userLocation.latitude) }
-    const dateRangesUpdated = userQueryOpts.desiredAgeRange.map(date => new Date(date)) as [Date, Date]
     const valOfRadiusFieldUpdated = parseInt(userQueryOpts.radiusInMilesInt)
     const paginationPageNumUpdated = parseInt(userQueryOpts.paginationPageNum)
-    userQueryOpts = { ...userQueryOpts, paginationPageNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, desiredAgeRange: dateRangesUpdated, radiusInMilesInt: valOfRadiusFieldUpdated }
+    userQueryOpts = { ...userQueryOpts, paginationPageNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, radiusInMilesInt: valOfRadiusFieldUpdated }
 
     console.log('will query for matches...')
 

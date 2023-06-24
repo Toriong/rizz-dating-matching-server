@@ -21,7 +21,10 @@ const UserSchema = new Schema({
     _id: String,
     name: UserNames,
     password: String,
-    birthDate: String,
+    birthDate: {
+        type: Date,
+        required: true
+    },
     location: UserLocation,
     bio: String,
     hobbies: [String],

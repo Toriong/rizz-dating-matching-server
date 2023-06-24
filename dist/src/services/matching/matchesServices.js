@@ -8,6 +8,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { User as Users } from "../../models/User.js";
+import moment from "moment";
+function getFormattedBirthDate(birthDate) {
+    const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`;
+    const day = (birthDate.getDay().toString().length > 1) ? birthDate.getDay() + 1 : `0${birthDate.getDay() + 1}`;
+    return `${birthDate.getFullYear()}-${month}-${day}`;
+}
 function getMatches(userQueryOpts) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log('userQueryOpts: ', userQueryOpts);
@@ -26,7 +32,7 @@ function getMatches(userQueryOpts) {
                     }
                 },
                 sex: desiredSex,
-                birthDate: { $gt: minAge, $lt: maxAge }
+                birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
             };
             console.log('paginationQueryOpts: ', paginationQueryOpts);
             const paginationArgsOpts = {
@@ -44,8 +50,13 @@ function getMatches(userQueryOpts) {
             //         $geometry: { type: "Point", coordinates: [longitude, latitude]  },
             //     }
             // },
+            let minAgeDateStr = getFormattedBirthDate(new Date(minAge));
+            minAgeDateStr = moment.utc(minAgeDateStr);
+            let maxAgeDateStr = getFormattedBirthDate(new Date(maxAge));
+            maxAgeDateStr = moment.utc(maxAgeDateStr);
             const pageOpts = { page: paginationPageNum, limit: 5 };
-            const potentialMatchesPageInfo = yield Users.find({ sex: desiredSex, birthDate: { $gt: minAge, $lt: maxAge } }, null, pageOpts).sort({ ratingNum: 'desc' });
+            const potentialMatchesPageInfo = yield Users.find({ sex: desiredSex, birthDate: { $gte: minAgeDateStr.toDate() } }, null, pageOpts).sort({ ratingNum: 'desc' });
+            console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo.length);
             // const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate({
             //     query: {
             //         location: {
