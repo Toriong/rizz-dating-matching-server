@@ -11,7 +11,7 @@ interface GeometryObj {
     coordinates: [number, number]
 }
 interface PaginationQueryingOpts extends KeysForPaginationQuerying {
-    location: {
+    location?: {
         $near: {
             $geometry: GeometryObj,
             $maxDistance: number,

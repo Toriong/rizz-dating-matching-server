@@ -18,7 +18,10 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
 
         const METERS_IN_A_MILE = 1609.34;
         const { userLocation, radiusInMilesInt, desiredSex, desiredAgeRange, paginationPageNum } = userQueryOpts;
+        const [minAge, maxAge] = desiredAgeRange;
+        console.log('minAge: ', typeof minAge)
         const { latitude, longitude } = userLocation;
+        console.log('typeof latitude: ', typeof latitude)
         const paginationQueryOpts: PaginationQueryingOpts = {
             location: {
                 $near: {
@@ -27,7 +30,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
                 }
             },
             sex: desiredSex,
-            birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) }
+            birthDate: { $gt: minAge, $lt: maxAge }
         }
 
         console.log('paginationQueryOpts: ', paginationQueryOpts)
@@ -41,18 +44,34 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
 
         console.log('query options has been generated.')
 
-        console.log('paginationArgsOpts: ', paginationArgsOpts)
+        // console.log('paginationArgsOpts: ', paginationArgsOpts)
 
         console.log('getting matches for the user on the client side...')
 
-        const USERS: any = Users;
-
-        console.log('USERS.paginate: ', USERS.paginate)
 
 
-        const potentialMatchesPageInfo = await (Users as any).paginate(paginationArgsOpts)
 
-        console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo)
+        // const potentialMatchesPageInfo = await (Users as any).paginate({ query: { sex: 'Female' }, birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) } })
+
+        const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate({
+            query: {
+                // location: {
+                //     $near: {
+                //         $geometry: { type: "Point", coordinates: [latitude, longitude] },
+                //         $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                //     }
+                // },
+                sex: desiredSex,
+                // birthDate: { $gt: minAge, $lt: maxAge }
+            },
+            page: 1,
+            limit: 5,
+            sort: { ratingNum: -1 }
+            // birthDate: { $gt: desiredAgeRange[0], $lt: desiredAgeRange[1] }
+        })
+
+
+        console.log('potentialMatchesPageInfo?.docs: ', potentialMatchesPageInfo?.docs)
 
         return { status: 200 }
     } catch (error) {
