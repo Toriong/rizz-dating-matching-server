@@ -55,15 +55,19 @@ function getMatches(userQueryOpts) {
             // the user can respond to a match in the following ways:
             // by sending match request to the user
             // or rejecting the user
-            // CASE: the user received a match request from the specified user
-            // GOAL: delete this user from the potential matches array
-            // CASE: sent a match request to a user
-            // GOAL: delete this user from the potential matches array
-            // CASE: the current user has rejected the potential match user or the potential match user has rejected the current user
-            // GOAL: delete this user from the potential matches array
+            // FIREBASE DB CASES: 
+            // CASE: for the first three pagination, all of users has sent a match request to the current user, the fourth pagination only three users has sent a 
+            // match request to the currenet user, the fifth pagination, all users has sent a pagination to the current user, the sixth pagination, only one user 
+            // has sent a match request.
+            // GOAL: get the matches to send the client. There should be two users from the fourth paginations, three users from the sixth paginaton.
+            // CASE: for the first pagination, the current user has sent match request, the second pagination, the current user has sent a match request to a user, 
+            // the third pagination, all of the user has neither sent a match request or receieved a match request to and from the current user respectively.
+            // GOAL: send the matches to the client. the second pagination, the user that received the match request from the current user is not present, four users from the third pagination is 
+            // present in the potential matches array 
             // send the following info back to the client:
             // the users to display on the client side
             // if it is the last page for the user to page through
+            // if there a still more viewable users to query in the current page (areMoreUsersToQueryInCurrentPage, if true, then send query using the same page num)
             const pageOpts = { page: paginationPageNum, limit: 5 };
             yield Users.createIndexes([{ location: '2dsphere' }]);
             const potentialMatches = yield Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' });
@@ -71,12 +75,16 @@ function getMatches(userQueryOpts) {
             // CASE: there are less than 5 users in the pagination
             // GOAL: the user is on the last pagination page, set isLast to true
             // GOAL: using the ids of the users of the potential matches, check if they have rejected the current user. If so, then filter that user out
-            // CASE: there is at least one user that rejected the current user, get the next pagination pages, on the fourth pagination, there is a replacement for the user that rejected the current user
-            // GOAL: get the next pagination
+            // MONGO DB CASES, REJECTED CURRENT USER OR WAS REJECTED BY CURRENT USER:
+            // CASE: there is at least one user that rejected the current user, all of the proceeding paginations has rejected user, except for the fourth pagination. There is a replacement for the user that rejected the current user
+            // GOAL: get the user to display for the matches from the first pagination (only four) and the fourth pagination (only one)
             // CASE: 
-            // the users in the second, third, fourth paginations, has rejected the current user
+            // the users in the first, second, third, fourth paginations, has rejected the current user
             // for the fifth pagination, two users were rejected by the current user
             // GOAL: on the fifth pagination, get the user with the highest rating, and replace the users that rejected the current user or was rejected by the current user
+            // CASE: 
+            // all of the user in the user's given location radius has rejected the current user
+            // GOAL: send an empty array to the client and tell the client to increase their radius for matching 
             return { status: 200 };
         }
         catch (error) {
