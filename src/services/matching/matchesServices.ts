@@ -52,15 +52,13 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
 
 
         // const potentialMatchesPageInfo = await (Users as any).paginate({ query: { sex: 'Female' }, birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) } })
-        const potentialMatchesPageInfo = await Users.find({
-            location: {
-                $near: {
-                    $geometry: { type: "Point", coordinates: [longitude, latitude]  },
-                }
-            },
-            sex: desiredSex,
-            // birthDate: { $gt: minAge, $lt: maxAge }
-        })
+        // location: {
+        //     $near: {
+        //         $geometry: { type: "Point", coordinates: [longitude, latitude]  },
+        //     }
+        // },
+        
+        const potentialMatchesPageInfo = await Users.find({ sex: desiredSex })
 
         console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo.length)
 

@@ -40,15 +40,12 @@ function getMatches(userQueryOpts) {
             // console.log('paginationArgsOpts: ', paginationArgsOpts)
             console.log('getting matches for the user on the client side...');
             // const potentialMatchesPageInfo = await (Users as any).paginate({ query: { sex: 'Female' }, birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) } })
-            const potentialMatchesPageInfo = yield Users.find({
-                location: {
-                    $near: {
-                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                    }
-                },
-                sex: desiredSex,
-                // birthDate: { $gt: minAge, $lt: maxAge }
-            });
+            // location: {
+            //     $near: {
+            //         $geometry: { type: "Point", coordinates: [longitude, latitude]  },
+            //     }
+            // },
+            const potentialMatchesPageInfo = yield Users.find({ sex: desiredSex });
             console.log('potentialMatchesPageInfo: ', potentialMatchesPageInfo.length);
             // const potentialMatchesPageInfo = await (Users as PaginatedModel).paginate({
             //     query: {
