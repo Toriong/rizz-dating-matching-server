@@ -67,7 +67,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { paginationPageNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, radiusInMilesInt: valOfRadiusFieldUpdated });
     console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts);
-    console.log('queryMatchesResults: ', queryMatchesResults);
     const { status, data, msg } = queryMatchesResults;
     const responseBody = (status === 200) ? { potentialMatchesPageInfo: data } : { msg: msg };
     return response.status(status).json(responseBody);

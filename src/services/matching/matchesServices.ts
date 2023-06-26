@@ -104,9 +104,11 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         }
         const firebaseInfo = getFirebaseInfo()
-        const pageOpts = { skip: 0, limit: 50 }
+        // for the second to last pagination, get one of the users, have that user be rejected. 
+        // for last pagintion of the testing set, get the two users, have them be rejected as well
+        const pageOpts = { skip: 50, limit: 10 };
 
-        await (Users as any).createIndexes([{ location: '2dsphere' }])
+        (Users as any).createIndexes([{ location: '2dsphere' }])
 
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).exec()
@@ -138,7 +140,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
 
 
 
-        return { status: 200, data: (potentialMatches as UserBaseModelSchema[]).map(({ _id }) => _id) }
+        return { status: 200, data: potentialMatches  }
     } catch (error) {
         const errMsg = `An error has occurred in getting matches for user: ${error}`
 

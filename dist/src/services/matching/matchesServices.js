@@ -28,17 +28,6 @@ function getMatches(userQueryOpts) {
             const [minAge, maxAge] = desiredAgeRange;
             const { latitude, longitude } = userLocation;
             console.log('typeof latitude: ', typeof latitude);
-            const paginationQueryOpts = {
-                location: {
-                    $near: {
-                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                        $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
-                    }
-                },
-                sex: desiredSex,
-                birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
-            };
-            console.log('paginationQueryOpts: ', paginationQueryOpts);
             console.log('getting matches for the user on the client side...');
             // const potentialMatchesPageInfo = await (Users as any).paginate({ query: { sex: 'Female' }, birthDate: { $gt: new Date(desiredAgeRange[0]), $lt: new Date(desiredAgeRange[1]) } })
             // location: {
@@ -77,15 +66,26 @@ function getMatches(userQueryOpts) {
             // GOAL: for the above users don't show them to the user. The users in potentialMatches should be two users in the 11th pagination and three users in the 12th pagination. 
             // CASE: for the first 2 pagination, the user is chatting with all of them.
             // GOAL: get the users from the third pagination to send the client
-            // 3
+            const paginationQueryOpts = {
+                location: {
+                    $near: {
+                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                        $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                    }
+                },
+                sex: desiredSex,
+                birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
+            };
             const firebaseInfo = getFirebaseInfo();
-            const pageOpts = { skip: 0, limit: 5 };
-            yield Users.createIndexes([{ location: '2dsphere' }]);
+            // for the second to last pagination, get one of the users, have that user be rejected. 
+            // for last pagintion of the testing set, get the two users, have them be rejected as well
+            const pageOpts = { skip: 50, limit: 10 };
+            Users.createIndexes([{ location: '2dsphere' }]);
             const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
             const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).exec();
             const [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
-            console.log('totalUsersForQuery: ', totalUsersForQuery);
-            console.log("potentialMatches userIds: ", potentialMatches.map(({ _id, ratingNum }) => ({ _id, ratingNum })));
+            // print out all of the ids of the potential matches 
+            console.log('potentialMatches: ', potentialMatches.map(({ _id }) => _id));
             // determine if the pagination is the last pagination page that the user can perform
             // CASE: there are less than 5 users in the pagination
             // GOAL: the user is on the last pagination page, set isLast to true
@@ -100,7 +100,7 @@ function getMatches(userQueryOpts) {
             // CASE: 
             // all of the user in the user's given location radius has rejected the current user
             // GOAL: send an empty array to the client and tell the client to increase their radius for matching 
-            return { status: 200, data: potentialMatches.map(({ _id }) => _id) };
+            return { status: 200, data: potentialMatches };
         }
         catch (error) {
             const errMsg = `An error has occurred in getting matches for user: ${error}`;
