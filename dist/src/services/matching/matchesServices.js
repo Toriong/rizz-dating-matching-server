@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { User as Users } from "../../models/User.js";
 import moment from "moment";
+import getFirebaseInfo from "./helper-fns/connectToFirebase.js";
 function getFormattedBirthDate(birthDate) {
     const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`;
     const day = (birthDate.getDay().toString().length > 1) ? birthDate.getDay() + 1 : `0${birthDate.getDay() + 1}`;
@@ -18,6 +19,9 @@ function getMatches(userQueryOpts) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log('userQueryOpts: ', userQueryOpts);
         try {
+            // when querying: get the following from the database:
+            // all of the chats that the user has:
+            // all of the users that the current user has rejected 
             console.log('generating query options...');
             const METERS_IN_A_MILE = 1609.34;
             const { userLocation, radiusInMilesInt, desiredSex, desiredAgeRange, paginationPageNum } = userQueryOpts;
@@ -28,7 +32,7 @@ function getMatches(userQueryOpts) {
                 location: {
                     $near: {
                         $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                        $maxDistance: 10000 * METERS_IN_A_MILE,
+                        $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
                     }
                 },
                 sex: desiredSex,
@@ -51,10 +55,10 @@ function getMatches(userQueryOpts) {
             // [1]   '01H2S38CK68Z9AE4H0ZSX4SS7C',
             // [1]   '01H2S38HGJXEM5Q0RSS05FSJXX'
             // GOAL: connect to the firebase database in order to check if the current user received a match request from the specified user or has sent a match request to the specified user
-            // BRAIN DUMP:
-            // the user can respond to a match in the following ways:
-            // by sending match request to the user
-            // or rejecting the user
+            // The response:
+            // the users to display on the client side
+            // if it is the last page for the user to page through
+            // if there a still more viewable users to query in the current page (areMoreUsersToQueryInCurrentPage, if true, then send query using the same page num)
             // FIREBASE DB CASES: 
             // CASE: for the first three pagination, all of users has sent a match request to the current user, the fourth pagination only three users has sent a 
             // match request to the currenet user, the fifth pagination, all users has sent a pagination to the current user, the sixth pagination, only one user 
@@ -64,13 +68,24 @@ function getMatches(userQueryOpts) {
             // the third pagination, all of the user has neither sent a match request or receieved a match request to and from the current user respectively.
             // GOAL: send the matches to the client. the second pagination, the user that received the match request from the current user is not present, four users from the third pagination is 
             // present in the potential matches array 
-            // send the following info back to the client:
-            // the users to display on the client side
-            // if it is the last page for the user to page through
-            // if there a still more viewable users to query in the current page (areMoreUsersToQueryInCurrentPage, if true, then send query using the same page num)
-            const pageOpts = { page: paginationPageNum, limit: 5 };
+            // COMBINATION OF FIREBASE AND MONGO DB CASES:
+            // CASE: for the first pagination: two users are unseeable (one user rejected the user, one user has received a match request from the current user), for the next two pagination (2,3)
+            // all of them are unseeable: two: all rejected the user, three: two rejected user, three sent a match request to the user, fourth: all of the user are seeable for the user
+            // CASE: for the first 10 paginations all of them are unseeable:
+            // for all 10: one has rejected the user, one has received a request from the user and the other has sent a request to the user, two are in chats with the user
+            // for 11: three users are chating with the user
+            // GOAL: for the above users don't show them to the user. The users in potentialMatches should be two users in the 11th pagination and three users in the 12th pagination. 
+            // CASE: for the first 2 pagination, the user is chatting with all of them.
+            // GOAL: get the users from the third pagination to send the client
+            // 3
+            const firebaseInfo = getFirebaseInfo();
+            const pageOpts = { skip: 0, limit: 5 };
             yield Users.createIndexes([{ location: '2dsphere' }]);
-            const potentialMatches = yield Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' });
+            const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
+            const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).exec();
+            const [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
+            console.log('totalUsersForQuery: ', totalUsersForQuery);
+            console.log("potentialMatches userIds: ", potentialMatches.map(({ _id, ratingNum }) => ({ _id, ratingNum })));
             // determine if the pagination is the last pagination page that the user can perform
             // CASE: there are less than 5 users in the pagination
             // GOAL: the user is on the last pagination page, set isLast to true
@@ -85,7 +100,7 @@ function getMatches(userQueryOpts) {
             // CASE: 
             // all of the user in the user's given location radius has rejected the current user
             // GOAL: send an empty array to the client and tell the client to increase their radius for matching 
-            return { status: 200 };
+            return { status: 200, data: potentialMatches.map(({ _id }) => _id) };
         }
         catch (error) {
             const errMsg = `An error has occurred in getting matches for user: ${error}`;
