@@ -78,14 +78,13 @@ function getMatches(userQueryOpts) {
             };
             const firebaseInfo = getFirebaseInfo();
             // for the second to last pagination, get one of the users, have that user be rejected. 
-            // for last pagintion of the testing set, get the two users, have them be rejected as well
-            const pageOpts = { skip: 50, limit: 10 };
+            const pageOpts = { skip: paginationPageNum, limit: 5 };
             Users.createIndexes([{ location: '2dsphere' }]);
             const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
             const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).exec();
             const [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
             // print out all of the ids of the potential matches 
-            console.log('potentialMatches: ', potentialMatches.map(({ _id }) => _id));
+            // console.log('potentialMatches: ', (potentialMatches as UserBaseModelSchema[]).map(({ _id }) => _id))
             // determine if the pagination is the last pagination page that the user can perform
             // CASE: there are less than 5 users in the pagination
             // GOAL: the user is on the last pagination page, set isLast to true
@@ -100,7 +99,7 @@ function getMatches(userQueryOpts) {
             // CASE: 
             // all of the user in the user's given location radius has rejected the current user
             // GOAL: send an empty array to the client and tell the client to increase their radius for matching 
-            return { status: 200, data: potentialMatches };
+            return { status: 200, data: { potentialMatches: potentialMatches, doesCurrentPgHaveAvailableUsers: false } };
         }
         catch (error) {
             const errMsg = `An error has occurred in getting matches for user: ${error}`;

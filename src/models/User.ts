@@ -31,6 +31,7 @@ interface SortObj {
 interface UserBaseModelSchema {
     _id: String,
     name: UserNames,
+    sexAttraction: String,
     password: String,
     birthDate: {
         type: Date,
@@ -97,6 +98,7 @@ const UserSchema = new Schema<UserBaseModelSchema>({
         required: true
     },
     location: UserLocation,
+    sexAttraction: String,
     bio: String,
     hobbies: [String],
     email: String,

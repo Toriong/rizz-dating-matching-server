@@ -26,6 +26,7 @@ const UserSchema = new Schema({
         required: true
     },
     location: UserLocation,
+    sexAttraction: String,
     bio: String,
     hobbies: [String],
     email: String,
