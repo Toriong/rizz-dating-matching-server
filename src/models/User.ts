@@ -20,7 +20,14 @@ interface PaginationQueryingOpts extends KeysForPaginationQuerying {
     },
     birthDate?: { $gt: Date, $lt: Date }
 }
-type SelectType = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
+interface UserNames {
+    first: string,
+    last: string,
+    nickName?: string
+}
+interface SortObj {
+    ratingNum: SortObjVal
+}
 interface UserBaseModelSchema {
     _id: String,
     name: UserNames,
@@ -37,13 +44,13 @@ interface UserBaseModelSchema {
     phoneNum: Number,
     ratingNum: Number
 }
-interface UserNames {
-    first: string,
-    last: string,
-    nickName?: string
-}
-interface SortObj {
-    ratingNum: SortObjVal
+type SelectType = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
+interface PaginationArgsOpts {
+    query: PaginationQueryingOpts,
+    sort: SortObj,
+    select?: SelectType,
+    page: number,
+    limit: number
 }
 interface ReturnTypeOfPaginateFn {
     totalDocs: number | undefined;
@@ -57,13 +64,6 @@ interface ReturnTypeOfPaginateFn {
     nextPage: number | undefined;
     hasMore: Boolean | undefined
     docs: UserBaseModelSchema[]
-}
-interface PaginationArgsOpts {
-    query: PaginationQueryingOpts,
-    sort: SortObj,
-    select?: SelectType,
-    page: number,
-    limit: number
 }
 type PaginateFn = (paginationArgsOpts: PaginationArgsOpts) => Promise<ReturnTypeOfPaginateFn>;
 interface PaginatedModel extends Mongoose.Model<Document> {

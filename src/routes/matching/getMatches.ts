@@ -99,7 +99,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts);
     const { status, data, msg } = queryMatchesResults;
-    const responseBody = (status === 200) ? { potentialMatchesPageInfo: data } : { msg: msg }
+    const responseBody = (status === 200) ? { potentialMatchesPagination: { potentialMatches: data } } : { msg: msg }
 
     return response.status(status).json(responseBody)
 })

@@ -105,8 +105,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         }
         const firebaseInfo = getFirebaseInfo()
         // for the second to last pagination, get one of the users, have that user be rejected. 
-        // for last pagintion of the testing set, get the two users, have them be rejected as well
-        const pageOpts = { skip: 50, limit: 10 };
+        const pageOpts = { skip: paginationPageNum, limit: 5 };
 
         (Users as any).createIndexes([{ location: '2dsphere' }])
 
@@ -115,7 +114,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         const [totalUsersForQuery, potentialMatches]: [number, unknown] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
 
         // print out all of the ids of the potential matches 
-        console.log('potentialMatches: ', (potentialMatches as UserBaseModelSchema[]).map(({ _id }) => _id))
+        // console.log('potentialMatches: ', (potentialMatches as UserBaseModelSchema[]).map(({ _id }) => _id))
         // determine if the pagination is the last pagination page that the user can perform
 
         // CASE: there are less than 5 users in the pagination
@@ -140,7 +139,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
 
 
 
-        return { status: 200, data: potentialMatches  }
+        return { status: 200, data: { potentialMatches: potentialMatches, doesCurrentPgHaveAvailableUsers: false }  }
     } catch (error) {
         const errMsg = `An error has occurred in getting matches for user: ${error}`
 
