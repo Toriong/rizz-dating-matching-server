@@ -1,16 +1,21 @@
 
 type Sex = 'Female' | 'Male'
 interface UserLocation {
-    longitude: number,
-    latitude: number,
+    longitude: number | string,
+    latitude: number | string,
 }
 interface UserQueryOpts {
-    sexAttraction: String,
+    sexAttraction: string,
     userLocation: UserLocation,
-    radiusInMilesInt: number,
+    radiusInMilesInt: number | string,
     desiredAgeRange: [string, string],
-    paginationPageNum: number
+    paginationPageNum: number | string
+}
+
+interface ReqQueryMatchesParams{
+    query: UserQueryOpts,
+    userId: string
 }
 
 
-export { UserQueryOpts, UserLocation, Sex }
+export { UserQueryOpts, UserLocation, Sex, ReqQueryMatchesParams }
