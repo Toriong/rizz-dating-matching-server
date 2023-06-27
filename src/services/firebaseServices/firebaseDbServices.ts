@@ -20,11 +20,6 @@ async function getChatUserById(userId: string): Promise<CRUDResult> {
     }
 }
 
-// GOAL: get the chat from the firebase db
-// the chat is received
-// query the db in the followign format: `1on1Chats/${chatId}`
-// the id of the chat is passed in as an argument for getChatUser
-
 async function getChatById(chatId: string): Promise<CRUDResult> {
     try {
         const { db, child, get, ref } = getFirebaseInfo();

@@ -24,10 +24,6 @@ function getChatUserById(userId) {
         }
     });
 }
-// GOAL: get the chat from the firebase db
-// the chat is received
-// query the db in the followign format: `1on1Chats/${chatId}`
-// the id of the chat is passed in as an argument for getChatUser
 function getChatById(chatId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {

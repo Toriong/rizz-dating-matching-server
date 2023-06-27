@@ -1,15 +1,15 @@
-import { RejectedUser } from '../../models/RejectedUser.js';
+import { RejectedUser as RejectedUsers } from '../../models/RejectedUser.js';
 import { CRUDResult } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
 import { RejectedUserInterface } from '../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
 import { FnReturnsPromiseDocument, ModelType } from '../../types-and-interfaces/types.js';
 
-interface CustomModel extends ModelType {
+interface NewRejectedUser extends ModelType {
     save: FnReturnsPromiseDocument
 }
 
 async function insertRejectedUser(rejectedUserDocument: RejectedUserInterface): Promise<CRUDResult> {
     try {
-        const newRejectedUser: CustomModel = new RejectedUser({ ...rejectedUserDocument })
+        const newRejectedUser: NewRejectedUser = new RejectedUsers({ ...rejectedUserDocument })
         const rejectedUserSaveResult = await newRejectedUser.save()
 
         rejectedUserSaveResult.validateSync()
@@ -26,30 +26,36 @@ async function insertRejectedUser(rejectedUserDocument: RejectedUserInterface): 
     }
 }
 
-interface QueryVal{
+interface QueryVal {
     $in: string[]
 }
 
-interface RejectedUsersQuery{
+interface RejectedUsersQuery {
     rejectedUserId?: QueryVal,
     rejectorUserId?: QueryVal
 }
 
+
+
 async function deleteRejectedUser(queryObj: RejectedUsersQuery): Promise<CRUDResult> {
-    try{
-        const results = await RejectedUser.deleteMany(queryObj)
+    try {
+        const results = await RejectedUsers.deleteMany(queryObj)
 
         return { wasSuccessful: true, status: 200, msg: `Number of rejectedUsers documents that were deleted: ${results.deletedCount}` }
-    } catch(error){
+    } catch (error) {
         console.error('An error has occurred in deleting the rejected user from the database. Error message: ', error)
 
         return { wasSuccessful: false, status: 500, msg: "An error has occurred in deleting the rejectedUsers from database." }
     }
 }
 
-async function getRejectedUsers(queryObj: RejectedUsersQuery): Promise<CRUDResult> {
+interface RejectedUsersOrQuery {
+    $or: RejectedUsersQuery[]
+}
+
+async function getRejectedUsers(queryObj: RejectedUsersQuery | RejectedUsersOrQuery): Promise<CRUDResult> {
     try {
-        const rejectedUsers = await RejectedUser.find(queryObj)
+        const rejectedUsers = await RejectedUsers.find(queryObj).lean();
 
         return { wasSuccessful: true, status: 200, data: rejectedUsers }
     } catch (error) {

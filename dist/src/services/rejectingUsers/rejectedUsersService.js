@@ -7,11 +7,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { RejectedUser } from '../../models/RejectedUser.js';
+import { RejectedUser as RejectedUsers } from '../../models/RejectedUser.js';
 function insertRejectedUser(rejectedUserDocument) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const newRejectedUser = new RejectedUser(Object.assign({}, rejectedUserDocument));
+            const newRejectedUser = new RejectedUsers(Object.assign({}, rejectedUserDocument));
             const rejectedUserSaveResult = yield newRejectedUser.save();
             rejectedUserSaveResult.validateSync();
             console.log('A new document was inserted into the db.');
@@ -27,7 +27,7 @@ function insertRejectedUser(rejectedUserDocument) {
 function deleteRejectedUser(queryObj) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const results = yield RejectedUser.deleteMany(queryObj);
+            const results = yield RejectedUsers.deleteMany(queryObj);
             return { wasSuccessful: true, status: 200, msg: `Number of rejectedUsers documents that were deleted: ${results.deletedCount}` };
         }
         catch (error) {
@@ -39,7 +39,7 @@ function deleteRejectedUser(queryObj) {
 function getRejectedUsers(queryObj) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const rejectedUsers = yield RejectedUser.find(queryObj);
+            const rejectedUsers = yield RejectedUsers.find(queryObj).lean();
             return { wasSuccessful: true, status: 200, data: rejectedUsers };
         }
         catch (error) {
