@@ -4,7 +4,7 @@ import { UserLocation } from '../types-and-interfaces/interfaces/userQueryInterf
 
 type Sex = 'Male' | 'Female' | 'female' | 'male'
 type SortObjVal = 'asc' | 'ascending' | 'desc' | 'descending' | 1 | -1;
-type KeysForPaginationQuerying = Pick<UserBaseModelSchema, "sex">;
+type KeysForPaginationQuerying = Pick<UserBaseModelSchema, "sexAttraction">;
 type GeometryObjType = "Point";
 interface GeometryObj {
     type: GeometryObjType,

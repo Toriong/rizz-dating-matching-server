@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Router } from 'express';
-import { insertRejectedUser } from "../services/rejectedUsersService.js";
+import { insertRejectedUser } from "../services/rejectingUsers/rejectedUsersService.js";
 import GLOBAL_VALS from '../globalVals.js';
 export const insertRouter = Router();
 insertRouter.post(`/${GLOBAL_VALS.rejectedUsersRootPath}/insert-rejected-users`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {

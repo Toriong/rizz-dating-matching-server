@@ -5,7 +5,7 @@ interface UserLocation {
     latitude: number,
 }
 interface UserQueryOpts {
-    desiredSex: Sex,
+    sexAttraction: String,
     userLocation: UserLocation,
     radiusInMilesInt: number,
     desiredAgeRange: [string, string],

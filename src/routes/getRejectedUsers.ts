@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { getRejectedUsers } from '../services/rejectedUsersService.js';
+import { getRejectedUsers } from '../services/rejectingUsers/rejectedUsersService.js';
 import GLOBAL_VALS from '../globalVals.js';
 
 export const getRejectedUserRouter = Router()

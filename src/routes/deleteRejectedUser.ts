@@ -1,6 +1,6 @@
 import { Router, query } from 'express'
 import GLOBAL_VALS from '../globalVals.js';
-import { deleteRejectedUser } from '../services/rejectedUsersService.js';
+import { deleteRejectedUser } from '../services/rejectingUsers/rejectedUsersService.js';
 import { getParsedBoolStr } from '../helper-fns/routerHelperFns.js';
 
 export const deleteRejectedUserRoute = Router()

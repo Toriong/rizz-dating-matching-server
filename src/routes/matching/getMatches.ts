@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { Router, Request, Response } from 'express'
-import { insertRejectedUser } from "../../services/rejectedUsersService.js";
+import { insertRejectedUser } from "../../services/rejectingUsers/rejectedUsersService.js";
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesServices.js';
 import { UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
