@@ -18,32 +18,18 @@ function validateFormOfObj(key, obj) {
 function getQueryOptionsValidationArr(queryOpts) {
     console.log('checking options of query. queryOpts: ', queryOpts);
     const validSexes = ['Male', 'Female'];
-    const { userLocation, desiredAgeRange, desiredSex, paginationPageNum, radiusInMilesInt } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
+    const { userLocation, desiredAgeRange, sexAttraction, paginationPageNum, radiusInMilesInt } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
     const { latitude, longitude } = userLocation !== null && userLocation !== void 0 ? userLocation : {};
     const areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
     const areDesiredAgeRangeValsValid = { receivedType: typeof desiredAgeRange, recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate), correctVal: 'object', fieldName: 'desiredAgeRange', isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange };
     const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseFloat(longitude) === 'number') && (typeof parseFloat(latitude) === 'number'));
     const isLongAndLatValid = { receivedType: typeof userLocation, recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)), correctVal: 'number', fieldName: 'userLocation', isCorrectValType: isLongAndLatValueTypeValid, val: userLocation, areFiedNamesPresent: !!latitude && !!longitude };
-    const sexValidationObj = { receivedType: typeof validSexes, correctVal: validSexes, fieldName: 'desiredSex', isCorrectValType: validSexes.includes(desiredSex), val: desiredSex };
+    const sexAttractionValidationObj = { receivedType: typeof sexAttraction, correctVal: 'string', fieldName: 'desiredSex', isCorrectValType: typeof sexAttraction === 'string', val: sexAttraction };
     const paginationPageNumValidationObj = { receivedType: typeof paginationPageNum, correctVal: 'number', fieldName: 'paginationPageNum', isCorrectValType: typeof parseInt(paginationPageNum) === 'number', val: paginationPageNum };
     const radiusValidationObj = { receivedType: typeof radiusInMilesInt, correctVal: 'number', fieldName: 'radiusInMilesInt', isCorrectValType: typeof parseInt(radiusInMilesInt) === 'number', val: radiusInMilesInt };
-    return [radiusValidationObj, paginationPageNumValidationObj, sexValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
+    return [radiusValidationObj, paginationPageNumValidationObj, sexAttractionValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    // GOAL #1: get the users based on the following criteria:
-    // if the user is within the user's location radius
-    // if the user is within the user's target age
-    // if the user has a high rating  
-    // GOAL #2: the following data is received from the client:
-    // the id of the user
-    // the id of the user will be used for the following:
-    // to get their sex preference 
-    // to get their age preference
-    // brain dump:
-    // check for the following the parameters of the request: 
-    // desiredSex, userLocation, radiusInMilesInt, desiredAgeRange, paginationPageNum
-    // if any of the parameters are missing, return an error message
-    // if all of the parameters are present, then proceed to get the matches
     const query = request.query;
     console.log('query: ', query);
     if (query === undefined || !query) {
