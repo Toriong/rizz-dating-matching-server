@@ -1,7 +1,8 @@
 import { RejectedUserInterface } from "./rejectedUserDocsInterfaces.js"
 
 interface CRUDResult {
-    status: number,
+    status?: number,
+    wasSuccessful: boolean,
     msg?: String,
     data?: RejectedUserInterface | unknown
 }

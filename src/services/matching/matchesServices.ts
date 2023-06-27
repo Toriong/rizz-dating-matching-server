@@ -3,7 +3,8 @@ import { User as Users, PaginatedModel, PaginationQueryingOpts, PaginationArgsOp
 import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 import { get } from "http";
 import moment, { Moment } from "moment";
-import getFirebaseInfo from "./helper-fns/connectToFirebase.js";
+import getFirebaseInfo from "../firebaseServices/helper-fns/connectToFirebase.js";
+import { getUserById } from "../globalMongoDbServices.js";
 
 
 interface GetMatchesResult {
@@ -19,14 +20,9 @@ function getFormattedBirthDate(birthDate: Date): string {
     return `${birthDate.getFullYear()}-${month}-${day}`
 }
 
-async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResult> {
-
-    console.log('userQueryOpts: ', userQueryOpts)
-
+async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise<GetMatchesResult> {
     try {
-        // get the current user from the database 
-        // get the current user from the firebase database
-        
+     
 
         console.log('generating query options...')
 
@@ -43,15 +39,15 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         const paginationQueryOpts: PaginationQueryingOpts = {
             location: {
                 $near: {
-                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                    $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                    $geometry: { type: "Point", coordinates: [longitude as number, latitude as number] },
+                    $maxDistance: (radiusInMilesInt as number) * METERS_IN_A_MILE,
                 }
             },
             sexAttraction: sexAttraction,
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         }
         const firebaseInfo = getFirebaseInfo()
-        const pageOpts = { skip: paginationPageNum, limit: 5 };
+        const pageOpts = { skip: paginationPageNum as number, limit: 5 };
 
         (Users as any).createIndexes([{ location: '2dsphere' }])
 
@@ -59,7 +55,7 @@ async function getMatches(userQueryOpts: UserQueryOpts): Promise<GetMatchesResul
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).exec()
         const [totalUsersForQuery, potentialMatches]: [number, unknown] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
 
-        return { status: 200, data: { potentialMatches: potentialMatches, doesCurrentPgHaveAvailableUsers: false }  }
+        return { status: 200, data: { potentialMatches: potentialMatches, doesCurrentPgHaveAvailableUsers: false } }
     } catch (error) {
         const errMsg = `An error has occurred in getting matches for user: ${error}`
 

@@ -7,11 +7,10 @@ interface UserLocation {
 interface UserQueryOpts {
     sexAttraction: string,
     userLocation: UserLocation,
-    radiusInMilesInt: number | string,
+    radiusInMilesInt: string | number,
     desiredAgeRange: [string, string],
     paginationPageNum: number | string
 }
-
 interface ReqQueryMatchesParams{
     query: UserQueryOpts,
     userId: string

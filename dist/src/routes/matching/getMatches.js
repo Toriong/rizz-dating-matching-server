@@ -30,12 +30,13 @@ function getQueryOptionsValidationArr(queryOpts) {
     return [radiusValidationObj, paginationPageNumValidationObj, sexAttractionValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    const query = request.query;
+    let query = request.query;
     console.log('query: ', query);
-    if (query === undefined || !query) {
+    if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
     }
-    let userQueryOpts = query;
+    // query will receive the following: { query: this will be all of the query options, userId: the id of the user that is making the request }
+    let userQueryOpts = query.query;
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType);
     // filter in all of the query options validtion results with the field of isCorrectValType of false
@@ -52,7 +53,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     const paginationPageNumUpdated = parseInt(userQueryOpts.paginationPageNum);
     userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { paginationPageNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, radiusInMilesInt: valOfRadiusFieldUpdated });
     console.log('will query for matches...');
-    const queryMatchesResults = yield getMatches(userQueryOpts);
+    const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
     const { status, data, msg } = queryMatchesResults;
     const responseBody = (status === 200) ? { potentialMatchesPagination: { potentialMatches: data } } : { msg: msg };
     return response.status(status).json(responseBody);

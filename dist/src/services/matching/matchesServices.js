@@ -9,18 +9,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { User as Users } from "../../models/User.js";
 import moment from "moment";
-import getFirebaseInfo from "./helper-fns/connectToFirebase.js";
+import getFirebaseInfo from "../firebaseServices/helper-fns/connectToFirebase.js";
 function getFormattedBirthDate(birthDate) {
     const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`;
     const day = (birthDate.getDay().toString().length > 1) ? birthDate.getDay() + 1 : `0${birthDate.getDay() + 1}`;
     return `${birthDate.getFullYear()}-${month}-${day}`;
 }
-function getMatches(userQueryOpts) {
+function getMatches(userQueryOpts, userId) {
     return __awaiter(this, void 0, void 0, function* () {
-        console.log('userQueryOpts: ', userQueryOpts);
         try {
-            // get the current user from the database 
-            // get the current user from the firebase database
             console.log('generating query options...');
             const METERS_IN_A_MILE = 1609.34;
             const { userLocation, radiusInMilesInt, sexAttraction, desiredAgeRange, paginationPageNum } = userQueryOpts;

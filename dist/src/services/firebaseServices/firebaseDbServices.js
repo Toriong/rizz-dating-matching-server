@@ -7,20 +7,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { User as Users } from '../models/User.js';
-function getUserById(userId) {
+import getFirebaseInfo from "./helper-fns/connectToFirebase.js";
+function getChatUser(userId) {
     return __awaiter(this, void 0, void 0, function* () {
-        return Users.findById(userId).lean();
+        try {
+            const { db, child, get, ref } = getFirebaseInfo();
+            const chatUser = yield get(child(ref(db), `1on1Chats/${userId}`));
+            return { wasSuccessful: true, data: chatUser.val() };
+        }
+        catch (error) {
+            console.error(`An error has occurred in getting the chat user from the database, id of user: ${userId}. Error message: `, error);
+            return { wasSuccessful: false };
+        }
     });
 }
-function getUsersByIds(userIds) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return Users.find({ _id: { $in: userIds } });
-    });
-}
-function getUsersByDynamicField(queryObj) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return Users.find(queryObj);
-    });
-}
-export { getUserById, getUsersByIds, getUsersByDynamicField };
