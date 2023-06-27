@@ -5,6 +5,7 @@ import { get } from "http";
 import moment, { Moment } from "moment";
 import getFirebaseInfo from "../firebaseServices/helper-fns/connectToFirebase.js";
 import { getUserById } from "../globalMongoDbServices.js";
+import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 
 
 interface GetMatchesResult {
@@ -22,19 +23,21 @@ function getFormattedBirthDate(birthDate: Date): string {
 
 async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise<GetMatchesResult> {
     try {
-     
-
         console.log('generating query options...')
+        const firebaseInfo = getFirebaseInfo()
+        const currentUser = await getUserById(userId)
+        const rejectUserDocsThatCurrentUserIsIn = await getRejectedUsers({ rejectedUserId: { $in: [userId] } })
+
+        if (!currentUser) {
+            throw new Error('An error has occurred in getting the current user.')
+        }
 
         const METERS_IN_A_MILE = 1609.34;
-        const { userLocation, radiusInMilesInt, sexAttraction, desiredAgeRange, paginationPageNum } = userQueryOpts;
+        const { userLocation, radiusInMilesInt, desiredAgeRange, paginationPageNum } = userQueryOpts;
         const [minAge, maxAge] = desiredAgeRange;
         const { latitude, longitude } = userLocation;
-        console.log('typeof latitude: ', typeof latitude)
-
 
         console.log('getting matches for the user on the client side...');
-
 
         const paginationQueryOpts: PaginationQueryingOpts = {
             location: {
@@ -43,10 +46,9 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
                     $maxDistance: (radiusInMilesInt as number) * METERS_IN_A_MILE,
                 }
             },
-            sexAttraction: sexAttraction,
+            sex: (currentUser.sex === 'male') ? 'female' : 'male',
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         }
-        const firebaseInfo = getFirebaseInfo()
         const pageOpts = { skip: paginationPageNum as number, limit: 5 };
 
         (Users as any).createIndexes([{ location: '2dsphere' }])

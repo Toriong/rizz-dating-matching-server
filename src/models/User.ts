@@ -4,13 +4,13 @@ import { UserLocation } from '../types-and-interfaces/interfaces/userQueryInterf
 
 type Sex = 'Male' | 'Female' | 'female' | 'male'
 type SortObjVal = 'asc' | 'ascending' | 'desc' | 'descending' | 1 | -1;
-type KeysForPaginationQuerying = Pick<UserBaseModelSchema, "sexAttraction">;
+type KeysForPaginationQuerying = Pick<UserBaseModelSchema, "sexAttraction" | "sex">;
 type GeometryObjType = "Point";
 interface GeometryObj {
     type: GeometryObjType,
     coordinates: [number, number]
 }
-interface PaginationQueryingOpts extends KeysForPaginationQuerying {
+interface PaginationQueryingOpts extends Partial<KeysForPaginationQuerying> {
     location?: {
         $near: {
             $geometry: GeometryObj,
@@ -111,7 +111,5 @@ UserSchema.index({ location: '2dsphere' })
 UserSchema.plugin(mongoosePagination)
 
 const User = model('users', UserSchema);
-
-
 
 export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema };

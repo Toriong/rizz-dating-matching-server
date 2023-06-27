@@ -8,16 +8,39 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import getFirebaseInfo from "./helper-fns/connectToFirebase.js";
-function getChatUser(userId) {
+function getChatUserById(userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const { db, child, get, ref } = getFirebaseInfo();
-            const chatUser = yield get(child(ref(db), `1on1Chats/${userId}`));
-            return { wasSuccessful: true, data: chatUser.val() };
+            const chatUserDataSnapShot = yield get(child(ref(db), `userChatIds/${userId}`));
+            if (!chatUserDataSnapShot.exists()) {
+                throw new Error('The chat user does not exist in the firebase db.');
+            }
+            return { wasSuccessful: true, data: chatUserDataSnapShot.val() };
         }
         catch (error) {
             console.error(`An error has occurred in getting the chat user from the database, id of user: ${userId}. Error message: `, error);
             return { wasSuccessful: false };
+        }
+    });
+}
+// GOAL: get the chat from the firebase db
+// the chat is received
+// query the db in the followign format: `1on1Chats/${chatId}`
+// the id of the chat is passed in as an argument for getChatUser
+function getChatById(chatId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { db, child, get, ref } = getFirebaseInfo();
+            const chatDataSnapShot = yield get(child(ref(db), `1on1Chats/${chatId}`));
+            if (!chatDataSnapShot.exists()) {
+                throw new Error('The chat does not exist in the firebase db.');
+            }
+            return { wasSuccessful: true, data: chatDataSnapShot.val() };
+        }
+        catch (error) {
+            const errorMsg = `An error has occurred in getting the chat from the database. Error message: ${error}`;
+            return { wasSuccessful: false, msg: errorMsg };
         }
     });
 }

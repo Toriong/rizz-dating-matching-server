@@ -10,6 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { User as Users } from "../../models/User.js";
 import moment from "moment";
 import getFirebaseInfo from "../firebaseServices/helper-fns/connectToFirebase.js";
+import { getUserById } from "../globalMongoDbServices.js";
+import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 function getFormattedBirthDate(birthDate) {
     const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`;
     const day = (birthDate.getDay().toString().length > 1) ? birthDate.getDay() + 1 : `0${birthDate.getDay() + 1}`;
@@ -19,11 +21,16 @@ function getMatches(userQueryOpts, userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             console.log('generating query options...');
+            const firebaseInfo = getFirebaseInfo();
+            const currentUser = yield getUserById(userId);
+            const rejectUserDocsThatCurrentUserIsIn = yield getRejectedUsers({ rejectedUserId: { $in: [userId] } });
+            if (!currentUser) {
+                throw new Error('An error has occurred in getting the current user.');
+            }
             const METERS_IN_A_MILE = 1609.34;
-            const { userLocation, radiusInMilesInt, sexAttraction, desiredAgeRange, paginationPageNum } = userQueryOpts;
+            const { userLocation, radiusInMilesInt, desiredAgeRange, paginationPageNum } = userQueryOpts;
             const [minAge, maxAge] = desiredAgeRange;
             const { latitude, longitude } = userLocation;
-            console.log('typeof latitude: ', typeof latitude);
             console.log('getting matches for the user on the client side...');
             const paginationQueryOpts = {
                 location: {
@@ -32,10 +39,9 @@ function getMatches(userQueryOpts, userId) {
                         $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
                     }
                 },
-                sexAttraction: sexAttraction,
+                sex: (currentUser.sex === 'male') ? 'female' : 'male',
                 birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
             };
-            const firebaseInfo = getFirebaseInfo();
             const pageOpts = { skip: paginationPageNum, limit: 5 };
             Users.createIndexes([{ location: '2dsphere' }]);
             const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();

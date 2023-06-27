@@ -1,6 +1,6 @@
 import { UserBaseModelSchema, User as Users } from '../models/User.js';
 
-async function getUserById(userId: string): Promise<any>{
+async function getUserById(userId: string): Promise<UserBaseModelSchema | null>{
     return Users.findById(userId).lean()
 }
 
