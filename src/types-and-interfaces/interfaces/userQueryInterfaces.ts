@@ -9,7 +9,7 @@ interface UserQueryOpts {
     userLocation: UserLocation,
     radiusInMilesInt: string | number,
     desiredAgeRange: [string, string],
-    paginationPageNum: number | string
+    skipDocsNum: number | string
 }
 interface ReqQueryMatchesParams{
     query: UserQueryOpts,

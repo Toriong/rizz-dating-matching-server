@@ -69,13 +69,11 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
                 })
                 .filter(userId => currentUser._id !== userId))
         ]
+        const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats]
+        const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds)
 
 
-        // GOAL: create a recursion to get the users that has either rejected the current user, has been rejected by the current user, or is chatting with the current user
-
-
-
-        return { status: 200, data: { doesCurrentPgHaveAvailableUsers: false } }
+        return { status: 200, data: { ...potentialMatchesPaginationObj } }
     } catch (error) {
         const errMsg = `An error has occurred in getting matches for user: ${error}`
 
@@ -97,7 +95,9 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
 // invoke the function again with the next pagination to query for more users, and pass the current array of potential matches to the function 
 
 async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[], currentPotentialMatches: UserBaseModelSchema[] = []) {
-    const { userLocation, radiusInMilesInt, desiredAgeRange, paginationPageNum: skipNum } = userQueryOpts;
+    const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
+    let updatedSkipDocsNum = skipDocsNum;
+    const currentPageNum = (skipDocsNum as number) / 5;
     const METERS_IN_A_MILE = 1609.34;
     const [minAge, maxAge] = desiredAgeRange;
     const { latitude, longitude } = userLocation;
@@ -114,7 +114,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
         sex: (currentUser.sex === 'male') ? 'female' : 'male',
         birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
     }
-    const pageOpts = { skip: skipNum as number, limit: 5 };
+    const pageOpts = { skip: skipDocsNum as number, limit: 5 };
 
     (Users as any).createIndexes([{ location: '2dsphere' }])
 
@@ -125,30 +125,28 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     let potentialMatches = currentPotentialMatches;
 
     if (!pageQueryUsers.length) {
-        const _userQueryOpts = { ...userQueryOpts, paginationPageNum: (((skipNum as number) / 5) + 1) * 5 }
-        // this function will return the matches, the matches array will be returned and stored in potential matches
-        // this function will return an object that will continue the following: { matches, doesCurrentPageHaveValidUsers, pageNum }
-        await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
+        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: (((skipDocsNum as number) / 5) + 1) * 5 }
+        const results = await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
+        const { updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
+        potentialMatches = updatedPotentialMatches;
+        updatedSkipDocsNum = _updatedSkipDocsNum as number;
     }
-
-    // BRAIN DUMP: 
-    // the return value for this function will be an array of the users the current user can match with. 
-    
-
 
     const sumBetweenPotentialMatchesAndPgQueryUsers = pageQueryUsers.length + potentialMatches.length
 
     if (sumBetweenPotentialMatchesAndPgQueryUsers < 5) {
         potentialMatches = [...potentialMatches, ...pageQueryUsers]
-        const _userQueryOpts = { ...userQueryOpts, paginationPageNum: (((skipNum as number) / 5) + 1) * 5 }
-        await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
+        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: (((skipDocsNum as number) / 5) + 1) * 5 }
+        const { updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
+        potentialMatches = updatedPotentialMatches;
+        updatedSkipDocsNum = _updatedSkipDocsNum as number;
     }
 
     const endingSliceNum = 5 - potentialMatches.length
     const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum)
     potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum)
 
-    return { potentialMatches }
+    return { updatedPotentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
 
     // CASE: the sum is greater than 5
     // GOAL: get the highest rated users from the pageQueryUsers array and add them to the potentialMatches array in order to make the array 5. 

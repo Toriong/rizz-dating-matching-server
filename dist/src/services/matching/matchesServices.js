@@ -55,8 +55,9 @@ function getMatches(userQueryOpts, userId) {
                 })
                     .filter(userId => currentUser._id !== userId))
             ];
-            // GOAL: create a recursion to get the users that has either rejected the current user, has been rejected by the current user, or is chatting with the current user
-            return { status: 200, data: { doesCurrentPgHaveAvailableUsers: false } };
+            const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
+            const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds);
+            return { status: 200, data: Object.assign({}, potentialMatchesPaginationObj) };
         }
         catch (error) {
             const errMsg = `An error has occurred in getting matches for user: ${error}`;
@@ -75,7 +76,9 @@ function getMatches(userQueryOpts, userId) {
 // invoke the function again with the next pagination to query for more users, and pass the current array of potential matches to the function 
 function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches = []) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { userLocation, radiusInMilesInt, desiredAgeRange, paginationPageNum: skipNum } = userQueryOpts;
+        const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
+        let updatedSkipDocsNum = skipDocsNum;
+        const currentPageNum = skipDocsNum / 5;
         const METERS_IN_A_MILE = 1609.34;
         const [minAge, maxAge] = desiredAgeRange;
         const { latitude, longitude } = userLocation;
@@ -90,21 +93,51 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             sex: (currentUser.sex === 'male') ? 'female' : 'male',
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         };
-        const pageOpts = { skip: skipNum, limit: 5 };
+        const pageOpts = { skip: skipDocsNum, limit: 5 };
         Users.createIndexes([{ location: '2dsphere' }]);
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
-        let potentialMatches = [...currentPotentialMatches];
         pageQueryUsers = pageQueryUsers.filter(({ _id }) => !allUnshowableUserIds.includes(_id));
+        let potentialMatches = currentPotentialMatches;
         if (!pageQueryUsers.length) {
-            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { paginationPageNum: ((skipNum / 5) + 1) * 5 });
-            queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
-            return;
+            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
+            const results = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
+            const { updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
+            potentialMatches = updatedPotentialMatches;
+            updatedSkipDocsNum = _updatedSkipDocsNum;
         }
+        const sumBetweenPotentialMatchesAndPgQueryUsers = pageQueryUsers.length + potentialMatches.length;
+        if (sumBetweenPotentialMatchesAndPgQueryUsers < 5) {
+            potentialMatches = [...potentialMatches, ...pageQueryUsers];
+            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
+            const { updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
+            potentialMatches = updatedPotentialMatches;
+            updatedSkipDocsNum = _updatedSkipDocsNum;
+        }
+        const endingSliceNum = 5 - potentialMatches.length;
+        const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
+        potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+        return { updatedPotentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
+        // CASE: the sum is greater than 5
+        // GOAL: get the highest rated users from the pageQueryUsers array and add them to the potentialMatches array in order to make the array 5. 
+        // potentialMatches array is now 5, since q (the number that is need to make potential matches array 5) + x (current values in potentialMatches array) was computed
+        // slice the pageQueryUsers arr according to how much users are need to make potentialMatches array 5, starting at index 0, this q
+        // sort the pageQueryUsers arr from desc order according to the ratingNum   
+        // given a variable z, and z is the remaineder that is needed to make potentialMatches 5, the following is computed for z: the difference between 5 and the current amount of users in x (current values in potentialMatches array)
         // WHAT IS HAPPENDING: 
         // there are users that were paged in the variable pageQueryUsers
-        // CASE: there are less than 5 users in the potentialMatches array, and there are users in the pageQueryUsers array, but not enough to make potentialMatches array to be 5
+        // CASE: there are less than 5 users in the potentialMatches array, and there are users in the pageQueryUsers array that are able to be added to the potentialMatches array, but not enough to make potentialMatches array to be 5
+        // NOTES:
+        // the following are true for this case: 
+        // users in pageQueryUsers is y such that the following is true: 5 > y + x 
+        // users in potentialMatches is x, and the following is true: 1 < x < 4
+        // GOAL: the valid users are added to the potentialMatches array, and the next pagination is executed
+        // and the arrays toether (x and y) 
+        // the sum is less than 5
+        // the sum is computed between y and x 
+        // the users in potentialMathes is y
+        // the users in pageQueryUsers is x
         // CASE: there are less than 5 users in the potentialMatches array, and there are enough users to be added to the array from the pageQueryUsers array. 
         // CASE: there are no users in the potentialMatches array, and there are not enough users to be added to the array from the pageQueryUsers array to make 5
         // CASE: there are no users in the potentialMatches array, and there are enough users to be added to the array to be make pageQueryUsers array to make 5 

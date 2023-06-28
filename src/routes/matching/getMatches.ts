@@ -19,10 +19,10 @@ interface QueryValidationInterface {
     recievedTypeOfValsInArr?: ({ fieldName: string, receivedType: string } | string)[]
 }
 
-interface RequestQuery extends Omit<UserQueryOpts, 'userLocation' | 'radiusInMilesInt' | 'paginationPageNum'> {
+interface RequestQuery extends Omit<UserQueryOpts, 'userLocation' | 'radiusInMilesInt' | 'skipDocsNum'> {
     userLocation: { latitude: string, longitude: string }
     radiusInMilesInt: string
-    paginationPageNum: string
+    skipDocsNum: string
 }
 
 function validateFormOfObj(key: string, obj: any): { fieldName: string, receivedType: string } {
@@ -34,14 +34,14 @@ function validateFormOfObj(key: string, obj: any): { fieldName: string, received
 function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidationInterface[] {
     console.log('checking options of query. queryOpts: ', queryOpts)
     const validSexes = ['Male', 'Female']
-    const { userLocation, desiredAgeRange, sexAttraction, paginationPageNum, radiusInMilesInt } = queryOpts ?? {}
+    const { userLocation, desiredAgeRange, sexAttraction, skipDocsNum, radiusInMilesInt } = queryOpts ?? {}
     const { latitude, longitude } = userLocation ?? {};
     const areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
     const areDesiredAgeRangeValsValid = { receivedType: typeof desiredAgeRange, recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate), correctVal: 'object', fieldName: 'desiredAgeRange', isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange }
     const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseFloat(longitude as string) === 'number') && (typeof parseFloat(latitude as string) === 'number'))
     const isLongAndLatValid = { receivedType: typeof userLocation, recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)), correctVal: 'number', fieldName: 'userLocation', isCorrectValType: isLongAndLatValueTypeValid, val: userLocation, areFiedNamesPresent: !!latitude && !!longitude }
     const sexAttractionValidationObj = { receivedType: typeof sexAttraction, correctVal: 'string', fieldName: 'desiredSex', isCorrectValType: typeof sexAttraction === 'string', val: sexAttraction }
-    const paginationPageNumValidationObj = { receivedType: typeof paginationPageNum, correctVal: 'number', fieldName: 'paginationPageNum', isCorrectValType: typeof parseInt(paginationPageNum as string) === 'number', val: paginationPageNum }
+    const paginationPageNumValidationObj = { receivedType: typeof skipDocsNum, correctVal: 'number', fieldName: 'skipDocsNum', isCorrectValType: typeof parseInt(skipDocsNum as string) === 'number', val: skipDocsNum }
     const radiusValidationObj = { receivedType: typeof radiusInMilesInt, correctVal: 'number', fieldName: 'radiusInMilesInt', isCorrectValType: typeof parseInt(radiusInMilesInt as string) === 'number', val: radiusInMilesInt }
 
     return [radiusValidationObj, paginationPageNumValidationObj, sexAttractionValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
@@ -78,8 +78,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // access the userQuerOpts.desireDateRange, loop through it using the map method, and change the date strings to date objects
     const userlocationValsUpdated = { longitude: parseFloat(userQueryOpts.userLocation.longitude as string), latitude: parseFloat(userQueryOpts.userLocation.latitude as string) }
     const valOfRadiusFieldUpdated = parseInt(userQueryOpts.radiusInMilesInt as string)
-    const paginationPageNumUpdated = parseInt(userQueryOpts.paginationPageNum as string)
-    userQueryOpts = { ...userQueryOpts, paginationPageNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, radiusInMilesInt: valOfRadiusFieldUpdated }
+    const paginationPageNumUpdated = parseInt(userQueryOpts.skipDocsNum as string)
+    userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, radiusInMilesInt: valOfRadiusFieldUpdated }
 
     console.log('will query for matches...')
 
