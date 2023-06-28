@@ -42,8 +42,8 @@ interface UserBaseModelSchema {
     bio: string,
     hobbies: [string],
     email: string,
-    phoneNum: Number,
-    ratingNum: Number
+    phoneNum: number,
+    ratingNum: number
 }
 type SelectType = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
 interface PaginationArgsOpts {

@@ -10,8 +10,8 @@ interface MessageInterface {
 }
 
 interface ChatInterface {
-    userAId: String,
-    userBId: String,
+    userAId: string,
+    userBId: string,
     messages: MessageInterface[]
 }
 
