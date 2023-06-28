@@ -1,6 +1,6 @@
 import Mongoose from 'mongoose';
 import { mongoosePagination } from "mongoose-paginate-ts";
-const { Schema, models, model } = Mongoose;
+const { Schema, model } = Mongoose;
 const UserNames = new Schema({
     first: String,
     last: String,
@@ -17,6 +17,10 @@ const UserLocation = new Schema({
         required: true
     }
 });
+const PictureSchema = new Schema({
+    isMatching: Boolean,
+    picFileNameOnAws: String
+});
 const UserSchema = new Schema({
     _id: String,
     name: UserNames,
@@ -25,6 +29,7 @@ const UserSchema = new Schema({
         type: Date,
         required: true
     },
+    pics: [PictureSchema],
     location: UserLocation,
     sexAttraction: String,
     bio: String,

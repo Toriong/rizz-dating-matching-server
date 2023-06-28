@@ -28,6 +28,10 @@ interface UserNames {
 interface SortObj {
     ratingNum: SortObjVal
 }
+interface Picture {
+    isMatching: boolean,
+    picFileNameOnAws: string
+}
 interface UserBaseModelSchema {
     _id: string,
     name: UserNames,
@@ -40,6 +44,7 @@ interface UserBaseModelSchema {
     sex: Sex,
     location: UserLocation,
     bio: string,
+    pics: Picture[],
     hobbies: [string],
     email: string,
     phoneNum: number,
@@ -71,8 +76,7 @@ interface PaginatedModel extends Mongoose.Model<Document> {
     paginate: PaginateFn
 }
 
-const { Schema, models, model } = Mongoose;
-
+const { Schema, model } = Mongoose;
 const UserNames = new Schema<UserNames>({
     first: String,
     last: String,
@@ -89,6 +93,10 @@ const UserLocation = new Schema({
         required: true
     }
 });
+const PictureSchema = new Schema<Picture>({
+    isMatching: Boolean,
+    picFileNameOnAws: String
+})
 const UserSchema = new Schema<UserBaseModelSchema>({
     _id: String,
     name: UserNames,
@@ -97,6 +105,7 @@ const UserSchema = new Schema<UserBaseModelSchema>({
         type: Date,
         required: true
     },
+    pics: [PictureSchema],
     location: UserLocation,
     sexAttraction: String,
     bio: String,
