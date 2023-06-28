@@ -55,7 +55,7 @@ interface RejectedUsersOrQuery {
 
 async function getRejectedUsers(queryObj: RejectedUsersQuery | RejectedUsersOrQuery): Promise<CRUDResult> {
     try {
-        const rejectedUsers = await RejectedUsers.find(queryObj).lean();
+        const rejectedUsers: RejectedUserInterface[] | [] = await RejectedUsers.find(queryObj).lean();
 
         return { wasSuccessful: true, status: 200, data: rejectedUsers }
     } catch (error) {

@@ -40,3 +40,30 @@ function getChatById(chatId) {
         }
     });
 }
+function getAllUserChats(userId) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const getChatUserByIdResult = yield getChatUserById(userId);
+            if (!getChatUserByIdResult.wasSuccessful) {
+                throw new Error('An error has occurred in getting the chat user from the database.');
+            }
+            if (!(getChatUserByIdResult === null || getChatUserByIdResult === void 0 ? void 0 : getChatUserByIdResult.data)) {
+                throw new Error('The current user does not have chat object in the firebase database.');
+            }
+            const userChatIdsObj = getChatUserByIdResult.data;
+            if (!((_a = userChatIdsObj === null || userChatIdsObj === void 0 ? void 0 : userChatIdsObj.chatIds) === null || _a === void 0 ? void 0 : _a.length)) {
+                return { wasSuccessful: true, data: [] };
+            }
+            const currentUserChatsPromises = userChatIdsObj.chatIds.map(chatId => getChatById(chatId));
+            let currentUserChats = yield Promise.all(currentUserChatsPromises);
+            currentUserChats = currentUserChats.filter(chat => chat.wasSuccessful).map(chat => chat.data);
+            return { wasSuccessful: true, data: currentUserChats };
+        }
+        catch (error) {
+            console.error('An error has occurred in getting the chat user from the firebase database.');
+            return { wasSuccessful: false };
+        }
+    });
+}
+export { getChatById, getChatUserById, getAllUserChats };

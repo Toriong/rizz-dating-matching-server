@@ -6,6 +6,9 @@ import moment, { Moment } from "moment";
 import getFirebaseInfo from "../firebaseServices/helper-fns/connectToFirebase.js";
 import { getUserById } from "../globalMongoDbServices.js";
 import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
+import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
+import { ChatInterface } from "../../types-and-interfaces/interfaces/firebaseValsInterfaces.js";
+import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js";
 
 
 interface GetMatchesResult {
@@ -24,13 +27,47 @@ function getFormattedBirthDate(birthDate: Date): string {
 async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise<GetMatchesResult> {
     try {
         console.log('generating query options...')
-        const firebaseInfo = getFirebaseInfo()
+
         const currentUser = await getUserById(userId)
-        const rejectUserDocsThatCurrentUserIsIn = await getRejectedUsers({ rejectedUserId: { $in: [userId] } })
 
         if (!currentUser) {
             throw new Error('An error has occurred in getting the current user.')
         }
+
+        const rejectedUsersQuery = {
+            $or: [
+                { rejectedUserId: { $in: [userId] } },
+                { rejectorUserId: { $in: [userId] } }
+            ]
+        }
+        const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
+        const allUserChatsResult = await getAllUserChats(userId);
+        let allRecipientsOfChats: String[] | undefined;
+
+        if (!allUserChatsResult.wasSuccessful) {
+            console.error("Failed to get the chat users from the database.")
+
+            throw new Error("Failed to get user chats from the database.")
+        }
+
+        allRecipientsOfChats = [
+            ...new Set((allUserChatsResult.data as ChatInterface[])
+                .flatMap(({ userAId, userBId }) => [userAId, userBId])
+                .filter(userId => currentUser._id !== userId))
+        ];
+
+        if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !(rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]).length) {
+            console.error('Failed to get the rejected users docs for the current user.')
+            console.log('The current user either has not been rejected or has not rejected any users.')
+        }
+
+        const allRejectedUserIds = [
+            ...new Set((rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])
+                .flatMap((rejectedUserInfo: RejectedUserInterface) => {
+                    return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId]
+                })
+                .filter(userId => currentUser._id !== userId))
+        ]
 
         const METERS_IN_A_MILE = 1609.34;
         const { userLocation, radiusInMilesInt, desiredAgeRange, paginationPageNum } = userQueryOpts;

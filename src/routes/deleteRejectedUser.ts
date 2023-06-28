@@ -24,5 +24,5 @@ deleteRejectedUserRoute.delete(`/${GLOBAL_VALS.rejectedUsersRootPath}/delete-by-
     const queryObj = isDeletingByRejectorUserId ? { rejectorUserId: { $in: userIds } } : { rejectedUserId: { $in: userIds } }
     const result = await deleteRejectedUser(queryObj)
 
-    return response.status(result.status).json({ msg: result.msg })
+    return response.status(result.status as number).json({ msg: result.msg })
 })
