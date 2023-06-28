@@ -112,6 +112,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
             }
         },
         sex: (currentUser.sex === 'male') ? 'female' : 'male',
+        // sexAttraction: currentUser.sexAttraction,
         birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
     }
     const pageOpts = { skip: skipDocsNum as number, limit: 5 };
