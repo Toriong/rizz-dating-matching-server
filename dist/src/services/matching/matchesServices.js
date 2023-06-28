@@ -25,6 +25,7 @@ function getMatches(userQueryOpts, userId) {
             if (!currentUser) {
                 throw new Error('An error has occurred in getting the current user.');
             }
+            // put the below into a function, call it: "getUsersNotToShow"
             const rejectedUsersQuery = {
                 $or: [
                     { rejectedUserId: { $in: [userId] } },
@@ -54,6 +55,7 @@ function getMatches(userQueryOpts, userId) {
                 })
                     .filter(userId => currentUser._id !== userId))
             ];
+            // put the above into a function
             const METERS_IN_A_MILE = 1609.34;
             const { userLocation, radiusInMilesInt, desiredAgeRange, paginationPageNum } = userQueryOpts;
             const [minAge, maxAge] = desiredAgeRange;
@@ -74,6 +76,7 @@ function getMatches(userQueryOpts, userId) {
             const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
             const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).exec();
             const [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
+            // GOAL: check if the user has been rejected by the current user or has rejected the current user
             return { status: 200, data: { potentialMatches: potentialMatches, doesCurrentPgHaveAvailableUsers: false } };
         }
         catch (error) {
