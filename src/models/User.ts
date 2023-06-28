@@ -29,19 +29,19 @@ interface SortObj {
     ratingNum: SortObjVal
 }
 interface UserBaseModelSchema {
-    _id: String,
+    _id: string,
     name: UserNames,
-    sexAttraction: String,
-    password: String,
+    sexAttraction: string,
+    password: string,
     birthDate: {
         type: Date,
         required: boolean
     },
     sex: Sex,
     location: UserLocation,
-    bio: String,
-    hobbies: [String],
-    email: String,
+    bio: string,
+    hobbies: [string],
+    email: string,
     phoneNum: Number,
     ratingNum: Number
 }

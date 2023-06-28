@@ -93,10 +93,14 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
         (Users as any).createIndexes([{ location: '2dsphere' }])
 
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
-        const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).exec()
-        const [totalUsersForQuery, potentialMatches]: [number, unknown] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
+        const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
+        let [totalUsersForQuery, potentialMatches]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
+        // filter out all of the users that are in the array of rejected users ids
+        potentialMatches = potentialMatches.filter(({ _id }) => !allRejectedUserIds.includes(_id))
 
-        // GOAL: check if the user has been rejected by the current user or has rejected the current user
+        // GOAL: create a recursion to get the users that has either rejected the current user, has been rejected by the current user, or is chatting with the current user
+
+
 
         return { status: 200, data: { potentialMatches: potentialMatches, doesCurrentPgHaveAvailableUsers: false } }
     } catch (error) {
