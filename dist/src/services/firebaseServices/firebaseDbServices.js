@@ -43,11 +43,12 @@ function getChatById(chatId) {
         }
     });
 }
-function getAllUserChats(userId) {
+function getAllUserChats(currentUserId) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const getChatUserByIdResult = yield getChatUserById(userId);
+            console.log("Getting thet chat id of the following user: ", currentUserId);
+            const getChatUserByIdResult = yield getChatUserById(currentUserId);
             console.log('getChatUserByidResult: ', getChatUserByIdResult);
             if (!getChatUserByIdResult.wasSuccessful) {
                 throw new Error('An error has occurred in getting the chat user from the database.');
@@ -63,7 +64,13 @@ function getAllUserChats(userId) {
             let currentUserChats = yield Promise.all(currentUserChatsPromises);
             currentUserChats = currentUserChats.filter(chat => chat.wasSuccessful).map(chat => chat.data);
             console.log('currentUserChats: ', currentUserChats);
-            return { wasSuccessful: true, data: currentUserChats };
+            let chatUserRecipientIds = [
+                ...new Set(currentUserChats
+                    .flatMap(({ userAId, userBId }) => [userAId, userBId])
+                    .filter(userId => currentUserId !== userId))
+            ];
+            console.log('The ids of the users that the current user is chatting with: ', chatUserRecipientIds);
+            return { wasSuccessful: true, data: chatUserRecipientIds };
         }
         catch (error) {
             console.error('An error has occurred in getting the chat user from the firebase database.');

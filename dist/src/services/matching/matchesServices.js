@@ -17,12 +17,12 @@ function getFormattedBirthDate(birthDate) {
     const day = (birthDate.getDay().toString().length > 1) ? birthDate.getDay() + 1 : `0${birthDate.getDay() + 1}`;
     return `${birthDate.getFullYear()}-${month}-${day}`;
 }
-function getMatches(userQueryOpts, userId) {
+function getMatches(userQueryOpts, currentUserId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             console.log('generating query options...');
-            console.log('getMatches, userId: ', userId);
-            const currentUser = yield getUserById(userId);
+            console.log('getMatches, currentUserId: ', currentUserId);
+            const currentUser = yield getUserById(currentUserId);
             console.log('currentUser: ', currentUser);
             if (!currentUser) {
                 console.error('No user was attained from the database.');
@@ -31,22 +31,18 @@ function getMatches(userQueryOpts, userId) {
             // put the below into a function, call it: "getUsersNotToShow"
             const rejectedUsersQuery = {
                 $or: [
-                    { rejectedUserId: { $in: [userId] } },
-                    { rejectorUserId: { $in: [userId] } }
+                    { rejectedUserId: { $in: [currentUserId] } },
+                    { rejectorUserId: { $in: [currentUserId] } }
                 ]
             };
             const rejectedUsersThatCurrentUserIsInResult = yield getRejectedUsers(rejectedUsersQuery);
-            const allUserChatsResult = yield getAllUserChats(userId);
-            let allRecipientsOfChats;
+            const allUserChatsResult = yield getAllUserChats(currentUserId);
+            let allRecipientsOfChats = (Array.isArray(allUserChatsResult.data) && allUserChatsResult.data.length) ? allUserChatsResult.data : [];
+            console.log('allRecipientsOfChats: ', allRecipientsOfChats);
             if (!allUserChatsResult.wasSuccessful) {
                 console.error("Failed to get the chat users from the database.");
                 throw new Error("Failed to get user chats from the database.");
             }
-            allRecipientsOfChats = [
-                ...new Set(allUserChatsResult.data
-                    .flatMap(({ userAId, userBId }) => [userAId, userBId])
-                    .filter(userId => currentUser._id !== userId))
-            ];
             if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !rejectedUsersThatCurrentUserIsInResult.data.length) {
                 console.error('Failed to get the rejected users docs for the current user.');
                 console.log('The current user either has not been rejected or has not rejected any users.');
@@ -56,9 +52,8 @@ function getMatches(userQueryOpts, userId) {
                     .flatMap((rejectedUserInfo) => {
                     return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId];
                 })
-                    .filter(userId => currentUser._id !== userId))
+                    .filter(userId => currentUserId !== userId))
             ];
-            console.log('allRecipientsOfChats: ', allRecipientsOfChats === null || allRecipientsOfChats === void 0 ? void 0 : allRecipientsOfChats.length);
             const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
             const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds);
             console.log('Potential matches has been attained. `potentialMatchesPaginationObj`: ', potentialMatchesPaginationObj);

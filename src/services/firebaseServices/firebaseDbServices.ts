@@ -41,9 +41,11 @@ async function getChatById(chatId: String): Promise<CRUDResult> {
     }
 }
 
-async function getAllUserChats(userId: string): Promise<CRUDResult> {
+async function getAllUserChats(currentUserId: string): Promise<CRUDResult> {
     try {
-        const getChatUserByIdResult = await getChatUserById(userId);
+        console.log("Getting thet chat id of the following user: ", currentUserId)
+
+        const getChatUserByIdResult = await getChatUserById(currentUserId);
 
         console.log('getChatUserByidResult: ', getChatUserByIdResult)
 
@@ -64,10 +66,18 @@ async function getAllUserChats(userId: string): Promise<CRUDResult> {
         const currentUserChatsPromises = userChatIdsObj.chatIds.map(chatId => getChatById(chatId))
         let currentUserChats: CRUDResult[] | ChatInterface[] = await Promise.all(currentUserChatsPromises);
         currentUserChats = currentUserChats.filter(chat => chat.wasSuccessful).map(chat => (chat.data as ChatInterface))
-
         console.log('currentUserChats: ', currentUserChats)
+        let chatUserRecipientIds = [
+            ...new Set(
+                currentUserChats
+                    .flatMap(({ userAId, userBId }: ChatInterface) => [userAId, userBId])
+                    .filter(userId => currentUserId !== userId)
+            )
+        ]
 
-        return { wasSuccessful: true, data: currentUserChats as ChatInterface[] }
+        console.log('The ids of the users that the current user is chatting with: ', chatUserRecipientIds)
+
+        return { wasSuccessful: true, data: chatUserRecipientIds }
     } catch (error) {
         console.error('An error has occurred in getting the chat user from the firebase database.')
 

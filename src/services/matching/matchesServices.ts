@@ -24,13 +24,13 @@ function getFormattedBirthDate(birthDate: Date): string {
     return `${birthDate.getFullYear()}-${month}-${day}`
 }
 
-async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise<GetMatchesResult> {
+async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string): Promise<GetMatchesResult> {
     try {
         console.log('generating query options...')
 
-        console.log('getMatches, userId: ', userId)
+        console.log('getMatches, currentUserId: ', currentUserId)
 
-        const currentUser = await getUserById(userId)
+        const currentUser = await getUserById(currentUserId)
 
         console.log('currentUser: ', currentUser)
 
@@ -42,13 +42,15 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
         // put the below into a function, call it: "getUsersNotToShow"
         const rejectedUsersQuery = {
             $or: [
-                { rejectedUserId: { $in: [userId] } },
-                { rejectorUserId: { $in: [userId] } }
+                { rejectedUserId: { $in: [currentUserId] } },
+                { rejectorUserId: { $in: [currentUserId] } }
             ]
         }
         const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
-        const allUserChatsResult = await getAllUserChats(userId);
-        let allRecipientsOfChats: string[] | undefined;
+        const allUserChatsResult = await getAllUserChats(currentUserId);
+        let allRecipientsOfChats: string[] = (Array.isArray(allUserChatsResult.data) && allUserChatsResult.data.length) ? (allUserChatsResult.data as string[]) : []; 
+
+        console.log('allRecipientsOfChats: ', allRecipientsOfChats)
 
         if (!allUserChatsResult.wasSuccessful) {
             console.error("Failed to get the chat users from the database.")
@@ -56,11 +58,7 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
             throw new Error("Failed to get user chats from the database.")
         }
 
-        allRecipientsOfChats = [
-            ...new Set((allUserChatsResult.data as ChatInterface[])
-                .flatMap(({ userAId, userBId }) => [userAId, userBId])
-                .filter(userId => currentUser._id !== userId))
-        ];
+        
 
         if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !(rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]).length) {
             console.error('Failed to get the rejected users docs for the current user.')
@@ -72,10 +70,9 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
                 .flatMap((rejectedUserInfo: RejectedUserInterface) => {
                     return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId]
                 })
-                .filter(userId => currentUser._id !== userId))
+                .filter(userId => currentUserId !== userId))
         ]
 
-        console.log('allRecipientsOfChats: ', allRecipientsOfChats?.length)
 
         const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats]
         const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds)
