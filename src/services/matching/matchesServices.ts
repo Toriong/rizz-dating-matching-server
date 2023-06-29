@@ -7,7 +7,7 @@ import getFirebaseInfo from "../firebaseServices/helper-fns/connectToFirebase.js
 import { getUserById } from "../globalMongoDbServices.js";
 import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
-import { ChatInterface } from "../../types-and-interfaces/interfaces/firebaseValsInterfaces.js";
+import { ChatInterface } from "../../types-and-interfaces/interfaces/firebaseInterfaces.js";
 import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js";
 
 

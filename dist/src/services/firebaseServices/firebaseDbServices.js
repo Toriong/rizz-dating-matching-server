@@ -11,6 +11,7 @@ import getFirebaseInfo from "./helper-fns/connectToFirebase.js";
 function getChatUserById(userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            console.log('getting chat user by id: ', userId);
             const { db, child, get, ref } = getFirebaseInfo();
             const chatUserDataSnapShot = yield get(child(ref(db), `userChatIds/${userId}`));
             if (!chatUserDataSnapShot.exists()) {
@@ -37,6 +38,7 @@ function getChatById(chatId) {
         }
         catch (error) {
             const errorMsg = `An error has occurred in getting the chat from the database. Error message: ${error}`;
+            console.error(errorMsg);
             return { wasSuccessful: false, msg: errorMsg };
         }
     });
@@ -60,6 +62,7 @@ function getAllUserChats(userId) {
             const currentUserChatsPromises = userChatIdsObj.chatIds.map(chatId => getChatById(chatId));
             let currentUserChats = yield Promise.all(currentUserChatsPromises);
             currentUserChats = currentUserChats.filter(chat => chat.wasSuccessful).map(chat => chat.data);
+            console.log('currentUserChats: ', currentUserChats);
             return { wasSuccessful: true, data: currentUserChats };
         }
         catch (error) {
