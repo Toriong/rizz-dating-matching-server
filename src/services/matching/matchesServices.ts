@@ -72,6 +72,7 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
         const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats]
         const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds)
 
+        console.log('Potential matches has been attained. `potentialMatchesPaginationObj`: ', potentialMatchesPaginationObj)
 
         return { status: 200, data: { ...potentialMatchesPaginationObj } }
     } catch (error) {

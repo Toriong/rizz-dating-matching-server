@@ -57,6 +57,7 @@ function getMatches(userQueryOpts, userId) {
             ];
             const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
             const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds);
+            console.log('Potential matches has been attained. `potentialMatchesPaginationObj`: ', potentialMatchesPaginationObj);
             return { status: 200, data: Object.assign({}, potentialMatchesPaginationObj) };
         }
         catch (error) {

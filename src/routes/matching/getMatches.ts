@@ -27,7 +27,8 @@ interface RequestQuery extends Omit<UserQueryOpts, 'userLocation' | 'radiusInMil
 
 function validateFormOfObj(key: string, obj: any): { fieldName: string, receivedType: string } {
     const receivedType = typeof obj[key];
-    return { fieldName: key, receivedType }
+
+    return { fieldName: key, receivedType: receivedType }
 }
 
 

@@ -13,7 +13,7 @@ import { getMatches } from '../../services/matching/matchesServices.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
-    return { fieldName: key, receivedType };
+    return { fieldName: key, receivedType: receivedType };
 }
 function getQueryOptionsValidationArr(queryOpts) {
     console.log('checking options of query. queryOpts: ', queryOpts);
