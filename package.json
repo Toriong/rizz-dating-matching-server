@@ -7,7 +7,8 @@
   "scripts": {
     "build": "npx tsc",
     "start": "nodemon dist/index.js",
-    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\""
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\"",
+    "debug": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\" --inspect-brk"
   },
   "keywords": [],
   "author": "",

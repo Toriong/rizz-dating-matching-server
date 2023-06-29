@@ -21,8 +21,11 @@ function getMatches(userQueryOpts, userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             console.log('generating query options...');
+            console.log('getMatches, userId: ', userId);
             const currentUser = yield getUserById(userId);
+            console.log('currentUser: ', currentUser);
             if (!currentUser) {
+                console.error('No user was attained from the database.');
                 throw new Error('An error has occurred in getting the current user.');
             }
             // put the below into a function, call it: "getUsersNotToShow"
@@ -55,6 +58,7 @@ function getMatches(userQueryOpts, userId) {
                 })
                     .filter(userId => currentUser._id !== userId))
             ];
+            console.log('allRecipientsOfChats: ', allRecipientsOfChats === null || allRecipientsOfChats === void 0 ? void 0 : allRecipientsOfChats.length);
             const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
             const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds);
             console.log('Potential matches has been attained. `potentialMatchesPaginationObj`: ', potentialMatchesPaginationObj);
@@ -81,9 +85,13 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
         let updatedSkipDocsNum = skipDocsNum;
         const currentPageNum = skipDocsNum / 5;
+        console.log('currentPageNum: ', currentPageNum);
         const METERS_IN_A_MILE = 1609.34;
         const [minAge, maxAge] = desiredAgeRange;
         const { latitude, longitude } = userLocation;
+        // WHAT IS HAPPENING:
+        // an inifinite recursion is occuring 
+        // break the inifnite recurions by checking if it pass 
         console.log('getting matches for the user on the client side...');
         const paginationQueryOpts = {
             location: {
@@ -92,7 +100,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
                     $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
                 }
             },
-            sex: (currentUser.sex === 'male') ? 'female' : 'male',
+            sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
             // sexAttraction: currentUser.sexAttraction,
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         };
@@ -101,27 +109,37 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
+        console.log('totalUsersForQuery: ', totalUsersForQuery);
+        if (totalUsersForQuery === 0) {
+            return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForValidUsers: false, hasReachedPaginationEnd: true };
+        }
+        console.log('allUnshowableUserIds.length: ', allUnshowableUserIds.length);
+        // GOAL: create break case to stop the infinite recursion
         pageQueryUsers = pageQueryUsers.filter(({ _id }) => !allUnshowableUserIds.includes(_id));
         let potentialMatches = currentPotentialMatches;
+        console.log('pageQueryUsers after filter: ', pageQueryUsers.length);
         if (!pageQueryUsers.length) {
+            console.log('no users were found for the current query.');
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
             const results = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
-            const { updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
+            const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
             potentialMatches = updatedPotentialMatches;
             updatedSkipDocsNum = _updatedSkipDocsNum;
         }
         const sumBetweenPotentialMatchesAndPgQueryUsers = pageQueryUsers.length + potentialMatches.length;
         if (sumBetweenPotentialMatchesAndPgQueryUsers < 5) {
+            console.log('Not enough user to display to the user on the client side, querying for more users...');
             potentialMatches = [...potentialMatches, ...pageQueryUsers];
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
-            const { updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
+            const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
             potentialMatches = updatedPotentialMatches;
             updatedSkipDocsNum = _updatedSkipDocsNum;
         }
+        console.log('enough users were attained to show to the user on the client side.');
         const endingSliceNum = 5 - potentialMatches.length;
         const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
         potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
-        return { updatedPotentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
+        return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
         // CASE: the sum is greater than 5
         // GOAL: get the highest rated users from the pageQueryUsers array and add them to the potentialMatches array in order to make the array 5. 
         // potentialMatches array is now 5, since q (the number that is need to make potential matches array 5) + x (current values in potentialMatches array) was computed

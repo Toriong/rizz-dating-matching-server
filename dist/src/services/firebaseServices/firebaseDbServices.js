@@ -16,6 +16,7 @@ function getChatUserById(userId) {
             if (!chatUserDataSnapShot.exists()) {
                 throw new Error('The chat user does not exist in the firebase db.');
             }
+            console.log('chatUserDataSnapShot.val(): ', chatUserDataSnapShot.val());
             return { wasSuccessful: true, data: chatUserDataSnapShot.val() };
         }
         catch (error) {
@@ -45,6 +46,7 @@ function getAllUserChats(userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const getChatUserByIdResult = yield getChatUserById(userId);
+            console.log('getChatUserByidResult: ', getChatUserByIdResult);
             if (!getChatUserByIdResult.wasSuccessful) {
                 throw new Error('An error has occurred in getting the chat user from the database.');
             }

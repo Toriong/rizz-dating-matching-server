@@ -11,6 +11,8 @@ async function getChatUserById(userId: string): Promise<CRUDResult> {
             throw new Error('The chat user does not exist in the firebase db.')
         }
 
+        console.log('chatUserDataSnapShot.val(): ', chatUserDataSnapShot.val())
+
         return { wasSuccessful: true, data: chatUserDataSnapShot.val() }
     } catch (error) {
         console.error(`An error has occurred in getting the chat user from the database, id of user: ${userId}. Error message: `, error)
@@ -39,6 +41,8 @@ async function getChatById(chatId: String): Promise<CRUDResult> {
 async function getAllUserChats(userId: string): Promise<CRUDResult> {
     try {
         const getChatUserByIdResult = await getChatUserById(userId);
+
+        console.log('getChatUserByidResult: ', getChatUserByIdResult)
 
         if (!getChatUserByIdResult.wasSuccessful) {
             throw new Error('An error has occurred in getting the chat user from the database.')
