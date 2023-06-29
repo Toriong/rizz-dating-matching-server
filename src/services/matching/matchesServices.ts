@@ -76,6 +76,7 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
 
         return { status: 200, data: { ...potentialMatchesPaginationObj } }
     } catch (error) {
+        console.error('An error has occurred in getting matches: ', error)
         const errMsg = `An error has occurred in getting matches for user: ${error}`
 
         return { status: 500, msg: errMsg }
@@ -149,6 +150,8 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum)
 
     return { updatedPotentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
+
+
 
     // CASE: the sum is greater than 5
     // GOAL: get the highest rated users from the pageQueryUsers array and add them to the potentialMatches array in order to make the array 5. 

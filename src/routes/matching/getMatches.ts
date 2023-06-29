@@ -51,7 +51,7 @@ function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidation
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
     let query: unknown | ReqQueryMatchesParams = request.query
 
-    console.log('query: ', query)
+    console.log('get matches for user on the client-side query: ', query)
 
     if (!query || !(query as ReqQueryMatchesParams)?.query || !(query as ReqQueryMatchesParams).userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' })

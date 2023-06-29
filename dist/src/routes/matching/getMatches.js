@@ -31,7 +31,7 @@ function getQueryOptionsValidationArr(queryOpts) {
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     let query = request.query;
-    console.log('query: ', query);
+    console.log('get matches for user on the client-side query: ', query);
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
     }

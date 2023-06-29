@@ -61,6 +61,7 @@ function getMatches(userQueryOpts, userId) {
             return { status: 200, data: Object.assign({}, potentialMatchesPaginationObj) };
         }
         catch (error) {
+            console.error('An error has occurred in getting matches: ', error);
             const errMsg = `An error has occurred in getting matches for user: ${error}`;
             return { status: 500, msg: errMsg };
         }
