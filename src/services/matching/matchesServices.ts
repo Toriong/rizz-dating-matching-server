@@ -28,6 +28,8 @@ async function getMatches(userQueryOpts: UserQueryOpts, userId: string): Promise
     try {
         console.log('generating query options...')
 
+        
+
         const currentUser = await getUserById(userId)
 
         if (!currentUser) {
