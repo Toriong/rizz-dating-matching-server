@@ -70,7 +70,7 @@ async function getAllUserChats(currentUserId: string): Promise<CRUDResult> {
         let chatUserRecipientIds = [
             ...new Set(
                 currentUserChats
-                    .flatMap(({ userAId, userBId }: ChatInterface) => [userAId, userBId])
+                    .flatMap(({ userIdA, userIdB }: ChatInterface) => [userIdA, userIdB])
                     .filter(userId => currentUserId !== userId)
             )
         ]

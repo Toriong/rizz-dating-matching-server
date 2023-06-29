@@ -66,7 +66,7 @@ function getAllUserChats(currentUserId) {
             console.log('currentUserChats: ', currentUserChats);
             let chatUserRecipientIds = [
                 ...new Set(currentUserChats
-                    .flatMap(({ userAId, userBId }) => [userAId, userBId])
+                    .flatMap(({ userIdA, userIdB }) => [userIdA, userIdB])
                     .filter(userId => currentUserId !== userId))
             ];
             console.log('The ids of the users that the current user is chatting with: ', chatUserRecipientIds);
