@@ -58,6 +58,7 @@ function getAllUserChats(currentUserId) {
             }
             const userChatIdsObj = getChatUserByIdResult.data;
             if (!((_a = userChatIdsObj === null || userChatIdsObj === void 0 ? void 0 : userChatIdsObj.chatIds) === null || _a === void 0 ? void 0 : _a.length)) {
+                console.log('This users is not chatting with anybody.');
                 return { wasSuccessful: true, data: [] };
             }
             const currentUserChatsPromises = userChatIdsObj.chatIds.map(chatId => getChatById(chatId));

@@ -60,6 +60,7 @@ async function getAllUserChats(currentUserId: string): Promise<CRUDResult> {
         const userChatIdsObj = getChatUserByIdResult.data as UserChatIdsInterface
 
         if (!userChatIdsObj?.chatIds?.length) {
+            console.log('This users is not chatting with anybody.')
             return { wasSuccessful: true, data: [] }
         }
 
