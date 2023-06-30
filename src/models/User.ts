@@ -4,7 +4,7 @@ import { UserLocation } from '../types-and-interfaces/interfaces/userQueryInterf
 
 type Sex = 'Male' | 'Female' | 'female' | 'male'
 type SortObjVal = 'asc' | 'ascending' | 'desc' | 'descending' | 1 | -1;
-type KeysForPaginationQuerying = Pick<UserBaseModelSchema, "sexAttraction" | "sex">;
+type KeysForPaginationQuerying = Pick<UserBaseModelSchema, "sexAttraction" | "sex" | "hasPrompts">;
 type GeometryObjType = "Point";
 interface GeometryObj {
     type: GeometryObjType,
@@ -48,6 +48,7 @@ interface UserBaseModelSchema {
     hobbies: [string],
     email: string,
     phoneNum: number,
+    hasPrompts: boolean,
     ratingNum: number
 }
 type SelectType = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
@@ -113,6 +114,7 @@ const UserSchema = new Schema<UserBaseModelSchema>({
     email: String,
     phoneNum: Number,
     ratingNum: Number,
+    hasPrompts: Boolean
 }, { timestamps: true })
 
 UserSchema.index({ location: '2dsphere' })

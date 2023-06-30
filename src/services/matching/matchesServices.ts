@@ -17,9 +17,6 @@ interface GetMatchesResult {
     msg?: string
 }
 
-// NOTES: 
-// create a field called, hasPrompts in the user model, when querying for users, check if that field is true. If true, then that user can be shown
-// to the current user on the client side. Else, any user who has that field as false, can't be shown to the user on the client side
 
 function getFormattedBirthDate(birthDate: Date): string {
     const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`
@@ -45,18 +42,20 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
             }
         },
         sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
+        hasPrompts: true,
         // sexAttraction: currentUser.sexAttraction,
         birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
     }
     const pageOpts = { skip: skipDocsNum as number, limit: 5 };
 
     (Users as any).createIndexes([{ location: '2dsphere' }])
+    
+    // GOAL: make a dummy query to get the last page of users. These users will have no prompts. Query for more users. Those users
+    // will not have prompts as well
 
     const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
     const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
     let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
-
-    console.log('totalUsersForQuery: ', totalUsersForQuery)
 
     if (totalUsersForQuery === 0) {
         return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForValidUsers: false, hasReachedPaginationEnd: true }
@@ -141,36 +140,19 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string): 
                 .filter(userId => currentUserId !== userId))
         ]
 
-
         const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats]
-
-        // const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
-        // const { latitude, longitude } = userLocation;
-        // const [minAge, maxAge] = desiredAgeRange;
-        // const paginationQueryOpts: PaginationQueryingOpts = {
-        //     location: {
-        //         $near: {
-        //             $geometry: { type: "Point", coordinates: [longitude as number, latitude as number] },
-        //             $maxDistance: (radiusInMilesInt as number) * 1609.34
-        //         }
-        //     },
-        //     sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
-        //     // sexAttraction: currentUser.sexAttraction,
-        //     birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
-        // }
-        // const pageOpts = { skip: 0, limit: 5 };
-    
-        // // (Users as any).createIndexes([{ location: '2dsphere' }])
-    
-        // const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
-        // const potentialMatchesPromise = await Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
-        // const potentialMatchesPaginationObj = {  potentialMatches: potentialMatchesPromise };
-        // print all of the ids of potentialMatchesPromise
-
-
         const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds)
 
-        // console.log('Potential matches has been attained. `potentialMatchesPaginationObj`: ', potentialMatchesPaginationObj)
+        // GOAL: get the following:
+        // prompts
+        // hobbies 
+        // their matching pic
+        // their name 
+        // their location
+
+        // CASE: at least one of the user no longer has any prompts, so we need to query for more users
+
+        // CASE: all users has prompts
 
         return { status: 200, data: { ...potentialMatchesPaginationObj } }
     } catch (error) {

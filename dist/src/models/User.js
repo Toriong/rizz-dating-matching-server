@@ -37,6 +37,7 @@ const UserSchema = new Schema({
     email: String,
     phoneNum: Number,
     ratingNum: Number,
+    hasPrompts: Boolean
 }, { timestamps: true });
 UserSchema.index({ location: '2dsphere' });
 UserSchema.plugin(mongoosePagination);
