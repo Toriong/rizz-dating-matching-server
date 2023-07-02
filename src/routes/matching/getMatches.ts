@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express'
 import { insertRejectedUser } from "../../services/rejectingUsers/rejectedUsersService.js";
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesServices.js';
-import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
+import { ReqQueryMatchesParams, UserLocation, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
 import { PaginatedModel } from '../../models/User.js';
 
 export const getMatchesRoute = Router();
@@ -36,12 +36,12 @@ function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidation
     console.log('checking options of query. queryOpts: ', queryOpts)
     const validSexes = ['Male', 'Female']
     const { userLocation, desiredAgeRange, skipDocsNum, radiusInMilesInt } = queryOpts ?? {}
+    console.log('desiredAgeRange: ', desiredAgeRange)
     const { latitude, longitude } = userLocation ?? {};
     const areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
     const areDesiredAgeRangeValsValid = { receivedType: typeof desiredAgeRange, recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate), correctVal: 'object', fieldName: 'desiredAgeRange', isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange }
     const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseFloat(longitude as string) === 'number') && (typeof parseFloat(latitude as string) === 'number'))
     const isLongAndLatValid = { receivedType: typeof userLocation, recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)), correctVal: 'number', fieldName: 'userLocation', isCorrectValType: isLongAndLatValueTypeValid, val: userLocation, areFiedNamesPresent: !!latitude && !!longitude }
-    // const sexAttractionValidationObj = { receivedType: typeof sexAttraction, correctVal: 'string', fieldName: 'desiredSex', isCorrectValType: typeof sexAttraction === 'string', val: sexAttraction }
     const paginationPageNumValidationObj = { receivedType: typeof skipDocsNum, correctVal: 'number', fieldName: 'skipDocsNum', isCorrectValType: typeof parseInt(skipDocsNum as string) === 'number', val: skipDocsNum }
     const radiusValidationObj = { receivedType: typeof radiusInMilesInt, correctVal: 'number', fieldName: 'radiusInMilesInt', isCorrectValType: typeof parseInt(radiusInMilesInt as string) === 'number', val: radiusInMilesInt }
 
@@ -60,6 +60,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // query will receive the following: { query: this will be all of the query options, userId: the id of the user that is making the request }
     
     let userQueryOpts: RequestQuery | UserQueryOpts = (query as ReqQueryMatchesParams).query;
+
+    console.log("userQueryOpts: ", userQueryOpts)
+    console.log('userQueryOpts desiredAgeRange: ', userQueryOpts.desiredAgeRange)
+
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType)
 
@@ -86,7 +90,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
     const { status, data, msg } = queryMatchesResults;
-    const responseBody = (status === 200) ? { potentialMatchesPagination: { potentialMatches: data } } : { msg: msg }
+
+    console.log('potential matches data: ', data)
+
+    // GOAL: check if the potential matches has prompts in the database
+
+    const responseBody = (status === 200) ? { potentialMatchesPagination: data } : { msg: msg }
 
     return response.status(status).json(responseBody)
 })

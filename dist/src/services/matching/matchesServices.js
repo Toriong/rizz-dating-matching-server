@@ -19,6 +19,7 @@ function getFormattedBirthDate(birthDate) {
 }
 function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches = []) {
     return __awaiter(this, void 0, void 0, function* () {
+        // put the below into a funtion, call it: createQueryOptsForPagination
         const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
         let updatedSkipDocsNum = skipDocsNum;
         console.log('skipDocsNum: ', skipDocsNum);
@@ -40,6 +41,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         };
         const pageOpts = { skip: skipDocsNum, limit: 5 };
+        // put the above into a function
         Users.createIndexes([{ location: '2dsphere' }]);
         // GOAL: make a dummy query to get the last page of users. These users will have no prompts. Query for more users. Those users
         // will not have prompts as well
@@ -112,6 +114,33 @@ function getMatches(userQueryOpts, currentUserId) {
                     .filter(userId => currentUserId !== userId))
             ];
             const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
+            // THIS IS ALL TESTING CODE
+            // const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
+            // let updatedSkipDocsNum = skipDocsNum;
+            // console.log('skipDocsNum: ', skipDocsNum)
+            // const currentPageNum = (skipDocsNum as number) / 5;
+            // console.log('currentPageNum: ', currentPageNum)
+            // const METERS_IN_A_MILE = 1609.34;
+            // const [minAge, maxAge] = desiredAgeRange;
+            // const { latitude, longitude } = userLocation;
+            // const paginationQueryOpts: PaginationQueryingOpts = {
+            //     location: {
+            //         $near: {
+            //             $geometry: { type: "Point", coordinates: [longitude as number, latitude as number] },
+            //             $maxDistance: (radiusInMilesInt as number) * METERS_IN_A_MILE,
+            //         }
+            //     },
+            //     sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
+            //     hasPrompts: true,
+            //     // sexAttraction: currentUser.sexAttraction,
+            //     birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
+            // }
+            // const pageOpts = { skip: 80, limit: 5 };
+            // (Users as any).createIndexes([{ location: '2dsphere' }])
+            // const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
+            // const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
+            // let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
+            // THE ABOVE IS TESTING CODE
             const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds);
             // GOAL: get the following:
             // prompts

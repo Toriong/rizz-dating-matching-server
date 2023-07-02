@@ -19,12 +19,12 @@ function getQueryOptionsValidationArr(queryOpts) {
     console.log('checking options of query. queryOpts: ', queryOpts);
     const validSexes = ['Male', 'Female'];
     const { userLocation, desiredAgeRange, skipDocsNum, radiusInMilesInt } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
+    console.log('desiredAgeRange: ', desiredAgeRange);
     const { latitude, longitude } = userLocation !== null && userLocation !== void 0 ? userLocation : {};
     const areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
     const areDesiredAgeRangeValsValid = { receivedType: typeof desiredAgeRange, recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate), correctVal: 'object', fieldName: 'desiredAgeRange', isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange };
     const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseFloat(longitude) === 'number') && (typeof parseFloat(latitude) === 'number'));
     const isLongAndLatValid = { receivedType: typeof userLocation, recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)), correctVal: 'number', fieldName: 'userLocation', isCorrectValType: isLongAndLatValueTypeValid, val: userLocation, areFiedNamesPresent: !!latitude && !!longitude };
-    // const sexAttractionValidationObj = { receivedType: typeof sexAttraction, correctVal: 'string', fieldName: 'desiredSex', isCorrectValType: typeof sexAttraction === 'string', val: sexAttraction }
     const paginationPageNumValidationObj = { receivedType: typeof skipDocsNum, correctVal: 'number', fieldName: 'skipDocsNum', isCorrectValType: typeof parseInt(skipDocsNum) === 'number', val: skipDocsNum };
     const radiusValidationObj = { receivedType: typeof radiusInMilesInt, correctVal: 'number', fieldName: 'radiusInMilesInt', isCorrectValType: typeof parseInt(radiusInMilesInt) === 'number', val: radiusInMilesInt };
     return [radiusValidationObj, paginationPageNumValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
@@ -37,6 +37,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     // query will receive the following: { query: this will be all of the query options, userId: the id of the user that is making the request }
     let userQueryOpts = query.query;
+    console.log("userQueryOpts: ", userQueryOpts);
+    console.log('userQueryOpts desiredAgeRange: ', userQueryOpts.desiredAgeRange);
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType);
     // filter in all of the query options validtion results with the field of isCorrectValType of false
@@ -55,6 +57,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
     const { status, data, msg } = queryMatchesResults;
-    const responseBody = (status === 200) ? { potentialMatchesPagination: { potentialMatches: data } } : { msg: msg };
+    console.log('potential matches data: ', data);
+    // GOAL: check if the potential matches has prompts in the database
+    const responseBody = (status === 200) ? { potentialMatchesPagination: data } : { msg: msg };
     return response.status(status).json(responseBody);
 }));

@@ -16,5 +16,4 @@ interface ReqQueryMatchesParams{
     userId: string
 }
 
-
 export { UserQueryOpts, UserLocation, Sex, ReqQueryMatchesParams }
