@@ -21,12 +21,13 @@ interface PromptModelInterface {
 type UserPotentialMatchType = Pick<UserBaseModelSchema, "_id" | "bio" | "hobbies">;
 type UserFirstName = Pick<UserBaseModelSchema, "name">["name"]["first"];
 
-interface InterfaceUserAndPromptsForClient extends UserPotentialMatchType {
+interface IUserAndPrompts extends UserPotentialMatchType {
     firstName: UserFirstName,
     city?: string,
     state?: string | undefined,
     country?: string,
-    matchingPicUrl?: string
+    matchingPicUrl?: string,
+    prompts: PromptInterface[]
 }
 
-export { ReactionNumObjInterface, PromptInterface, PromptModelInterface, InterfaceUserAndPromptsForClient };
+export { ReactionNumObjInterface, PromptInterface, PromptModelInterface, IUserAndPrompts };

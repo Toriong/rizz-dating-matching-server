@@ -15,7 +15,7 @@ interface MatchPicUrlReturnResult {
     wasSuccessful: boolean
 }
 
-async function getMatchPicUrl(pathToImg: string, expiresNum: number): Promise<MatchPicUrlReturnResult> {
+async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 60)): Promise<MatchPicUrlReturnResult> {
     try {
         const s3 = getS3Instance();
         const params = {

@@ -16,7 +16,7 @@ function getS3Instance() {
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
     });
 }
-function getMatchPicUrl(pathToImg, expiresNum) {
+function getMatchPicUrl(pathToImg, expiresNum = (60000 * 60)) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const s3 = getS3Instance();
