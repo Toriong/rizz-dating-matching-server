@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { Router } from 'express';
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesQueryServices.js';
-import { filterUsersWithoutPrompts, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
+import { filterUsersWithoutPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -63,11 +63,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     let getUsersWithPromptsResult = { potentialMatches: [], prompts: [] };
     if (potentialMatches.length < 5) {
-        getUsersWithPromptsResult = yield getUsersWithPrompts(userQueryOpts, query.userId, potentialMatches);
-        if (getUsersWithPromptsResult.didErrorOccur) {
-            console.error("Potential matches is less than 5. Couldn't prompts for the users.");
-            return response.status(500).json({ msg: "Error! Something went wrong. Couldn't get prompts for users." });
-        }
+        console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.');
+        // getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatches);
+        // if (getUsersWithPromptsResult.didErrorOccur) {
+        //     console.error("Potential matches is less than 5. Couldn't prompts for the users.");
+        //     return response.status(500).json({ msg: "Error! Something went wrong. Couldn't get prompts for users." })
+        // }
     }
     // if the potentialmatches array is greater than 0, then for each user get their matching photo from aws. 
     const responseBody = (status === 200) ? { potentialMatchesPagination: Object.assign(Object.assign({}, data), { potentialMatches: getUsersWithPromptsResult.potentialMatches }) } : { msg: msg };

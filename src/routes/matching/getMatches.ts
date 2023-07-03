@@ -100,15 +100,16 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     let getUsersWithPromptsResult: IFilterUserWithouPromptsReturnVal = { potentialMatches: [], prompts: [] }
 
     if (potentialMatches.length < 5) {
-        getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatches);
+        console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.')
+        
+        // getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatches);
 
-        if (getUsersWithPromptsResult.didErrorOccur) {
-            console.error("Potential matches is less than 5. Couldn't prompts for the users.");
+        // if (getUsersWithPromptsResult.didErrorOccur) {
+        //     console.error("Potential matches is less than 5. Couldn't prompts for the users.");
 
-            return response.status(500).json({ msg: "Error! Something went wrong. Couldn't get prompts for users." })
-        }
+        //     return response.status(500).json({ msg: "Error! Something went wrong. Couldn't get prompts for users." })
+        // }
     }
-
     // if the potentialmatches array is greater than 0, then for each user get their matching photo from aws. 
 
     const responseBody = (status === 200) ? { potentialMatchesPagination: { ...data, potentialMatches: getUsersWithPromptsResult.potentialMatches } } : { msg: msg }
