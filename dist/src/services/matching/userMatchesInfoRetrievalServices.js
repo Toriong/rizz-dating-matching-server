@@ -8,18 +8,46 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
+import { getMatches } from "./matchesQueryServices.js";
 function filterUserWithoutPrompts(potentialMatches) {
     return __awaiter(this, void 0, void 0, function* () {
-        // this function will get the user ids of the queried matches
-        // using the ids of the users, get the prompts of the users
-        // pass in the matches array for this function
-        // using the userIds of the matches array, get the prompts of the users from the db
-        // the results from the above is called, prompts 
-        // filter out the users who do not have any prompts and return the results of the filter for this function
-        const getPrompstByUserIdsResult = yield getPrompstByUserIds(potentialMatches.map(({ _id }) => _id));
-        const userIdsOfPrompts = getPrompstByUserIdsResult.data.map(({ userId }) => userId);
-        // filter through the potentialMaches, for each iteration, get the _id of the user, if the _id of the user is in the userIdsOfPrompts, then filter in that user. Else, filter out that user.
-        return potentialMatches.filter(({ _id }) => userIdsOfPrompts.includes(_id));
+        try {
+            const getPrompstByUserIdsResult = yield getPrompstByUserIds(potentialMatches.map(({ _id }) => _id));
+            const userPrompts = getPrompstByUserIdsResult.data;
+            const userIdsOfPrompts = userPrompts.map(({ userId }) => userId);
+            return {
+                potentialMatches: potentialMatches.filter(({ _id }) => userIdsOfPrompts.includes(_id)),
+                prompts: userPrompts
+            };
+        }
+        catch (error) {
+            console.error("An error has occurred in getting prompts and users: ", error);
+            return { potentialMatches: [], prompts: [], didErrorOccur: true };
+        }
     });
 }
-export { filterUserWithoutPrompts };
+function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const queryMatchesResults = yield getMatches(userQueryOpts, currentUserId, potentialMatches);
+            if (queryMatchesResults.status !== 200) {
+                throw new Error("Failed to get matches.");
+            }
+            let usersAndPrompts = { potentialMatches: [], prompts: [] };
+            const { canStillQueryCurrentPageForUsers, potentialMatches: getMatchesUsersResult, updatedSkipDocsNum, hasReachedPaginationEnd } = (_a = queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) !== null && _a !== void 0 ? _a : {};
+            const filterUserWithoutPromptsResult = yield filterUserWithoutPrompts(getMatchesUsersResult);
+            if ((filterUserWithoutPromptsResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
+                const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+                const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
+                usersAndPrompts = yield getUsersWithPrompts(_userQueryOpts, currentUserId, potentialMatches);
+            }
+            return usersAndPrompts;
+        }
+        catch (error) {
+            console.error('An error has occurred in geting users with prompts: ', error);
+            return { potentialMatches: [], prompts: [], didErrorOccur: true };
+        }
+    });
+}
+export { filterUserWithoutPrompts, getUsersWithPrompts };
