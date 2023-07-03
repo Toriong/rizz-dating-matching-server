@@ -76,7 +76,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
 }
-function getMatches(userQueryOpts, currentUserId) {
+function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             console.log('getMatches, currentUserId: ', currentUserId);
@@ -140,7 +140,7 @@ function getMatches(userQueryOpts, currentUserId) {
             // const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
             // let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
             // THE ABOVE IS TESTING CODE
-            const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds);
+            const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
             // GOAL: get the following:
             // prompts
             // hobbies 

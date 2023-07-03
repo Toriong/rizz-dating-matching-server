@@ -100,7 +100,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
 
 
 
-async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string): Promise<GetMatchesResult> {
+async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, currentPotentialMatches: UserBaseModelSchema[] = []): Promise<GetMatchesResult> {
     try {
 
         console.log('getMatches, currentUserId: ', currentUserId)
@@ -184,7 +184,7 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string): 
 
 
 
-        const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds)
+        const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches)
 
         // GOAL: get the following:
         // prompts
