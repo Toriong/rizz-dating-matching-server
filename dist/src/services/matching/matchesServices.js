@@ -43,13 +43,11 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         const pageOpts = { skip: skipDocsNum, limit: 5 };
         // put the above into a function
         Users.createIndexes([{ location: '2dsphere' }]);
-        // GOAL: make a dummy query to get the last page of users. These users will have no prompts. Query for more users. Those users
-        // will not have prompts as well
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
         if (totalUsersForQuery === 0) {
-            return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForValidUsers: false, hasReachedPaginationEnd: true };
+            return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
         }
         pageQueryUsers = pageQueryUsers.filter(({ _id }) => !allUnshowableUserIds.includes(_id));
         let potentialMatches = currentPotentialMatches;
@@ -73,7 +71,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         const endingSliceNum = 5 - potentialMatches.length;
         const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
         potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
-        return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
+        return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
 }
 function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) {

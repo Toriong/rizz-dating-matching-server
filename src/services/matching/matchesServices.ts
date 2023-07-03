@@ -13,7 +13,7 @@ import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rej
 interface InterfacePotentialMatchesPage {
     potentialMatches: UserBaseModelSchema[];
     updatedSkipDocsNum: string | number;
-    canStillQueryCurrentPageForValidUsers: boolean;
+    canStillQueryCurrentPageForUsers: boolean;
     hasReachedPaginationEnd: boolean;
 }
 
@@ -57,15 +57,12 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
 
     (Users as any).createIndexes([{ location: '2dsphere' }])
 
-    // GOAL: make a dummy query to get the last page of users. These users will have no prompts. Query for more users. Those users
-    // will not have prompts as well
-
     const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
     const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
     let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
 
     if (totalUsersForQuery === 0) {
-        return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForValidUsers: false, hasReachedPaginationEnd: true }
+        return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true }
     }
 
     pageQueryUsers = pageQueryUsers.filter(({ _id }) => !allUnshowableUserIds.includes(_id))
@@ -95,7 +92,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum)
     potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum)
 
-    return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
+    return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
 }
 
 
