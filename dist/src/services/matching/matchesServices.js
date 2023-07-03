@@ -141,14 +141,6 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
             // let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
             // THE ABOVE IS TESTING CODE
             const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
-            // GOAL: get the following:
-            // prompts
-            // hobbies 
-            // their matching pic
-            // their name 
-            // their location
-            // CASE: at least one of the user no longer has any prompts, so we need to query for more users
-            // CASE: all users has prompts
             return { status: 200, data: Object.assign({}, potentialMatchesPaginationObj) };
         }
         catch (error) {

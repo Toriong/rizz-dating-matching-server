@@ -186,17 +186,6 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
 
         const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches)
 
-        // GOAL: get the following:
-        // prompts
-        // hobbies 
-        // their matching pic
-        // their name 
-        // their location
-
-        // CASE: at least one of the user no longer has any prompts, so we need to query for more users
-
-        // CASE: all users has prompts
-
         return { status: 200, data: { ...potentialMatchesPaginationObj } }
     } catch (error) {
         console.error('An error has occurred in getting matches: ', error)
