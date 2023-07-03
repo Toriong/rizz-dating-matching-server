@@ -30,6 +30,7 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            // the below function will get the user of the next query if the current page has no valid users to display to the user in the front end
             const queryMatchesResults = yield getMatches(userQueryOpts, currentUserId, potentialMatches);
             if (queryMatchesResults.status !== 200) {
                 throw new Error("Failed to get matches.");

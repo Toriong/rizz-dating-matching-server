@@ -29,6 +29,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         const [minAge, maxAge] = desiredAgeRange;
         const { latitude, longitude } = userLocation;
         const paginationQueryOpts = {
+            // _id: { $nin: allUnshowableUserIds },
             location: {
                 $near: {
                     $geometry: { type: "Point", coordinates: [longitude, latitude] },
@@ -46,12 +47,13 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
+        const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
         if (totalUsersForQuery === 0) {
             return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
         }
         pageQueryUsers = pageQueryUsers.filter(({ _id }) => !allUnshowableUserIds.includes(_id));
         let potentialMatches = currentPotentialMatches;
-        if (!pageQueryUsers.length) {
+        if (!pageQueryUsers.length && !hasReachedPaginationEnd) {
             console.log('no users were found for the current query.');
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
             const results = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
@@ -60,7 +62,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             updatedSkipDocsNum = _updatedSkipDocsNum;
         }
         const sumBetweenPotentialMatchesAndPgQueryUsers = pageQueryUsers.length + potentialMatches.length;
-        if (sumBetweenPotentialMatchesAndPgQueryUsers < 5) {
+        if ((sumBetweenPotentialMatchesAndPgQueryUsers < 5) && (sumBetweenPotentialMatchesAndPgQueryUsers > 0)) {
             console.log('Not enough user to display to the user on the client side, querying for more users...');
             potentialMatches = [...potentialMatches, ...pageQueryUsers];
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
@@ -68,9 +70,14 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             potentialMatches = updatedPotentialMatches;
             updatedSkipDocsNum = _updatedSkipDocsNum;
         }
-        const endingSliceNum = 5 - potentialMatches.length;
-        const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
-        potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+        let endingSliceNum = 5;
+        if (sumBetweenPotentialMatchesAndPgQueryUsers > 0) {
+            console.log('Getting users to add to the existing potential matches array.');
+            endingSliceNum = 5 - potentialMatches.length;
+            const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
+            potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+        }
+        console.log('Returning potential matches page info...');
         return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
 }

@@ -97,12 +97,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(500).json({ msg: "Error! Something went wrong. Couldn't get prompts for users." })
     }
 
-    let getUsersWithPromptsResult: IFilterUserWithouPromptsReturnVal = { potentialMatches: [], prompts: [] }
+    let getUsersWithPromptsResult: IFilterUserWithouPromptsReturnVal = { potentialMatches: data.potentialMatches, prompts: [] }
 
     if (potentialMatches.length < 5) {
         console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.')
-        
-        // getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatches);
+        // data.page.hasValidUsersToDisplayOnCurrentPg is true, then use the current page's skipDocsNum. Else, add 5 to it if it is false
+        const updatedSkipDocNumInt = (typeof data.updatedSkipDocsNum === 'string') ? parseInt(data.updatedSkipDocsNum) : data.updatedSkipDocsNum
+        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
+        getUsersWithPromptsResult = await getUsersWithPrompts(_userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatches);
 
         // if (getUsersWithPromptsResult.didErrorOccur) {
         //     console.error("Potential matches is less than 5. Couldn't prompts for the users.");

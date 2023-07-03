@@ -30,6 +30,7 @@ async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]
 
 async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: string, potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithouPromptsReturnVal> {
     try {
+        // the below function will get the user of the next query if the current page has no valid users to display to the user in the front end
         const queryMatchesResults = await getMatches(userQueryOpts, currentUserId, potentialMatches);
 
         if (queryMatchesResults.status !== 200) {
