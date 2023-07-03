@@ -79,7 +79,6 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
 function getMatches(userQueryOpts, currentUserId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log('generating query options...');
             console.log('getMatches, currentUserId: ', currentUserId);
             const currentUser = yield getUserById(currentUserId);
             console.log('currentUser: ', currentUser);

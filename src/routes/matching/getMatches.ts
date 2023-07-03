@@ -90,10 +90,34 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
     const { status, data, msg } = queryMatchesResults;
+    
+    
+    // BRAIN DUMP: 
+    // create a recursive function that will get the user's prompts from the database
+    // after the checking if the user has any prompts in the database, and if at least one user do not have any prompts then call a recursive function that will get the users with prompts from the database 
+    // the above function will do the following:
+    // get the users with propmts from the database
+    // will check if the user has any prompts in the db
+    // if no prompts, then call the function again
+    // else, return the result of the query for this function
+    // the function will get the number of users that do have prompts 
+    // the current page number that the user is on (the amount of users that has been skipped already)
+    // check if the current page has any querable users
+    
+    // CASE: after querying for the user's prompts, at least one user has not prompts in the db.
+    // GOAL: make another querying into the database in order to get prompts of users who do have prompts
+     
 
-    console.log('potential matches data: ', data)
 
-    // GOAL: check if the potential matches has prompts in the database
+
+    // GOAL #2: the logic that gets the user's prompts from the database is executed and the results are received
+    // CASE: all of the users that were queried do not have any prompts
+    // the results are received. In this case, all of the user has no prompts to display to the user on the client side.
+    // the results from querying the prompts collection is executed and the results are received.
+    // using the ids of the user, get the prompts of the users
+    // get all of the userIds of the matches 
+
+
 
     const responseBody = (status === 200) ? { potentialMatchesPagination: data } : { msg: msg }
 

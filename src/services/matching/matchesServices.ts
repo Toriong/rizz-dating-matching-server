@@ -10,13 +10,18 @@ import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
 import { ChatInterface } from "../../types-and-interfaces/interfaces/firebaseInterfaces.js";
 import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js";
 
+interface InterfacePotentialMatchesPage {
+    potentialMatches: UserBaseModelSchema[];
+    updatedSkipDocsNum: string | number;
+    canStillQueryCurrentPageForValidUsers: boolean;
+    hasReachedPaginationEnd: boolean;
+}
 
 interface GetMatchesResult {
     status: number,
-    data?: any,
+    data?: InterfacePotentialMatchesPage,
     msg?: string
 }
-
 
 function getFormattedBirthDate(birthDate: Date): string {
     const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`
@@ -25,7 +30,7 @@ function getFormattedBirthDate(birthDate: Date): string {
     return `${birthDate.getFullYear()}-${month}-${day}`
 }
 
-async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[], currentPotentialMatches: UserBaseModelSchema[] = []) {
+async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[], currentPotentialMatches: UserBaseModelSchema[] = []): Promise<InterfacePotentialMatchesPage> {
     // put the below into a funtion, call it: createQueryOptsForPagination
     const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
     let updatedSkipDocsNum = skipDocsNum;
@@ -93,9 +98,10 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForValidUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
 }
 
+
+
 async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string): Promise<GetMatchesResult> {
     try {
-        console.log('generating query options...')
 
         console.log('getMatches, currentUserId: ', currentUserId)
 
@@ -173,7 +179,7 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string): 
         // const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
         // const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
         // let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
-        
+
         // THE ABOVE IS TESTING CODE
 
 
