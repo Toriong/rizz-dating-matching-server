@@ -11,7 +11,7 @@ interface IFilterUserWithouPromptsReturnVal {
     didErrorOccur?: boolean
 }
 
-async function filterUserWithoutPrompts(potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithouPromptsReturnVal> {
+async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithouPromptsReturnVal> {
     try {
         const getPrompstByUserIdsResult = await getPrompstByUserIds(potentialMatches.map(({ _id }) => _id))
         const userPrompts = getPrompstByUserIdsResult.data as PromptModelInterface[];
@@ -38,14 +38,14 @@ async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: 
 
         let usersAndPrompts: IFilterUserWithouPromptsReturnVal = { potentialMatches: [], prompts: [] }
         const { canStillQueryCurrentPageForUsers, potentialMatches: getMatchesUsersResult, updatedSkipDocsNum, hasReachedPaginationEnd } = (queryMatchesResults?.data as InterfacePotentialMatchesPage) ?? {}
-        const filterUserWithoutPromptsResult = await filterUserWithoutPrompts(getMatchesUsersResult);
+        const filterUserWithoutPromptsResult = await filterUsersWithoutPrompts(getMatchesUsersResult);
 
-        if ((filterUserWithoutPromptsResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
+        if ((filterUserWithoutPromptsResult?.potentialMatches?.length < 5) && !hasReachedPaginationEnd) {
             const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum
             const _userQueryOpts: UserQueryOpts = { ...userQueryOpts, skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
             usersAndPrompts = await getUsersWithPrompts(_userQueryOpts, currentUserId, potentialMatches);
         }
-        
+
         return usersAndPrompts;
     } catch (error) {
         console.error('An error has occurred in geting users with prompts: ', error)
@@ -55,4 +55,4 @@ async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: 
 }
 
 
-export { filterUserWithoutPrompts, getUsersWithPrompts }
+export { filterUsersWithoutPrompts, getUsersWithPrompts }

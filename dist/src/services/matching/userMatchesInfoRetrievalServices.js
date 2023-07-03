@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
 import { getMatches } from "./matchesQueryServices.js";
-function filterUserWithoutPrompts(potentialMatches) {
+function filterUsersWithoutPrompts(potentialMatches) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const getPrompstByUserIdsResult = yield getPrompstByUserIds(potentialMatches.map(({ _id }) => _id));
@@ -27,7 +27,7 @@ function filterUserWithoutPrompts(potentialMatches) {
     });
 }
 function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
-    var _a;
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const queryMatchesResults = yield getMatches(userQueryOpts, currentUserId, potentialMatches);
@@ -36,8 +36,8 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
             }
             let usersAndPrompts = { potentialMatches: [], prompts: [] };
             const { canStillQueryCurrentPageForUsers, potentialMatches: getMatchesUsersResult, updatedSkipDocsNum, hasReachedPaginationEnd } = (_a = queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) !== null && _a !== void 0 ? _a : {};
-            const filterUserWithoutPromptsResult = yield filterUserWithoutPrompts(getMatchesUsersResult);
-            if ((filterUserWithoutPromptsResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
+            const filterUserWithoutPromptsResult = yield filterUsersWithoutPrompts(getMatchesUsersResult);
+            if ((((_b = filterUserWithoutPromptsResult === null || filterUserWithoutPromptsResult === void 0 ? void 0 : filterUserWithoutPromptsResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length) < 5) && !hasReachedPaginationEnd) {
                 const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
                 const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
                 usersAndPrompts = yield getUsersWithPrompts(_userQueryOpts, currentUserId, potentialMatches);
@@ -50,4 +50,4 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
         }
     });
 }
-export { filterUserWithoutPrompts, getUsersWithPrompts };
+export { filterUsersWithoutPrompts, getUsersWithPrompts };

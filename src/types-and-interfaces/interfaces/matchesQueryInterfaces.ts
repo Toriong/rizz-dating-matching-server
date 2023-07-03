@@ -1,4 +1,5 @@
 import { UserBaseModelSchema } from "../../models/User.js";
+import { PromptModelInterface } from "./promptsInterfaces.js";
 
 interface InterfacePotentialMatchesPage {
     potentialMatches: UserBaseModelSchema[];
@@ -7,4 +8,10 @@ interface InterfacePotentialMatchesPage {
     hasReachedPaginationEnd: boolean;
 }
 
-export { InterfacePotentialMatchesPage }
+interface IFilterUserWithouPromptsReturnVal {
+    potentialMatches: UserBaseModelSchema[];
+    prompts: PromptModelInterface[];
+    didErrorOccur?: boolean
+}
+
+export { InterfacePotentialMatchesPage, IFilterUserWithouPromptsReturnVal }

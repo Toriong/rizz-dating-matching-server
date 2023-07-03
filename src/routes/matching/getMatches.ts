@@ -5,6 +5,8 @@ import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesQueryServices.js';
 import { ReqQueryMatchesParams, UserLocation, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
 import { PaginatedModel } from '../../models/User.js';
+import { filterUsersWithoutPrompts, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
+import { IFilterUserWithouPromptsReturnVal } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 
 export const getMatchesRoute = Router();
 
@@ -51,23 +53,14 @@ function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidation
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
     let query: unknown | ReqQueryMatchesParams = request.query
 
-    console.log('get matches for user on the client-side query: ', query)
-
     if (!query || !(query as ReqQueryMatchesParams)?.query || !(query as ReqQueryMatchesParams).userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' })
     }
 
-    // query will receive the following: { query: this will be all of the query options, userId: the id of the user that is making the request }
-    
     let userQueryOpts: RequestQuery | UserQueryOpts = (query as ReqQueryMatchesParams).query;
-
-    console.log("userQueryOpts: ", userQueryOpts)
-    console.log('userQueryOpts desiredAgeRange: ', userQueryOpts.desiredAgeRange)
-
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType)
 
-    // filter in all of the query options validtion results with the field of isCorrectValType of false
     if (!areQueryOptsValid) {
         const invalidQueryOpts = queryOptsValidArr.filter(({ isCorrectValType }) => !isCorrectValType)
 
@@ -80,7 +73,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     console.log("Will get the user's matches and send them to the client.")
 
-    // access the userQuerOpts.desireDateRange, loop through it using the map method, and change the date strings to date objects
     const userlocationValsUpdated = { longitude: parseFloat(userQueryOpts.userLocation.longitude as string), latitude: parseFloat(userQueryOpts.userLocation.latitude as string) }
     const valOfRadiusFieldUpdated = parseInt(userQueryOpts.radiusInMilesInt as string)
     const paginationPageNumUpdated = parseInt(userQueryOpts.skipDocsNum as string)
@@ -91,48 +83,35 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
     const { status, data, msg } = queryMatchesResults;
 
-    if(!data){
+    if (!data) {
         console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", msg)
 
         return response.status(500).json({ msg: "Something went wrong. Couldnt't matches." })
     }
 
+    let { didErrorOccur, potentialMatches } = await filterUsersWithoutPrompts(data.potentialMatches);
 
-    // GOAL: for the user in the data array, check if the users has any prompts in the database
+    if (didErrorOccur) {
+        console.error("An error has occurred in filtering out users wihtout prompts.");
 
-    // BRAIN DUMP: 
-    // get the prompts of the user, and with the users that was return from getMatches function, execute a filter. If the users in the data array that
-    // was return from getMatches are not in the prompts array, then filter out those users from the data array return from the getMatches function
-    
-    
-    // BRAIN DUMP: 
-    // create a recursive function that will get the user's prompts from the database
-    // after the checking if the user has any prompts in the database, and if at least one user do not have any prompts then call a recursive function that will get the users with prompts from the database 
-    // the above function will do the following:
-    // get the users with propmts from the database
-    // will check if the user has any prompts in the db
-    // if no prompts, then call the function again
-    // else, return the result of the query for this function
-    // the function will get the number of users that do have prompts 
-    // the current page number that the user is on (the amount of users that has been skipped already)
-    // check if the current page has any querable users
-    
-    // CASE: after querying for the user's prompts, at least one user has not prompts in the db.
-    // GOAL: make another querying into the database in order to get prompts of users who do have prompts
-     
+        return response.status(500).json({ msg: "Error! Something went wrong. Couldn't get prompts for users." })
+    }
 
+    let getUsersWithPromptsResult: IFilterUserWithouPromptsReturnVal = { potentialMatches: [], prompts: [] }
 
+    if (potentialMatches.length < 5) {
+        getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatches);
 
-    // GOAL #2: the logic that gets the user's prompts from the database is executed and the results are received
-    // CASE: all of the users that were queried do not have any prompts
-    // the results are received. In this case, all of the user has no prompts to display to the user on the client side.
-    // the results from querying the prompts collection is executed and the results are received.
-    // using the ids of the user, get the prompts of the users
-    // get all of the userIds of the matches 
+        if (getUsersWithPromptsResult.didErrorOccur) {
+            console.error("Potential matches is less than 5. Couldn't prompts for the users.");
 
+            return response.status(500).json({ msg: "Error! Something went wrong. Couldn't get prompts for users." })
+        }
+    }
 
+    // if the potentialmatches array is greater than 0, then for each user get their matching photo from aws. 
 
-    const responseBody = (status === 200) ? { potentialMatchesPagination: data } : { msg: msg }
+    const responseBody = (status === 200) ? { potentialMatchesPagination: { ...data, potentialMatches: getUsersWithPromptsResult.potentialMatches } } : { msg: msg }
 
     return response.status(status).json(responseBody)
 })
