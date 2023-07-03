@@ -1,5 +1,5 @@
 import Mongoose, { model } from 'mongoose';
-import { PromptSchemaInterface, PromptInterface, ReactionNumObjInterface } from '../types-and-interfaces/interfaces/promptsInterfaces.js';
+import { PromptModelInterface, PromptInterface, ReactionNumObjInterface } from '../types-and-interfaces/interfaces/promptsInterfaces.js';
 
 const { Schema } = Mongoose;
 const ReactionNumObjSchema = new Schema<ReactionNumObjInterface>({
@@ -12,11 +12,11 @@ const PromptElementSchema = new Schema<PromptInterface>({
     answer: String,
     reactionNumObj: ReactionNumObjSchema
 })
-const PromptSchema = new Schema<PromptSchemaInterface>({
+const PromptSchema = new Schema<PromptModelInterface>({
     // the _id will be the user's id
     userId: String,
     prompts: [PromptElementSchema]
 })
-const Prompt = model<PromptSchemaInterface>('Prompts', PromptSchema);
+const Prompt = model<PromptModelInterface>('Prompts', PromptSchema);
 
 export default Prompt

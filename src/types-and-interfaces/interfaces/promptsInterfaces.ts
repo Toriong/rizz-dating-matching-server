@@ -1,3 +1,5 @@
+import { UserBaseModelSchema } from "../../models/User.js";
+
 interface ReactionNumObjInterface {
     likesNum: number;
     neutralNum: number;
@@ -11,16 +13,20 @@ interface PromptInterface {
     reactionNumObj: ReactionNumObjInterface
 }
 
-interface PromptSchemaInterface {
-    // put the id of the user for _id field
+interface PromptModelInterface {
     userId: string,
     prompts: PromptInterface[]
 }
 
-interface CRUDResults{
-    status: number,
-    msg?: string,
-    data?: PromptInterface | unknown
+type UserPotentialMatchType = Pick<UserBaseModelSchema, "_id" | "bio" | "hobbies">;
+type UserFirstName = Pick<UserBaseModelSchema, "name">["name"]["first"];
+
+interface InterfaceUserAndPromptsForClient extends UserPotentialMatchType {
+    firstName: UserFirstName,
+    city?: string,
+    state?: string | undefined,
+    country?: string,
+    matchingPicUrl?: string
 }
 
-export { ReactionNumObjInterface, PromptInterface, PromptSchemaInterface, CRUDResults };
+export { ReactionNumObjInterface, PromptInterface, PromptModelInterface, InterfaceUserAndPromptsForClient };

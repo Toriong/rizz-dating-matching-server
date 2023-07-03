@@ -6,7 +6,7 @@ interface CRUDResult {
     status?: number,
     wasSuccessful: boolean,
     msg?: String,
-    data?: RejectedUserInterface | ChatInterface | UserChatIdsInterface | unknown | RejectedUserInterface[] | string[] | PromptInterface  
+    data?: RejectedUserInterface | ChatInterface | UserChatIdsInterface | unknown | RejectedUserInterface[] | string[] | PromptInterface | PromptInterface[]  
 }
 
 export { CRUDResult }

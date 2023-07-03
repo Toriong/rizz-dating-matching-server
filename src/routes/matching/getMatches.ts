@@ -97,6 +97,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(500).json({ msg: "Something went wrong. Couldnt't matches." })
     }
 
+
     // GOAL: for the user in the data array, check if the users has any prompts in the database
 
     // BRAIN DUMP: 
