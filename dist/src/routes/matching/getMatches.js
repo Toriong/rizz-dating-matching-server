@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { Router } from 'express';
 import GLOBAL_VALS from '../../globalVals.js';
-import { getMatches } from '../../services/matching/matchesServices.js';
+import { getMatches } from '../../services/matching/matchesQueryServices.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -57,6 +57,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
     const { status, data, msg } = queryMatchesResults;
+    if (!data) {
+        console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", msg);
+        return response.status(500).json({ msg: "Something went wrong. Couldnt't matches." });
+    }
+    // GOAL: for the user in the data array, check if the users has any prompts in the database
+    // BRAIN DUMP: 
+    // get the prompts of the user, and with the users that was return from getMatches function, execute a filter. If the users in the data array that
+    // was return from getMatches are not in the prompts array, then filter out those users from the data array return from the getMatches function
     // BRAIN DUMP: 
     // create a recursive function that will get the user's prompts from the database
     // after the checking if the user has any prompts in the database, and if at least one user do not have any prompts then call a recursive function that will get the users with prompts from the database 

@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { Router, Request, Response } from 'express'
 import { insertRejectedUser } from "../../services/rejectingUsers/rejectedUsersService.js";
 import GLOBAL_VALS from '../../globalVals.js';
-import { getMatches } from '../../services/matching/matchesServices.js';
+import { getMatches } from '../../services/matching/matchesQueryServices.js';
 import { ReqQueryMatchesParams, UserLocation, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
 import { PaginatedModel } from '../../models/User.js';
 
@@ -90,6 +90,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
     const { status, data, msg } = queryMatchesResults;
+
+    if(!data){
+        console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", msg)
+
+        return response.status(500).json({ msg: "Something went wrong. Couldnt't matches." })
+    }
+
+    // GOAL: for the user in the data array, check if the users has any prompts in the database
+
+    // BRAIN DUMP: 
+    // get the prompts of the user, and with the users that was return from getMatches function, execute a filter. If the users in the data array that
+    // was return from getMatches are not in the prompts array, then filter out those users from the data array return from the getMatches function
     
     
     // BRAIN DUMP: 
