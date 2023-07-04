@@ -85,18 +85,6 @@ function getReverseGeoCode(userLocation) {
         }
     });
 }
-// GOAL: an array is created with each value being an object with the form of IUserAndPrompts
-// an array with each object that has the form of IUserAndPrompts is returned from this function
-// access the prompts array from the object that was attained from the prompts array
-// the target prompt is attained from the prompts array
-// using the id of the user, get their respective prompt from the prompts array 
-// the picture url for each users is attained from aws and added to the user object by passing the path for the picture file to the function of getMatchPicUrl
-// the picture file name is attained from the user object
-// the following fields are abstracted from the user object: _id, hobbies, bio, name.firstName, location
-// loop through the matches array, and for each user, get the above values:  
-// matches array is passed as an argument
-// the prompts array is passed as an argument
-// the function getUserAndPromptInfoForClient is called with the matches array and prompts array as arguments
 function getMatchesInfoForClient(potentialMatches, prompts) {
     return __awaiter(this, void 0, void 0, function* () {
         let userInfoAndPromptsForClient = [];
@@ -133,7 +121,10 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
             }
             userInfoAndPromptsForClient.push(userInfoAndPromptsObj);
         }
-        return userInfoAndPromptsForClient;
+        return {
+            potentialMatches: userInfoAndPromptsForClient,
+            userModels: potentialMatches.filter(({ _id: userIdPotentialMatch }) => userInfoAndPromptsForClient.some(({ _id: userId }) => userId === userIdPotentialMatch))
+        };
     });
 }
 export { filterUsersWithoutPrompts, getUsersWithPrompts, getMatchesInfoForClient };

@@ -1,5 +1,4 @@
 
-type Sex = 'Female' | 'Male'
 interface UserLocation {
     longitude: number | string,
     latitude: number | string,
@@ -16,4 +15,4 @@ interface ReqQueryMatchesParams{
     userId: string
 }
 
-export { UserQueryOpts, UserLocation, Sex, ReqQueryMatchesParams }
+export { UserQueryOpts, UserLocation, ReqQueryMatchesParams }
