@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
+import { getMatchPicUrl } from "./helper-fns/aws.js";
 import { getMatches } from "./matchesQueryServices.js";
 function filterUsersWithoutPrompts(potentialMatches) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -63,6 +64,7 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
 // matches array is passed as an argument
 // the prompts array is passed as an argument
 // the function getUserAndPromptInfoForClient is called with the matches array and prompts array as arguments
+// GOAL: GET THE USER'S LOCATION BY REVERSE GEO LOCATION. 
 function getUserAndPromptInfoForClient(potentialMatches, prompts) {
     return __awaiter(this, void 0, void 0, function* () {
         let userInfoAndPromptsForClient = [];
@@ -72,9 +74,55 @@ function getUserAndPromptInfoForClient(potentialMatches, prompts) {
         // CASE: the target user doesn't have matching pic saved into the aws
         // GOAL: don't include that user into the userInfoandPromptsForClient array
         for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
-            const { _id, name, hobbies, location, pics } = potentialMatches[numIteration];
+            const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
             const matchingPic = pics.find(({ isMatching }) => isMatching);
+            const getMatchPicUrlResult = yield getMatchPicUrl(matchingPic.picFileNameOnAws);
+            const userPrompts = prompts.find(({ userId }) => userId === _id);
+            if (!userPrompts || (getMatchPicUrlResult.wasSuccessful === false)) {
+                continue;
+            }
+            // GOAL: make an api call to get the city, state, and country of the user
+            // if it fails to display: "Can't get user's location"
+            if (looks && hobbies) {
+                userInfoAndPromptsForClient.push({
+                    _id: _id,
+                    firstName: name.first,
+                    city: "",
+                    state: "",
+                    country: "",
+                    looks: looks,
+                    hobbies: hobbies,
+                    prompts: userPrompts.prompts,
+                    matchingPicUrl: getMatchPicUrlResult.matchPicUrl,
+                });
+                continue;
+            }
+            if (looks) {
+                userInfoAndPromptsForClient.push({
+                    _id: _id,
+                    firstName: name.first,
+                    city: "",
+                    state: "",
+                    country: "",
+                    looks: looks,
+                    prompts: userPrompts.prompts,
+                    matchingPicUrl: getMatchPicUrlResult.matchPicUrl,
+                });
+                continue;
+            }
+            userInfoAndPromptsForClient.push({
+                _id: _id,
+                firstName: name.first,
+                city: "",
+                state: "",
+                country: "",
+                looks: looks,
+                hobbies: hobbies,
+                prompts: userPrompts.prompts,
+                matchingPicUrl: getMatchPicUrlResult.matchPicUrl,
+            });
         }
+        return userInfoAndPromptsForClient;
     });
 }
 export { filterUsersWithoutPrompts, getUsersWithPrompts };

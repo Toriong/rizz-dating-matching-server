@@ -1,8 +1,9 @@
-import { UserBaseModelSchema } from "../../models/User.js";
+import { Picture, UserBaseModelSchema } from "../../models/User.js";
 import { InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
 import { IUserAndPrompts, PromptInterface, PromptModelInterface } from "../../types-and-interfaces/interfaces/promptsInterfaces.js";
 import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
+import { getMatchPicUrl } from "./helper-fns/aws.js";
 import { getMatches } from "./matchesQueryServices.js";
 
 interface IFilterUserWithouPromptsReturnVal {
@@ -68,7 +69,10 @@ async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: 
 // the prompts array is passed as an argument
 // the function getUserAndPromptInfoForClient is called with the matches array and prompts array as arguments
 
-async function getUserAndPromptInfoForClient(potentialMatches: UserBaseModelSchema[], prompts: PromptModelInterface[]):Promise<IUserAndPrompts>{
+
+
+// GOAL: GET THE USER'S LOCATION BY REVERSE GEO LOCATION. 
+async function getUserAndPromptInfoForClient(potentialMatches: UserBaseModelSchema[], prompts: PromptModelInterface[]): Promise<IUserAndPrompts[] | []> {
     let userInfoAndPromptsForClient: IUserAndPrompts[] = [];
 
     // CASE: all of the users don't have any images in the aws.
@@ -78,11 +82,63 @@ async function getUserAndPromptInfoForClient(potentialMatches: UserBaseModelSche
     // BRAIN DUMP: 
     // CASE: the target user doesn't have matching pic saved into the aws
     // GOAL: don't include that user into the userInfoandPromptsForClient array
-    for(let numIteration = 0; numIteration < potentialMatches.length; numIteration++){
-        const { _id, name, hobbies, location, pics } = potentialMatches[numIteration];
-        const matchingPic = pics.find(({ isMatching }) => isMatching);
+    for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
+        const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
+        const matchingPic = pics.find(({ isMatching }) => isMatching) as Picture;
+        const getMatchPicUrlResult = await getMatchPicUrl(matchingPic.picFileNameOnAws);
+        const userPrompts = prompts.find(({ userId }) => userId === _id)
+
+        if (!userPrompts || (getMatchPicUrlResult.wasSuccessful === false)) {
+            continue;
+        }
+
+        // GOAL: make an api call to get the city, state, and country of the user
+        // if it fails to display: "Can't get user's location"
+
+        if (looks && hobbies) {
+            userInfoAndPromptsForClient.push({
+                _id: _id,
+                firstName: name.first,
+                city: "",
+                state: "",
+                country: "",
+                looks: looks,
+                hobbies: hobbies,
+                prompts: userPrompts.prompts,
+                matchingPicUrl: getMatchPicUrlResult.matchPicUrl as string,
+            })
+            continue;
+        }
+
+        if (looks) {
+            userInfoAndPromptsForClient.push({
+                _id: _id,
+                firstName: name.first,
+                city: "",
+                state: "",
+                country: "",
+                looks: looks,
+                prompts: userPrompts.prompts,
+                matchingPicUrl: getMatchPicUrlResult.matchPicUrl as string,
+            })
+            continue;
+        }
+
+        userInfoAndPromptsForClient.push({
+            _id: _id,
+            firstName: name.first,
+            city: "",
+            state: "",
+            country: "",
+            looks: looks,
+            hobbies: hobbies,
+            prompts: userPrompts.prompts,
+            matchingPicUrl: getMatchPicUrlResult.matchPicUrl as string,
+        })
+
     }
 
+    return userInfoAndPromptsForClient;
 }
 
 
