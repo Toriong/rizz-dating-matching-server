@@ -2,7 +2,7 @@ import { UserBaseModelSchema } from "../../models/User.js";
 import { PromptModelInterface } from "./promptsInterfaces.js";
 
 interface InterfacePotentialMatchesPage {
-    potentialMatches: UserBaseModelSchema[];
+    potentialMatches?: UserBaseModelSchema[];
     updatedSkipDocsNum: string | number;
     canStillQueryCurrentPageForUsers: boolean;
     hasReachedPaginationEnd: boolean;

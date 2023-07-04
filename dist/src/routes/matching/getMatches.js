@@ -52,7 +52,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
     const { status, data, msg } = queryMatchesResults;
-    if (!data) {
+    if (!data || !data.potentialMatches) {
         console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", msg);
         return response.status(500).json({ msg: "Something went wrong. Couldnt't matches." });
     }
@@ -79,6 +79,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const getUsersWithPromptsResult = yield getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
+                if (getUsersWithPromptsResult.errMsg) {
+                    throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`);
+                }
+                const potentialMatchesForClient = yield getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts);
                 if (getUsersWithPromptsResult.errMsg) {
                     throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`);
                 }

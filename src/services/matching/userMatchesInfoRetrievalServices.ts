@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Picture, UserBaseModelSchema } from "../../models/User.js";
-import { InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
+import { InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMap } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
 import { IUserAndPrompts, PromptInterface, PromptModelInterface } from "../../types-and-interfaces/interfaces/promptsInterfaces.js";
 import { UserLocation, UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
@@ -10,8 +10,9 @@ import dotenv from 'dotenv';
 
 
 interface IFilterUserWithouPromptsReturnVal {
-    potentialMatches: UserBaseModelSchema[];
-    prompts: PromptModelInterface[];
+    potentialMatches: UserBaseModelSchema[]
+    prompts: PromptModelInterface[]
+    matchesQueryPage?: MatchesQueryPage
     errMsg?: string
 }
 
@@ -28,30 +29,37 @@ async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]
     } catch (error) {
         console.error("An error has occurred in getting prompts and users: ", error)
 
-        return { potentialMatches: [], prompts: [],  }
+        return { potentialMatches: [], prompts: [], }
     }
 }
 
+// this function will update the how many docuements to skip, get that number
 async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: string, potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithouPromptsReturnVal> {
     try {
         // the below function will get the user of the next query if the current page has no valid users to display to the user in the front end
         const queryMatchesResults = await getMatches(userQueryOpts, currentUserId, potentialMatches);
 
-        if (queryMatchesResults.status !== 200) {
+        if ((queryMatchesResults.status !== 200) || !queryMatchesResults?.data || !queryMatchesResults?.data?.potentialMatches) {
             throw new Error("Failed to get matches.")
         }
 
         let usersAndPrompts: IFilterUserWithouPromptsReturnVal = { potentialMatches: [], prompts: [] }
-        const { canStillQueryCurrentPageForUsers, potentialMatches: getMatchesUsersResult, updatedSkipDocsNum, hasReachedPaginationEnd } = (queryMatchesResults?.data as InterfacePotentialMatchesPage) ?? {}
+        const { canStillQueryCurrentPageForUsers, potentialMatches: getMatchesUsersResult, updatedSkipDocsNum, hasReachedPaginationEnd } = queryMatchesResults.data
         const filterUserWithoutPromptsResult = await filterUsersWithoutPrompts(getMatchesUsersResult);
 
+        
         if ((filterUserWithoutPromptsResult?.potentialMatches?.length < 5) && !hasReachedPaginationEnd) {
             const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum
             const _userQueryOpts: UserQueryOpts = { ...userQueryOpts, skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
             usersAndPrompts = await getUsersWithPrompts(_userQueryOpts, currentUserId, potentialMatches);
         }
 
-        return usersAndPrompts;
+        delete queryMatchesResults.data.potentialMatches
+
+        return {
+            ...usersAndPrompts,
+            matchesQueryPage: queryMatchesResults.data
+        };
     } catch (error: any) {
         console.error('An error has occurred in geting users with prompts: ', error)
 

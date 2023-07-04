@@ -58,7 +58,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
             const results = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
             const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
-            potentialMatches = updatedPotentialMatches;
+            potentialMatches = (updatedPotentialMatches === null || updatedPotentialMatches === void 0 ? void 0 : updatedPotentialMatches.length) ? updatedPotentialMatches : [];
             updatedSkipDocsNum = _updatedSkipDocsNum;
         }
         const sumBetweenPotentialMatchesAndPgQueryUsers = pageQueryUsers.length + potentialMatches.length;
@@ -67,7 +67,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             potentialMatches = [...potentialMatches, ...pageQueryUsers];
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
             const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
-            potentialMatches = updatedPotentialMatches;
+            potentialMatches = (updatedPotentialMatches === null || updatedPotentialMatches === void 0 ? void 0 : updatedPotentialMatches.length) ? updatedPotentialMatches : [];
             updatedSkipDocsNum = _updatedSkipDocsNum;
         }
         let endingSliceNum = 5;

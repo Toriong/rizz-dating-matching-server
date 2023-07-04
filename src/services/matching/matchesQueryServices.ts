@@ -70,7 +70,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
         const _userQueryOpts = { ...userQueryOpts, skipDocsNum: (((skipDocsNum as number) / 5) + 1) * 5 }
         const results = await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
         const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
-        potentialMatches = updatedPotentialMatches;
+        potentialMatches = updatedPotentialMatches?.length ? updatedPotentialMatches : [];
         updatedSkipDocsNum = _updatedSkipDocsNum as number;
     }
 
@@ -81,7 +81,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
         potentialMatches = [...potentialMatches, ...pageQueryUsers]
         const _userQueryOpts = { ...userQueryOpts, skipDocsNum: (((skipDocsNum as number) / 5) + 1) * 5 }
         const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
-        potentialMatches = updatedPotentialMatches;
+        potentialMatches = updatedPotentialMatches?.length ? updatedPotentialMatches : [];
         updatedSkipDocsNum = _updatedSkipDocsNum as number;
     }
 

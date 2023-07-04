@@ -82,7 +82,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
     const { status, data, msg } = queryMatchesResults;
 
-    if (!data) {
+    if (!data || !data.potentialMatches) {
         console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", msg)
 
         return response.status(500).json({ msg: "Something went wrong. Couldnt't matches." })
@@ -116,6 +116,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     async function getUsersWithPromptsAndPicUrls(userQueryOpts: UserQueryOpts, currentUserId: string, potentialMatches: UserBaseModelSchema[]){
         try{
             const getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
+
+            if(getUsersWithPromptsResult.errMsg){
+                throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`)
+            }
+
+            const potentialMatchesForClient = await getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts)
 
             if(getUsersWithPromptsResult.errMsg){
                 throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`)
