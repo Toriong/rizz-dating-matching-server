@@ -123,6 +123,7 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
         }
         return {
             potentialMatches: userInfoAndPromptsForClient,
+            // WHY? getting the updated UserBaseModleSchema, because the propmts and the user's pic url may not exist
             userModels: potentialMatches.filter(({ _id: userIdPotentialMatch }) => userInfoAndPromptsForClient.some(({ _id: userId }) => userId === userIdPotentialMatch))
         };
     });
