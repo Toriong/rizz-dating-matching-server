@@ -12,12 +12,12 @@ type MatchesQueryPage = Omit<InterfacePotentialMatchesPage, "potentialMatches">
 type KeysPotentialMatchesPageMap = keyof InterfacePotentialMatchesPage
 type PotentialMatchesPageMap = Record<KeysPotentialMatchesPageMap, InterfacePotentialMatchesPage[keyof MatchesQueryPage]>
 
-interface IFilterUserWithouPromptsReturnVal {
+interface IFilterUserWithoutPromptsReturnVal {
     potentialMatches: UserBaseModelSchema[];
     prompts: PromptModelInterface[];
-    didErrorOccur?: boolean
+    errorMsg?: string
 }
 
 
 
-export { InterfacePotentialMatchesPage, IFilterUserWithouPromptsReturnVal, MatchesQueryPage, PotentialMatchesPageMap }
+export { InterfacePotentialMatchesPage, IFilterUserWithoutPromptsReturnVal, MatchesQueryPage, PotentialMatchesPageMap }
