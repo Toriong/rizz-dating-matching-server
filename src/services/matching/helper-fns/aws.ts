@@ -1,8 +1,6 @@
 import aws from 'aws-sdk'
 import dotenv from 'dotenv';
 
-dotenv.config();
-
 function getS3Instance() {
     return new aws.S3({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -17,6 +15,7 @@ interface MatchPicUrlReturnResult {
 
 async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 60)): Promise<MatchPicUrlReturnResult> {
     try {
+        dotenv.config();
         const s3 = getS3Instance();
         const params = {
             Bucket: process.env.AWS_BUCKET_NAME,

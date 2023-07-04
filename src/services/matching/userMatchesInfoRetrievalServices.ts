@@ -117,6 +117,7 @@ async function getReverseGeoCode(userLocation: UserLocation): Promise<{ wasSucce
 type GetMatchesInfoForClientReturnVal = Promise<ReturnType<() => ({ potentialMatches: IUserAndPrompts[], usersWithValidUrlPics: UserBaseModelSchema[] })>>
 
 async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], prompts: PromptModelInterface[]): GetMatchesInfoForClientReturnVal {
+    console.log('Getting matches info for client, getting user info from db and aws.')
     let userInfoAndPromptsForClient: IUserAndPrompts[] = [];
 
     for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
