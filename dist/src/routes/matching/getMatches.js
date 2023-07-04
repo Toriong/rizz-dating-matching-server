@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { Router } from 'express';
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesQueryServices.js';
-import { filterUsersWithoutPrompts, getMatchesInfoForClient, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
+import { filterUsersWithoutPrompts, getMatchesInfoForClient, getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -60,6 +60,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = data;
     let { errMsg, potentialMatches: filterUsersWithoutPromptsPotentialMatches, prompts } = yield filterUsersWithoutPrompts(getMatchesResultPotentialMatches);
+    console.log("filterUsersWithoutPrompts function has been executed. Will check if there was an error.");
     if (errMsg) {
         console.error("An error has occurred in filtering out users without prompts. Error msg: ", errMsg);
         return response.status(500).json({ msg: `Error! Something went wrong. Couldn't get prompts for users. Error msg: ${errMsg}` });
@@ -71,46 +72,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         const updatedSkipDocNumInt = (typeof data.updatedSkipDocsNum === 'string') ? parseInt(data.updatedSkipDocsNum) : data.updatedSkipDocsNum;
         const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
         getUsersWithPromptsResult = yield getUsersWithPrompts(_userQueryOpts, query.userId, filterUsersWithoutPromptsPotentialMatches);
-    }
-    // this function will return an array of IUsersAndPrompts objects, this function will called when the user has less than 5 potential matches after the check was executed to see if the user has valid matching pic url
-    function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryOpts, currentUserId, potentialMatches) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const getUsersWithPromptsResult = yield getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
-                if (getUsersWithPromptsResult.errMsg) {
-                    throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`);
-                }
-                if (!getUsersWithPromptsResult.matchesQueryPage) {
-                    throw new Error("Something went wrong. Couldn't get the matches qeury page object.");
-                }
-                const potentialMatchesForClientResult = yield getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts);
-                // get the array that will hold objects with the UserBaseModelSchema in order to query for more users and to call this function recursively
-                const { potentialMatches: updatedPotentialMatches, usersWithValidUrlPics: updatedQueriedUsers } = potentialMatchesForClientResult;
-                const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = getUsersWithPromptsResult.matchesQueryPage;
-                let potentialMatchesPaginationObj = { potentialMatches: updatedPotentialMatches, matchesQueryPage: getUsersWithPromptsResult.matchesQueryPage };
-                if ((updatedPotentialMatches.length < 5) && canStillQueryCurrentPageForUsers && !hasReachedPaginationEnd) {
-                    const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: updatedSkipDocsNum });
-                    const getUsersWithPromptsAndPicUrlsResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(_userQueryOpts, currentUserId, updatedQueriedUsers);
-                    if (getUsersWithPromptsAndPicUrlsResult.errorMsg) {
-                        throw new Error(getUsersWithPromptsAndPicUrlsResult.errorMsg);
-                    }
-                    if (!getUsersWithPromptsAndPicUrlsResult.potentialMatches) {
-                        throw new Error("Something went wrong. Couldn't get the potential matches array.");
-                    }
-                    if (!getUsersWithPromptsAndPicUrlsResult.matchesQueryPage) {
-                        throw new Error("Something went wrong. Couldn't get the matches qeury page object.");
-                    }
-                    potentialMatchesPaginationObj.potentialMatches = getUsersWithPromptsAndPicUrlsResult.potentialMatches;
-                    potentialMatchesPaginationObj.matchesQueryPage = getUsersWithPromptsAndPicUrlsResult.matchesQueryPage;
-                }
-                return potentialMatchesPaginationObj;
-            }
-            catch (error) {
-                const errorMsg = `An error has occurred in getting more users with prompts and pic urls for the user on the client side. Error: ${error}`;
-                console.error(errorMsg);
-                return { errorMsg: errorMsg };
-            }
-        });
     }
     let potentialMatchesToDisplayToUserOnClient = getUsersWithPromptsResult.potentialMatches;
     let responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, data), { potentialMatches: potentialMatchesToDisplayToUserOnClient }) };
@@ -141,5 +102,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: [] }) };
         }
     }
+    console.log("Sending potential matcches to the client...");
+    console.log('responseBody: ', responseBody);
     return response.status(status).json(responseBody);
 }));

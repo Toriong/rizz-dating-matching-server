@@ -127,4 +127,42 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
         };
     });
 }
-export { filterUsersWithoutPrompts, getUsersWithPrompts, getMatchesInfoForClient };
+function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryOpts, currentUserId, potentialMatches) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const getUsersWithPromptsResult = yield getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
+            if (getUsersWithPromptsResult.errMsg) {
+                throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`);
+            }
+            if (!getUsersWithPromptsResult.matchesQueryPage) {
+                throw new Error("Something went wrong. Couldn't get the matches qeury page object.");
+            }
+            const potentialMatchesForClientResult = yield getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts);
+            const { potentialMatches: updatedPotentialMatches, usersWithValidUrlPics: updatedQueriedUsers } = potentialMatchesForClientResult;
+            const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = getUsersWithPromptsResult.matchesQueryPage;
+            let potentialMatchesPaginationObj = { potentialMatches: updatedPotentialMatches, matchesQueryPage: getUsersWithPromptsResult.matchesQueryPage };
+            if ((updatedPotentialMatches.length < 5) && canStillQueryCurrentPageForUsers && !hasReachedPaginationEnd) {
+                const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: updatedSkipDocsNum });
+                const getUsersWithPromptsAndPicUrlsResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(_userQueryOpts, currentUserId, updatedQueriedUsers);
+                if (getUsersWithPromptsAndPicUrlsResult.errorMsg) {
+                    throw new Error(getUsersWithPromptsAndPicUrlsResult.errorMsg);
+                }
+                if (!getUsersWithPromptsAndPicUrlsResult.potentialMatches) {
+                    throw new Error("Something went wrong. Couldn't get the potential matches array.");
+                }
+                if (!getUsersWithPromptsAndPicUrlsResult.matchesQueryPage) {
+                    throw new Error("Something went wrong. Couldn't get the matches qeury page object.");
+                }
+                potentialMatchesPaginationObj.potentialMatches = getUsersWithPromptsAndPicUrlsResult.potentialMatches;
+                potentialMatchesPaginationObj.matchesQueryPage = getUsersWithPromptsAndPicUrlsResult.matchesQueryPage;
+            }
+            return potentialMatchesPaginationObj;
+        }
+        catch (error) {
+            const errorMsg = `An error has occurred in getting more users with prompts and pic urls for the user on the client side. Error: ${error}`;
+            console.error(errorMsg);
+            return { errorMsg: errorMsg };
+        }
+    });
+}
+export { filterUsersWithoutPrompts, getUsersWithPrompts, getMatchesInfoForClient, getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure };
