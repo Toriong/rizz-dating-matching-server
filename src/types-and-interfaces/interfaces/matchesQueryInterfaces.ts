@@ -8,10 +8,16 @@ interface InterfacePotentialMatchesPage {
     hasReachedPaginationEnd: boolean;
 }
 
+type MatchesQueryPage = Omit<InterfacePotentialMatchesPage, "potentialMatches">
+type KeysPotentialMatchesPageMap = keyof InterfacePotentialMatchesPage
+type PotentialMatchesPageMap = Record<KeysPotentialMatchesPageMap, InterfacePotentialMatchesPage[keyof MatchesQueryPage]>
+
 interface IFilterUserWithouPromptsReturnVal {
     potentialMatches: UserBaseModelSchema[];
     prompts: PromptModelInterface[];
     didErrorOccur?: boolean
 }
 
-export { InterfacePotentialMatchesPage, IFilterUserWithouPromptsReturnVal }
+
+
+export { InterfacePotentialMatchesPage, IFilterUserWithouPromptsReturnVal, MatchesQueryPage, PotentialMatchesPageMap }

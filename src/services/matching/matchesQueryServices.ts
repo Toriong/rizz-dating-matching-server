@@ -9,13 +9,8 @@ import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
 import { ChatInterface } from "../../types-and-interfaces/interfaces/firebaseInterfaces.js";
 import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js";
+import { InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
 
-interface InterfacePotentialMatchesPage {
-    potentialMatches: UserBaseModelSchema[];
-    updatedSkipDocsNum: string | number;
-    canStillQueryCurrentPageForUsers: boolean;
-    hasReachedPaginationEnd: boolean;
-}
 
 interface GetMatchesResult {
     status: number,

@@ -25,7 +25,7 @@ function filterUsersWithoutPrompts(potentialMatches) {
         }
         catch (error) {
             console.error("An error has occurred in getting prompts and users: ", error);
-            return { potentialMatches: [], prompts: [], didErrorOccur: true };
+            return { potentialMatches: [], prompts: [], };
         }
     });
 }
@@ -50,7 +50,7 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
         }
         catch (error) {
             console.error('An error has occurred in geting users with prompts: ', error);
-            return { potentialMatches: [], prompts: [], didErrorOccur: true };
+            return { potentialMatches: [], prompts: [], errMsg: error.message };
         }
     });
 }

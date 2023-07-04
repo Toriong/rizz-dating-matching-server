@@ -12,7 +12,7 @@ import dotenv from 'dotenv';
 interface IFilterUserWithouPromptsReturnVal {
     potentialMatches: UserBaseModelSchema[];
     prompts: PromptModelInterface[];
-    didErrorOccur?: boolean
+    errMsg?: string
 }
 
 async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithouPromptsReturnVal> {
@@ -28,7 +28,7 @@ async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]
     } catch (error) {
         console.error("An error has occurred in getting prompts and users: ", error)
 
-        return { potentialMatches: [], prompts: [], didErrorOccur: true }
+        return { potentialMatches: [], prompts: [],  }
     }
 }
 
@@ -52,10 +52,10 @@ async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: 
         }
 
         return usersAndPrompts;
-    } catch (error) {
+    } catch (error: any) {
         console.error('An error has occurred in geting users with prompts: ', error)
 
-        return { potentialMatches: [], prompts: [], didErrorOccur: true }
+        return { potentialMatches: [], prompts: [], errMsg: error.message }
     }
 }
 
