@@ -1,5 +1,5 @@
 import { UserBaseModelSchema } from "../../models/User.js";
-import { PromptModelInterface } from "./promptsInterfaces.js";
+import { IUserAndPrompts, PromptModelInterface } from "./promptsInterfaces.js";
 
 interface InterfacePotentialMatchesPage {
     potentialMatches?: UserBaseModelSchema[];

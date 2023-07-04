@@ -114,7 +114,7 @@ async function getReverseGeoCode(userLocation: UserLocation): Promise<{ wasSucce
 // the prompts array is passed as an argument
 // the function getUserAndPromptInfoForClient is called with the matches array and prompts array as arguments
 
-type GetMatchesInfoForClientReturnVal = Promise<ReturnType<() => ({ potentialMatches: IUserAndPrompts[], userModels: UserBaseModelSchema[] })>>
+type GetMatchesInfoForClientReturnVal = Promise<ReturnType<() => ({ potentialMatches: IUserAndPrompts[], usersWithValidUrlPics: UserBaseModelSchema[] })>>
 
 async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], prompts: PromptModelInterface[]): GetMatchesInfoForClientReturnVal {
     let userInfoAndPromptsForClient: IUserAndPrompts[] = [];
@@ -167,8 +167,7 @@ async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], 
 
     return {
         potentialMatches: userInfoAndPromptsForClient,
-        // WHY? getting the updated UserBaseModleSchema, because the propmts and the user's pic url may not exist
-        userModels: potentialMatches.filter(({ _id: userIdPotentialMatch }) => userInfoAndPromptsForClient.some(({ _id: userId }) => userId === userIdPotentialMatch))
+        usersWithValidUrlPics: potentialMatches.filter(({ _id: userIdPotentialMatch }) => userInfoAndPromptsForClient.some(({ _id: userId }) => userId === userIdPotentialMatch))
     };
 }
 

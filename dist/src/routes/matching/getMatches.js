@@ -31,6 +31,7 @@ function getQueryOptionsValidationArr(queryOpts) {
     return [radiusValidationObj, paginationPageNumValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
@@ -52,11 +53,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
     const { status, data, msg } = queryMatchesResults;
-    if (!data || !data.potentialMatches) {
+    if (!data || !data.potentialMatches || (status !== 200)) {
         console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", msg);
-        return response.status(500).json({ msg: "Something went wrong. Couldnt't matches." });
+        console.error('Error status code: ', status);
+        return response.status(status).json({ msg: "Something went wrong. Couldnt't matches." });
     }
-    const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers } = data;
+    const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = data;
     let { errMsg, potentialMatches: filterUsersWithoutPromptsPotentialMatches, prompts } = yield filterUsersWithoutPrompts(getMatchesResultPotentialMatches);
     if (errMsg) {
         console.error("An error has occurred in filtering out users without prompts. Error msg: ", errMsg);
@@ -70,48 +72,74 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
         getUsersWithPromptsResult = yield getUsersWithPrompts(_userQueryOpts, query.userId, filterUsersWithoutPromptsPotentialMatches);
     }
-    // BRAIN DUMP:
-    // not enough users to show to the user on the client side after querying for the pic urls of the users
-    // get more users check for the following by using a function that can be called recursively:
-    // 1) if the user has prompts
-    // 2) if the user has pic urls
-    function getUsersWithPromptsAndPicUrls(userQueryOpts, currentUserId, potentialMatches) {
+    // this function will return an array of IUsersAndPrompts objects, this function will called when the user has less than 5 potential matches after the check was executed to see if the user has valid matching pic url
+    function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryOpts, currentUserId, potentialMatches) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const getUsersWithPromptsResult = yield getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
                 if (getUsersWithPromptsResult.errMsg) {
                     throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`);
                 }
-                const potentialMatchesForClient = yield getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts);
-                if (getUsersWithPromptsResult.errMsg) {
-                    throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`);
+                if (!getUsersWithPromptsResult.matchesQueryPage) {
+                    throw new Error("Something went wrong. Couldn't get the matches qeury page object.");
                 }
+                const potentialMatchesForClientResult = yield getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts);
+                // get the array that will hold objects with the UserBaseModelSchema in order to query for more users and to call this function recursively
+                const { potentialMatches: updatedPotentialMatches, usersWithValidUrlPics: updatedQueriedUsers } = potentialMatchesForClientResult;
+                const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = getUsersWithPromptsResult.matchesQueryPage;
+                let potentialMatchesPaginationObj = { potentialMatches: updatedPotentialMatches, matchesQueryPage: getUsersWithPromptsResult.matchesQueryPage };
+                if ((updatedPotentialMatches.length < 5) && canStillQueryCurrentPageForUsers && !hasReachedPaginationEnd) {
+                    const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: updatedSkipDocsNum });
+                    const getUsersWithPromptsAndPicUrlsResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(_userQueryOpts, currentUserId, updatedQueriedUsers);
+                    if (getUsersWithPromptsAndPicUrlsResult.errorMsg) {
+                        throw new Error(getUsersWithPromptsAndPicUrlsResult.errorMsg);
+                    }
+                    if (!getUsersWithPromptsAndPicUrlsResult.potentialMatches) {
+                        throw new Error("Something went wrong. Couldn't get the potential matches array.");
+                    }
+                    if (!getUsersWithPromptsAndPicUrlsResult.matchesQueryPage) {
+                        throw new Error("Something went wrong. Couldn't get the matches qeury page object.");
+                    }
+                    potentialMatchesPaginationObj.potentialMatches = getUsersWithPromptsAndPicUrlsResult.potentialMatches;
+                    potentialMatchesPaginationObj.matchesQueryPage = getUsersWithPromptsAndPicUrlsResult.matchesQueryPage;
+                }
+                return potentialMatchesPaginationObj;
             }
             catch (error) {
-                console.error("An error has occurred in getting more users with prompts and pic urls for the user on the client side. Error: ", error);
-                return { potentialMatches: [], prompts: [], didErrorOccur: true };
+                const errorMsg = `An error has occurred in getting more users with prompts and pic urls for the user on the client side. Error: ${error}`;
+                console.error(errorMsg);
+                return { errorMsg: errorMsg };
             }
         });
     }
-    if (getUsersWithPromptsResult.potentialMatches.length > 0) {
-        const { potentialMatches, prompts } = getUsersWithPromptsResult;
-        const potentialMatchesForClient = yield getMatchesInfoForClient(potentialMatches, prompts);
-        // if the results above is less than potentialMatches length and if the potentialMatches length was 5, then its means the following:
-        // either the user doesn't have any prompts or the user doesn't a matching pic url stored in aws
-        // CASE #1
-        // either way, if potentialMatchesForClient is less than 5 and if hasReachedPaginationEnd is true, then it means that the user has no more potential matches to display for the current query
-        // and that they are no more users to query to show to the user on the front end
-        // GOAL: send the current potentialMatchesForClient to the frontend
-        // CASE #2:
-        // if potentialMatchesForClient is less than 5 and hasReachedPaginationEnd is false and canStillQueryCurrentPageForUsers is true, then query for more users to replace the users that don't have matching 
-        // pic urls stored in aws  
-        // GOAL: get more users to show to the user on the client side starting with the current page using the current number of documents to skip to show to the user on the client side
-        // the next batch of users are attained
-        // CASE #3:
-        // if potentialMatchesForClient is less than 5 and hasReachedPaginationEnd is false and canStillQueryCurrentPageForUsers is false, then query for more users to replace the users that don't have matching 
-        // pic urls stored in aws starting with the next page
-        // GOAL: get moe users to show to the user starting with the next page of users  
+    let potentialMatchesToDisplayToUserOnClient = getUsersWithPromptsResult.potentialMatches;
+    let responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, data), { potentialMatches: potentialMatchesToDisplayToUserOnClient }) };
+    if ((potentialMatchesToDisplayToUserOnClient.length === 0)) {
+        return response.status(status).json(responseBody);
     }
-    const responseBody = (status === 200) ? { potentialMatchesPagination: Object.assign(Object.assign({}, data), { potentialMatches: getUsersWithPromptsResult.potentialMatches }) } : { msg: msg };
+    const potentialMatchesForClientResult = yield getMatchesInfoForClient(potentialMatchesToDisplayToUserOnClient, getUsersWithPromptsResult.prompts);
+    responseBody.potentialMatchesPagination.potentialMatches = potentialMatchesForClientResult.potentialMatches;
+    console.log('Potential matches info has been retrieved. Will check if the user has valid pic urls.');
+    if ((potentialMatchesForClientResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
+        console.log("At least one user does not have a valid pic url. Will get more users with prompts and valid pic urls.");
+        const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+        const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
+        const getMoreUsersAfterPicUrlFailureResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(_userQueryOpts, query.userId, potentialMatchesForClientResult.usersWithValidUrlPics);
+        if (!getMoreUsersAfterPicUrlFailureResult.matchesQueryPage) {
+            console.error("Something went wrong. Couldn't get the matches query page object. Will send the available potential matches to the client.");
+            return response.status(200).json(responseBody);
+        }
+        if (getMoreUsersAfterPicUrlFailureResult.errorMsg) {
+            console.error("Failed to get more users with valid pic urls. Sending current matches that have valid pic aws urls. Error message: ", getMoreUsersAfterPicUrlFailureResult.errorMsg);
+            responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: potentialMatchesForClientResult.potentialMatches }) };
+            return response.status(200).json(responseBody);
+        }
+        if ((_a = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _a === void 0 ? void 0 : _a.length) {
+            responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: getMoreUsersAfterPicUrlFailureResult.potentialMatches }) };
+        }
+        if (!((_b = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length)) {
+            responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: [] }) };
+        }
+    }
     return response.status(status).json(responseBody);
 }));
