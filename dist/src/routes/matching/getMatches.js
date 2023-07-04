@@ -68,12 +68,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         const updatedSkipDocNumInt = (typeof data.updatedSkipDocsNum === 'string') ? parseInt(data.updatedSkipDocsNum) : data.updatedSkipDocsNum;
         const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
         getUsersWithPromptsResult = yield getUsersWithPrompts(_userQueryOpts, query.userId, potentialMatches);
-        // if (getUsersWithPromptsResult.didErrorOccur) {
-        //     console.error("Potential matches is less than 5. Couldn't prompts for the users.");
-        //     return response.status(500).json({ msg: "Error! Something went wrong. Couldn't get prompts for users." })
-        // }
     }
-    // if the potentialmatches array is greater than 0, then for each user get their matching photo from aws. 
+    if (getUsersWithPromptsResult.potentialMatches.length > 0) {
+    }
+    // if the potentialmatches array is greater than 0, then for each user get their matching photo from aws. The following should be returned to the user on the client side:
+    // the firstName of the user
+    // the location of the user 
+    // the matching photo of the user 
+    // the prompts of the user
     const responseBody = (status === 200) ? { potentialMatchesPagination: Object.assign(Object.assign({}, data), { potentialMatches: getUsersWithPromptsResult.potentialMatches }) } : { msg: msg };
     return response.status(status).json(responseBody);
 }));

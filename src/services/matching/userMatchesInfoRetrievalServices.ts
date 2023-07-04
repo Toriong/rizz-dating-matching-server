@@ -1,10 +1,12 @@
 import { Picture, UserBaseModelSchema } from "../../models/User.js";
 import { InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
 import { IUserAndPrompts, PromptInterface, PromptModelInterface } from "../../types-and-interfaces/interfaces/promptsInterfaces.js";
-import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
+import { UserLocation, UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
 import { getMatchPicUrl } from "./helper-fns/aws.js";
 import { getMatches } from "./matchesQueryServices.js";
+import dotenv from 'dotenv';
+
 
 interface IFilterUserWithouPromptsReturnVal {
     potentialMatches: UserBaseModelSchema[];
@@ -55,6 +57,34 @@ async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: 
         return { potentialMatches: [], prompts: [], didErrorOccur: true }
     }
 }
+
+async function getReverseGeoCode(coordinates: UserLocation) {
+    try {
+        dotenv.config();
+        const { longitude, latitude } = coordinates;
+        const openWeatherApiUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.OPEN_WEATHER_API_KEY}`
+        const response = await fetch(openWeatherApiUrl);
+
+        if (response.ok) {
+            const data = await response.json();
+            const { status, contents } = data;
+
+            if ((status?.http_code === 400) || !data) {
+                throw new Error('An error has occurred. Please refresh the page and try again.')
+            };
+
+            const locations = JSON.parse(contents);
+            console.log('locations: ', locations)
+            // return { _locations: locations?.length ? convertCountryCodesToNames(locations) : [] };
+        };
+    } catch (error) {
+        if (error) {
+            console.error('An error has occurred: ', error)
+            return { didError: true, errorMsg: error }
+        }
+    }
+}
+
 
 // GOAL: an array is created with each value being an object with the form of IUserAndPrompts
 // an array with each object that has the form of IUserAndPrompts is returned from this function

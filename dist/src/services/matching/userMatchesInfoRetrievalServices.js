@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
 import { getMatchPicUrl } from "./helper-fns/aws.js";
 import { getMatches } from "./matchesQueryServices.js";
+import dotenv from 'dotenv';
 function filterUsersWithoutPrompts(potentialMatches) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -49,6 +50,34 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
         catch (error) {
             console.error('An error has occurred in geting users with prompts: ', error);
             return { potentialMatches: [], prompts: [], didErrorOccur: true };
+        }
+    });
+}
+function getReverseGeoCode(coordinates) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            dotenv.config();
+            const { longitude, latitude } = coordinates;
+            const openWeatherApiUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.OPEN_WEATHER_API_KEY}`;
+            const response = yield fetch(openWeatherApiUrl);
+            if (response.ok) {
+                const data = yield response.json();
+                const { status, contents } = data;
+                if (((status === null || status === void 0 ? void 0 : status.http_code) === 400) || !data) {
+                    throw new Error('An error has occurred. Please refresh the page and try again.');
+                }
+                ;
+                const locations = JSON.parse(contents);
+                console.log('locations: ', locations);
+                // return { _locations: locations?.length ? convertCountryCodesToNames(locations) : [] };
+            }
+            ;
+        }
+        catch (error) {
+            if (error) {
+                console.error('An error has occurred: ', error);
+                return { didError: true, errorMsg: error };
+            }
         }
     });
 }

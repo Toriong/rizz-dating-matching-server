@@ -1,10 +1,7 @@
-import mongoose from 'mongoose';
 import { Router, Request, Response } from 'express'
-import { insertRejectedUser } from "../../services/rejectingUsers/rejectedUsersService.js";
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesQueryServices.js';
-import { ReqQueryMatchesParams, UserLocation, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
-import { PaginatedModel } from '../../models/User.js';
+import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
 import { filterUsersWithoutPrompts, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
 import { IFilterUserWithouPromptsReturnVal } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 
