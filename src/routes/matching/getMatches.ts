@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesQueryServices.js';
 import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
-import { filterUsersWithoutPrompts, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
+import { filterUsersWithoutPrompts, getMatchesInfoForClient, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
 import { IFilterUserWithouPromptsReturnVal } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 
 export const getMatchesRoute = Router();
@@ -23,6 +23,7 @@ interface RequestQuery extends Omit<UserQueryOpts, 'userLocation' | 'radiusInMil
     radiusInMilesInt: string
     skipDocsNum: string
 }
+
 
 function validateFormOfObj(key: string, obj: any): { fieldName: string, receivedType: string } {
     const receivedType = typeof obj[key];
@@ -104,15 +105,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         getUsersWithPromptsResult = await getUsersWithPrompts(_userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatches);
     }
 
+    // GOAL: create the logic for getting the prompts of the users
+
     if(getUsersWithPromptsResult.potentialMatches.length > 0){
-
+        const usersAndPrompts = getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts);
+        // if the results above is less than potentialMatches length and if the potentialMatches length was 5, then query for more users
     }
-
-    // if the potentialmatches array is greater than 0, then for each user get their matching photo from aws. The following should be returned to the user on the client side:
-    // the firstName of the user
-    // the location of the user 
-    // the matching photo of the user 
-    // the prompts of the user
 
     const responseBody = (status === 200) ? { potentialMatchesPagination: { ...data, potentialMatches: getUsersWithPromptsResult.potentialMatches } } : { msg: msg }
 

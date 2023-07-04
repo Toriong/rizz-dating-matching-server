@@ -7,6 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+import axios from "axios";
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
 import { getMatchPicUrl } from "./helper-fns/aws.js";
 import { getMatches } from "./matchesQueryServices.js";
@@ -53,31 +54,32 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
         }
     });
 }
-function getReverseGeoCode(coordinates) {
+function getCountryName(countryCode) {
+    let regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    return regionNames.of(countryCode);
+}
+function getReverseGeoCode(userLocation) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             dotenv.config();
-            const { longitude, latitude } = coordinates;
+            const { longitude, latitude } = userLocation;
             const openWeatherApiUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.OPEN_WEATHER_API_KEY}`;
-            const response = yield fetch(openWeatherApiUrl);
-            if (response.ok) {
-                const data = yield response.json();
-                const { status, contents } = data;
-                if (((status === null || status === void 0 ? void 0 : status.http_code) === 400) || !data) {
-                    throw new Error('An error has occurred. Please refresh the page and try again.');
-                }
-                ;
-                const locations = JSON.parse(contents);
-                console.log('locations: ', locations);
-                // return { _locations: locations?.length ? convertCountryCodesToNames(locations) : [] };
+            const response = yield axios.get(openWeatherApiUrl);
+            const { status, data } = response;
+            if (status === 200) {
+                throw new Error("Failed to get reverse geocode.");
             }
             ;
+            const { city, state, country } = data[0];
+            const countryName = getCountryName(country);
+            if (!countryName) {
+                throw new Error("Failed to get country name.");
+            }
+            const userLocationStr = state ? `${city}, ${state}, ${countryName}` : `${city}, ${countryName}`;
+            return { wasSuccessful: true, data: userLocationStr };
         }
         catch (error) {
-            if (error) {
-                console.error('An error has occurred: ', error);
-                return { didError: true, errorMsg: error };
-            }
+            return { wasSuccessful: false };
         }
     });
 }
@@ -93,65 +95,43 @@ function getReverseGeoCode(coordinates) {
 // matches array is passed as an argument
 // the prompts array is passed as an argument
 // the function getUserAndPromptInfoForClient is called with the matches array and prompts array as arguments
-// GOAL: GET THE USER'S LOCATION BY REVERSE GEO LOCATION. 
-function getUserAndPromptInfoForClient(potentialMatches, prompts) {
+function getMatchesInfoForClient(potentialMatches, prompts) {
     return __awaiter(this, void 0, void 0, function* () {
         let userInfoAndPromptsForClient = [];
-        // CASE: all of the users don't have any images in the aws.
-        // GOAL: call getUsersWithPrompts in order to get the valid users to display to the user on the client side. Those users must have a picture in aws for their matching pic.  
-        // BRAIN DUMP: 
-        // CASE: the target user doesn't have matching pic saved into the aws
-        // GOAL: don't include that user into the userInfoandPromptsForClient array
         for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
             const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
             const matchingPic = pics.find(({ isMatching }) => isMatching);
             const getMatchPicUrlResult = yield getMatchPicUrl(matchingPic.picFileNameOnAws);
             const userPrompts = prompts.find(({ userId }) => userId === _id);
-            if (!userPrompts || (getMatchPicUrlResult.wasSuccessful === false)) {
+            if (!userPrompts || !getMatchPicUrlResult.wasSuccessful) {
                 continue;
             }
-            // GOAL: make an api call to get the city, state, and country of the user
-            // if it fails to display: "Can't get user's location"
+            const { wasSuccessful, data: userLocationStr } = yield getReverseGeoCode(location);
+            let userInfoAndPromptsObj = {
+                _id: _id,
+                firstName: name.first,
+                prompts: userPrompts.prompts,
+                matchingPicUrl: getMatchPicUrlResult.matchPicUrl,
+            };
+            if (wasSuccessful) {
+                userInfoAndPromptsObj.locationStr = userLocationStr;
+            }
+            else {
+                userInfoAndPromptsObj.locationErrorMsg = "Unable to get user's location.";
+            }
             if (looks && hobbies) {
-                userInfoAndPromptsForClient.push({
-                    _id: _id,
-                    firstName: name.first,
-                    city: "",
-                    state: "",
-                    country: "",
-                    looks: looks,
-                    hobbies: hobbies,
-                    prompts: userPrompts.prompts,
-                    matchingPicUrl: getMatchPicUrlResult.matchPicUrl,
-                });
+                userInfoAndPromptsObj = Object.assign(Object.assign({}, userInfoAndPromptsObj), { looks: looks, hobbies: hobbies });
+                userInfoAndPromptsForClient.push(userInfoAndPromptsObj);
                 continue;
             }
             if (looks) {
-                userInfoAndPromptsForClient.push({
-                    _id: _id,
-                    firstName: name.first,
-                    city: "",
-                    state: "",
-                    country: "",
-                    looks: looks,
-                    prompts: userPrompts.prompts,
-                    matchingPicUrl: getMatchPicUrlResult.matchPicUrl,
-                });
+                userInfoAndPromptsObj = Object.assign(Object.assign({}, userInfoAndPromptsObj), { looks: looks });
+                userInfoAndPromptsForClient.push(userInfoAndPromptsObj);
                 continue;
             }
-            userInfoAndPromptsForClient.push({
-                _id: _id,
-                firstName: name.first,
-                city: "",
-                state: "",
-                country: "",
-                looks: looks,
-                hobbies: hobbies,
-                prompts: userPrompts.prompts,
-                matchingPicUrl: getMatchPicUrlResult.matchPicUrl,
-            });
+            userInfoAndPromptsForClient.push(userInfoAndPromptsObj);
         }
         return userInfoAndPromptsForClient;
     });
 }
-export { filterUsersWithoutPrompts, getUsersWithPrompts };
+export { filterUsersWithoutPrompts, getUsersWithPrompts, getMatchesInfoForClient };

@@ -24,9 +24,7 @@ type LocationErrorMsgStr = "Can't get user's location." | "Unable to get user's 
 
 interface IUserAndPrompts extends UserPotentialMatchType {
     firstName: UserFirstName,
-    city?: string,
-    state?: string | undefined,
-    country?: string,
+    locationStr?: string,
     matchingPicUrl?: string,
     locationErrorMsg?: LocationErrorMsgStr,
     prompts: PromptInterface[]
