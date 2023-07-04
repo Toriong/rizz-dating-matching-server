@@ -32,6 +32,12 @@ interface Picture {
     isMatching: boolean,
     picFileNameOnAws: string
 }
+interface Look{
+    // example: 'eyes'
+    bodyPart: string,
+    // example: 'brown'
+    description: string
+}
 interface UserBaseModelSchema {
     _id: string,
     name: UserNames,
@@ -43,13 +49,14 @@ interface UserBaseModelSchema {
     },
     sex: Sex,
     location: UserLocation,
-    bio: string,
+    bio?: string,
     pics: Picture[],
-    hobbies: [string],
+    hobbies?: [string],
     email: string,
     phoneNum: number,
     hasPrompts: boolean,
-    ratingNum: number
+    ratingNum: number,
+    looks?: Look[]
 }
 type SelectType = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
 interface PaginationArgsOpts {
@@ -123,4 +130,4 @@ UserSchema.plugin(mongoosePagination)
 
 const User = model('users', UserSchema);
 
-export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema };
+export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema, Picture };
