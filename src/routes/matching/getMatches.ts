@@ -8,6 +8,7 @@ import { UserBaseModelSchema } from '../../models/User.js';
 import { ReturnTypeQueryForMatchesFn } from '../../types-and-interfaces/types/userQueryTypes.js';
 import { IUserAndPrompts } from '../../types-and-interfaces/interfaces/promptsInterfaces.js';
 import { User } from 'aws-sdk/clients/budgets.js';
+import { MatchesQueryResponseBody, MatchesQueryRespsonseBodyBuild } from '../../types-and-interfaces/interfaces/responses/getMatches.js';
 
 export const getMatchesRoute = Router();
 
@@ -112,16 +113,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         const updatedSkipDocNumInt = (typeof data.updatedSkipDocsNum === 'string') ? parseInt(data.updatedSkipDocsNum) : data.updatedSkipDocsNum
         const _userQueryOpts = { ...userQueryOpts, skipDocsNum: data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
         getUsersWithPromptsResult = await getUsersWithPrompts(_userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, filterUsersWithoutPromptsPotentialMatches);
-    }
-
-    interface IPotentialMatchesPaginationBuild extends Omit<InterfacePotentialMatchesPage, "potentialMatches"> {
-        potentialMatches: UserBaseModelSchema[] | IUserAndPrompts[]
-    }
-    interface MatchesQueryRespsonseBodyBuild {
-        potentialMatchesPagination: IPotentialMatchesPaginationBuild
-    }
-    interface MatchesQueryResponseBody {
-        potentialMatchesPagination: PotentialMatchesPaginationForClient
     }
 
     let potentialMatchesToDisplayToUserOnClient: IUserAndPrompts[] | UserBaseModelSchema[] = getUsersWithPromptsResult.potentialMatches;
