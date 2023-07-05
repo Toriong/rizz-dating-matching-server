@@ -3,7 +3,7 @@ import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesQueryServices.js';
 import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
 import { filterUsersWithoutPrompts, getMatchesInfoForClient, getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
-import { IFilterUserWithoutPromptsReturnVal, InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMap } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
+import { IFilterUserWithoutPromptsReturnVal, InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMap, PotentialMatchesPaginationForClient } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 import { UserBaseModelSchema } from '../../models/User.js';
 import { ReturnTypeQueryForMatchesFn } from '../../types-and-interfaces/types/userQueryTypes.js';
 import { IUserAndPrompts } from '../../types-and-interfaces/interfaces/promptsInterfaces.js';
@@ -53,6 +53,7 @@ function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidation
 }
 
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
+    console.time('getMatchesRoute')
     let query: unknown | ReqQueryMatchesParams = request.query
 
     if (!query || !(query as ReqQueryMatchesParams)?.query || !(query as ReqQueryMatchesParams).userId) {
@@ -119,9 +120,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     interface MatchesQueryRespsonseBodyBuild {
         potentialMatchesPagination: IPotentialMatchesPaginationBuild
     }
-    interface PotentialMatchesPaginationForClient extends Omit<InterfacePotentialMatchesPage, "potentialMatches"> {
-        potentialMatches: IUserAndPrompts[]
-    }
     interface MatchesQueryResponseBody {
         potentialMatchesPagination: PotentialMatchesPaginationForClient
     }
@@ -132,6 +130,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     if ((potentialMatchesToDisplayToUserOnClient.length === 0)) {
         return response.status(status).json(responseBody)
     }
+
+    console.log('Getting matches info for client...')
 
     const potentialMatchesForClientResult = await getMatchesInfoForClient(potentialMatchesToDisplayToUserOnClient, getUsersWithPromptsResult.prompts);
     responseBody.potentialMatchesPagination.potentialMatches = potentialMatchesForClientResult.potentialMatches;
@@ -167,10 +167,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
             responseBody = { potentialMatchesPagination: { ...getMoreUsersAfterPicUrlFailureResult.matchesQueryPage, potentialMatches: [] } }
         }
     }
+    console.timeEnd('getMatchesRoute')
 
-    console.log("Sending potential matcches to the client...")
+    console.log("Potential matches has been retrieved. Will send them to the client.")
 
-    console.log('responseBody: ', responseBody)
 
     return response.status(status).json(responseBody)
 })

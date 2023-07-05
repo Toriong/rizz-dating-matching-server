@@ -87,6 +87,7 @@ function getReverseGeoCode(userLocation) {
 }
 function getMatchesInfoForClient(potentialMatches, prompts) {
     return __awaiter(this, void 0, void 0, function* () {
+        console.log('Getting matches info for client, getting user info from db and aws.');
         let userInfoAndPromptsForClient = [];
         for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
             const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];

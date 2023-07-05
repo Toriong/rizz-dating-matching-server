@@ -9,19 +9,20 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import aws from 'aws-sdk';
 import dotenv from 'dotenv';
-dotenv.config();
-function getS3Instance() {
+function getS3Instance(accessKeyId, secretAccessKey) {
     return new aws.S3({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+        accessKeyId: accessKeyId,
+        secretAccessKey: secretAccessKey
     });
 }
 function getMatchPicUrl(pathToImg, expiresNum = (60000 * 60)) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const s3 = getS3Instance();
+            dotenv.config();
+            const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
+            const s3 = getS3Instance(AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY);
             const params = {
-                Bucket: process.env.AWS_BUCKET_NAME,
+                Bucket: AWS_BUCKET_NAME,
                 Key: pathToImg,
                 Expires: expiresNum
             };

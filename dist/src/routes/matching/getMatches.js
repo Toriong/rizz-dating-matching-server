@@ -32,6 +32,7 @@ function getQueryOptionsValidationArr(queryOpts) {
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
+    console.time('getMatchesRoute');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
@@ -78,6 +79,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if ((potentialMatchesToDisplayToUserOnClient.length === 0)) {
         return response.status(status).json(responseBody);
     }
+    console.log('Getting matches info for client...');
     const potentialMatchesForClientResult = yield getMatchesInfoForClient(potentialMatchesToDisplayToUserOnClient, getUsersWithPromptsResult.prompts);
     responseBody.potentialMatchesPagination.potentialMatches = potentialMatchesForClientResult.potentialMatches;
     console.log('Potential matches info has been retrieved. Will check if the user has valid pic urls.');
@@ -102,7 +104,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: [] }) };
         }
     }
-    console.log("Sending potential matcches to the client...");
-    console.log('responseBody: ', responseBody);
+    console.timeEnd('getMatchesRoute');
+    console.log("Potential matches has been retrieved. Will send them to the client.");
     return response.status(status).json(responseBody);
 }));
