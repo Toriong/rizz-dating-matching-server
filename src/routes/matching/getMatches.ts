@@ -85,16 +85,15 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.log('will query for matches...')
 
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
-    const { status, data, msg } = queryMatchesResults;
 
-    if (!data || !data.potentialMatches || (status !== 200)) {
-        console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", msg)
-        console.error('Error status code: ', status)
+    if (!queryMatchesResults.data || !queryMatchesResults?.data?.potentialMatches || (queryMatchesResults.status !== 200)) {
+        console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", queryMatchesResults.msg)
+        console.error('Error status code: ', queryMatchesResults.status)
 
-        return response.status(status).json({ msg: "Something went wrong. Couldnt't matches." })
+        return response.status(queryMatchesResults.status).json({ msg: "Something went wrong. Couldnt't matches." })
     }
 
-    const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = data;
+    const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = queryMatchesResults.data;
     let { errMsg, potentialMatches: filterUsersWithoutPromptsPotentialMatches, prompts } = await filterUsersWithoutPrompts(getMatchesResultPotentialMatches);
 
     console.log("filterUsersWithoutPrompts function has been executed. Will check if there was an error.")
@@ -110,16 +109,16 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     if (filterUsersWithoutPromptsPotentialMatches.length < 5) {
         console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.')
         // data.page.hasValidUsersToDisplayOnCurrentPg is true, then use the current page's skipDocsNum. Else, add 5 to it if it is false
-        const updatedSkipDocNumInt = (typeof data.updatedSkipDocsNum === 'string') ? parseInt(data.updatedSkipDocsNum) : data.updatedSkipDocsNum
-        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
+        const updatedSkipDocNumInt = (typeof queryMatchesResults.data.updatedSkipDocsNum === 'string') ? parseInt(queryMatchesResults.data.updatedSkipDocsNum) : queryMatchesResults.data.updatedSkipDocsNum
+        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: queryMatchesResults.data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
         getUsersWithPromptsResult = await getUsersWithPrompts(_userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, filterUsersWithoutPromptsPotentialMatches);
     }
 
     let potentialMatchesToDisplayToUserOnClient: IUserAndPrompts[] | UserBaseModelSchema[] = getUsersWithPromptsResult.potentialMatches;
-    let responseBody: MatchesQueryRespsonseBodyBuild | MatchesQueryResponseBody = { potentialMatchesPagination: { ...data, potentialMatches: potentialMatchesToDisplayToUserOnClient } }
+    let responseBody: MatchesQueryRespsonseBodyBuild | MatchesQueryResponseBody = { potentialMatchesPagination: { ...queryMatchesResults.data, potentialMatches: potentialMatchesToDisplayToUserOnClient } }
 
     if ((potentialMatchesToDisplayToUserOnClient.length === 0)) {
-        return response.status(status).json(responseBody)
+        return response.status(200).json(responseBody)
     }
 
     console.log('Getting matches info for client...')
@@ -163,5 +162,5 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.log("Potential matches has been retrieved. Will send them to the client.")
 
 
-    return response.status(status).json(responseBody)
+    return response.status(200).json(responseBody)
 })

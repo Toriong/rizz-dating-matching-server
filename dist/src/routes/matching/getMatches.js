@@ -31,7 +31,7 @@ function getQueryOptionsValidationArr(queryOpts) {
     return [radiusValidationObj, paginationPageNumValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     console.time('getMatchesRoute');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
@@ -53,13 +53,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, radiusInMilesInt: valOfRadiusFieldUpdated });
     console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
-    const { status, data, msg } = queryMatchesResults;
-    if (!data || !data.potentialMatches || (status !== 200)) {
-        console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", msg);
-        console.error('Error status code: ', status);
-        return response.status(status).json({ msg: "Something went wrong. Couldnt't matches." });
+    if (!queryMatchesResults.data || !((_a = queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) === null || _a === void 0 ? void 0 : _a.potentialMatches) || (queryMatchesResults.status !== 200)) {
+        console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", queryMatchesResults.msg);
+        console.error('Error status code: ', queryMatchesResults.status);
+        return response.status(queryMatchesResults.status).json({ msg: "Something went wrong. Couldnt't matches." });
     }
-    const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = data;
+    const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = queryMatchesResults.data;
     let { errMsg, potentialMatches: filterUsersWithoutPromptsPotentialMatches, prompts } = yield filterUsersWithoutPrompts(getMatchesResultPotentialMatches);
     console.log("filterUsersWithoutPrompts function has been executed. Will check if there was an error.");
     if (errMsg) {
@@ -70,14 +69,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if (filterUsersWithoutPromptsPotentialMatches.length < 5) {
         console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.');
         // data.page.hasValidUsersToDisplayOnCurrentPg is true, then use the current page's skipDocsNum. Else, add 5 to it if it is false
-        const updatedSkipDocNumInt = (typeof data.updatedSkipDocsNum === 'string') ? parseInt(data.updatedSkipDocsNum) : data.updatedSkipDocsNum;
-        const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
+        const updatedSkipDocNumInt = (typeof queryMatchesResults.data.updatedSkipDocsNum === 'string') ? parseInt(queryMatchesResults.data.updatedSkipDocsNum) : queryMatchesResults.data.updatedSkipDocsNum;
+        const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: queryMatchesResults.data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
         getUsersWithPromptsResult = yield getUsersWithPrompts(_userQueryOpts, query.userId, filterUsersWithoutPromptsPotentialMatches);
     }
     let potentialMatchesToDisplayToUserOnClient = getUsersWithPromptsResult.potentialMatches;
-    let responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, data), { potentialMatches: potentialMatchesToDisplayToUserOnClient }) };
+    let responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, queryMatchesResults.data), { potentialMatches: potentialMatchesToDisplayToUserOnClient }) };
     if ((potentialMatchesToDisplayToUserOnClient.length === 0)) {
-        return response.status(status).json(responseBody);
+        return response.status(200).json(responseBody);
     }
     console.log('Getting matches info for client...');
     const potentialMatchesForClientResult = yield getMatchesInfoForClient(potentialMatchesToDisplayToUserOnClient, getUsersWithPromptsResult.prompts);
@@ -97,14 +96,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: potentialMatchesForClientResult.potentialMatches }) };
             return response.status(200).json(responseBody);
         }
-        if ((_a = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _a === void 0 ? void 0 : _a.length) {
+        if ((_b = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length) {
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: getMoreUsersAfterPicUrlFailureResult.potentialMatches }) };
         }
-        if (!((_b = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length)) {
+        if (!((_c = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _c === void 0 ? void 0 : _c.length)) {
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: [] }) };
         }
     }
     console.timeEnd('getMatchesRoute');
     console.log("Potential matches has been retrieved. Will send them to the client.");
-    return response.status(status).json(responseBody);
+    return response.status(200).json(responseBody);
 }));

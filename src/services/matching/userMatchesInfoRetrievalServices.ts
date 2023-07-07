@@ -77,8 +77,8 @@ async function getReverseGeoCode(userLocation: UserLocation): Promise<{ wasSucce
     try {
         dotenv.config();
         const { longitude, latitude } = userLocation;
-        const openWeatherApiUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.OPEN_WEATHER_API_KEY}`
-        const response = await axios.get(openWeatherApiUrl);
+        const reverseGeoCodeUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.REVERSE_GEO_LOCATION_API_KEY}`
+        const response = await axios.get(reverseGeoCodeUrl);
         const { status, data } = response;
 
         if (status === 200) {
@@ -96,6 +96,8 @@ async function getReverseGeoCode(userLocation: UserLocation): Promise<{ wasSucce
 
         return { wasSuccessful: true, data: userLocationStr }
     } catch (error) {
+        console.error("Failed to get the reverse geocode of the user's location. Error message: ", error)
+
         return { wasSuccessful: false }
     }
 }

@@ -65,8 +65,8 @@ function getReverseGeoCode(userLocation) {
         try {
             dotenv.config();
             const { longitude, latitude } = userLocation;
-            const openWeatherApiUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.OPEN_WEATHER_API_KEY}`;
-            const response = yield axios.get(openWeatherApiUrl);
+            const reverseGeoCodeUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.REVERSE_GEO_LOCATION_API_KEY}`;
+            const response = yield axios.get(reverseGeoCodeUrl);
             const { status, data } = response;
             if (status === 200) {
                 throw new Error("Failed to get reverse geocode.");
@@ -81,6 +81,7 @@ function getReverseGeoCode(userLocation) {
             return { wasSuccessful: true, data: userLocationStr };
         }
         catch (error) {
+            console.error("Failed to get the reverse geocode of the user's location. Error message: ", error);
             return { wasSuccessful: false };
         }
     });
