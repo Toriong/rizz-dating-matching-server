@@ -1,6 +1,5 @@
 import Mongoose, { Document, Model } from 'mongoose';
 import { mongoosePagination } from "mongoose-paginate-ts";
-import { UserLocation } from '../types-and-interfaces/interfaces/userQueryInterfaces.js';
 
 type Sex = 'Male' | 'Female' | 'female' | 'male'
 type SortObjVal = 'asc' | 'ascending' | 'desc' | 'descending' | 1 | -1;
@@ -37,6 +36,12 @@ interface Look{
     bodyPart: string,
     // example: 'brown'
     description: string
+}
+type UserLocationTypeStr = "Point"
+interface UserLocation {
+    type: UserLocationTypeStr,
+    // [longitude, latitude]
+    coordinates: [number, number]
 }
 interface UserBaseModelSchema {
     _id: string,
@@ -97,7 +102,7 @@ const UserLocation = new Schema({
         required: true
     },
     coordinates: {
-        type: [Number],
+        type: [Number, Number],
         required: true
     }
 });

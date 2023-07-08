@@ -73,10 +73,10 @@ function getCountryName(countryCode: string): string | undefined {
     return regionNames.of(countryCode)
 }
 
-async function getReverseGeoCode(userLocation: UserLocation): Promise<{ wasSuccessful: boolean, data?: string }> {
+async function getReverseGeoCode(userLocation: [number, number]): Promise<{ wasSuccessful: boolean, data?: string }> {
     try {
         dotenv.config();
-        const { longitude, latitude } = userLocation;
+        const [longitude, latitude] = userLocation;
         const reverseGeoCodeUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.REVERSE_GEO_LOCATION_API_KEY}`
         const response = await axios.get(reverseGeoCodeUrl);
         const { status, data } = response;
@@ -132,7 +132,9 @@ async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], 
             continue;
         }
 
-        const { wasSuccessful, data: userLocationStr } = await getReverseGeoCode(location);
+        console.log('Getting coordinates of user: ', location.coordinates)
+
+        const { wasSuccessful, data: userLocationStr } = await getReverseGeoCode(location.coordinates);
         let userInfoAndPromptsObj: IUserAndPrompts = {
             _id: _id,
             firstName: name.first,

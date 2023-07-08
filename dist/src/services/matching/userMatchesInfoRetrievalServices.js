@@ -64,7 +64,7 @@ function getReverseGeoCode(userLocation) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             dotenv.config();
-            const { longitude, latitude } = userLocation;
+            const [longitude, latitude] = userLocation;
             const reverseGeoCodeUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.REVERSE_GEO_LOCATION_API_KEY}`;
             const response = yield axios.get(reverseGeoCodeUrl);
             const { status, data } = response;
@@ -98,7 +98,8 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
             if (!userPrompts || !getMatchPicUrlResult.wasSuccessful) {
                 continue;
             }
-            const { wasSuccessful, data: userLocationStr } = yield getReverseGeoCode(location);
+            console.log('Getting coordinates of user: ', location.coordinates);
+            const { wasSuccessful, data: userLocationStr } = yield getReverseGeoCode(location.coordinates);
             let userInfoAndPromptsObj = {
                 _id: _id,
                 firstName: name.first,
