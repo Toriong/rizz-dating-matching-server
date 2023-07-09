@@ -33,10 +33,8 @@ async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]
     }
 }
 
-// this function will update the how many docuements to skip, get that number
 async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: string, potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithoutPromptsReturnVal> {
     try {
-        // the below function will get the user of the next query if the current page has no valid users to display to the user in the front end
         const queryMatchesResults = await getMatches(userQueryOpts, currentUserId, potentialMatches);
 
         if ((queryMatchesResults.status !== 200) || !queryMatchesResults?.data || !queryMatchesResults?.data?.potentialMatches) {
@@ -81,11 +79,13 @@ async function getReverseGeoCode(userLocation: [number, number]): Promise<{ wasS
         const response = await axios.get(reverseGeoCodeUrl);
         const { status, data } = response;
 
-        if (status === 200) {
+        if (status !== 200) {
             throw new Error("Failed to get reverse geocode.")
         };
 
-        const { city, state, country } = data[0];
+        console.log('Recevied reverse geo code data: ', data?.[0])
+
+        const { name: city, state, country } = data[0];
         const countryName = getCountryName(country);
 
         if (!countryName) {
@@ -102,19 +102,6 @@ async function getReverseGeoCode(userLocation: [number, number]): Promise<{ wasS
     }
 }
 
-
-// GOAL: an array is created with each value being an object with the form of IUserAndPrompts
-// an array with each object that has the form of IUserAndPrompts is returned from this function
-// access the prompts array from the object that was attained from the prompts array
-// the target prompt is attained from the prompts array
-// using the id of the user, get their respective prompt from the prompts array 
-// the picture url for each users is attained from aws and added to the user object by passing the path for the picture file to the function of getMatchPicUrl
-// the picture file name is attained from the user object
-// the following fields are abstracted from the user object: _id, hobbies, bio, name.firstName, location
-// loop through the matches array, and for each user, get the above values:  
-// matches array is passed as an argument
-// the prompts array is passed as an argument
-// the function getUserAndPromptInfoForClient is called with the matches array and prompts array as arguments
 
 type GetMatchesInfoForClientReturnVal = Promise<ReturnType<() => ({ potentialMatches: IUserAndPrompts[], usersWithValidUrlPics: UserBaseModelSchema[] })>>
 
@@ -135,6 +122,9 @@ async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], 
         console.log('Getting coordinates of user: ', location.coordinates)
 
         const { wasSuccessful, data: userLocationStr } = await getReverseGeoCode(location.coordinates);
+        
+        console.log('userLocationStr: ', userLocationStr)
+
         let userInfoAndPromptsObj: IUserAndPrompts = {
             _id: _id,
             firstName: name.first,

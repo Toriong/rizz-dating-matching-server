@@ -29,12 +29,10 @@ function filterUsersWithoutPrompts(potentialMatches) {
         }
     });
 }
-// this function will update the how many docuements to skip, get that number
 function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // the below function will get the user of the next query if the current page has no valid users to display to the user in the front end
             const queryMatchesResults = yield getMatches(userQueryOpts, currentUserId, potentialMatches);
             if ((queryMatchesResults.status !== 200) || !(queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) || !((_a = queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) === null || _a === void 0 ? void 0 : _a.potentialMatches)) {
                 throw new Error("Failed to get matches.");
@@ -68,11 +66,12 @@ function getReverseGeoCode(userLocation) {
             const reverseGeoCodeUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.REVERSE_GEO_LOCATION_API_KEY}`;
             const response = yield axios.get(reverseGeoCodeUrl);
             const { status, data } = response;
-            if (status === 200) {
+            if (status !== 200) {
                 throw new Error("Failed to get reverse geocode.");
             }
             ;
-            const { city, state, country } = data[0];
+            console.log('Recevied reverse geo code data: ', data === null || data === void 0 ? void 0 : data[0]);
+            const { name: city, state, country } = data[0];
             const countryName = getCountryName(country);
             if (!countryName) {
                 throw new Error("Failed to get country name.");
@@ -100,6 +99,7 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
             }
             console.log('Getting coordinates of user: ', location.coordinates);
             const { wasSuccessful, data: userLocationStr } = yield getReverseGeoCode(location.coordinates);
+            console.log('userLocationStr: ', userLocationStr);
             let userInfoAndPromptsObj = {
                 _id: _id,
                 firstName: name.first,

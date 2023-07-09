@@ -60,7 +60,7 @@ async function getAllUserChats(currentUserId: string): Promise<CRUDResult> {
         const userChatIdsObj = getChatUserByIdResult.data as UserChatIdsInterface
 
         if (!userChatIdsObj?.chatIds?.length) {
-            console.log('This users is not chatting with anybody.')
+            console.log('Theses users are not chatting with anybody.')
             return { wasSuccessful: true, data: [] }
         }
 
@@ -79,8 +79,8 @@ async function getAllUserChats(currentUserId: string): Promise<CRUDResult> {
         console.log('The ids of the users that the current user is chatting with: ', chatUserRecipientIds)
 
         return { wasSuccessful: true, data: chatUserRecipientIds }
-    } catch (error) {
-        console.error('An error has occurred in getting the chat user from the firebase database.')
+    } catch (error: any) {
+        console.error('An error has occurred in getting the chat user from the firebase database. Error message: ', error.message || error)
 
         return { wasSuccessful: false }
     }

@@ -34,6 +34,12 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
                 $near: {
                     $geometry: { type: "Point", coordinates: [longitude, latitude] },
                     $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                    // CONDITIONS: 
+                    // the user went through users based on x radius and there are no more users to show
+                    // GOAL: 
+                    // query for users based on the following conditions:
+                    // minDistance: x (the previous radius)
+                    // maxDistance: y (the new radius)
                 }
             },
             sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
@@ -42,7 +48,6 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         };
         const pageOpts = { skip: skipDocsNum, limit: 5 };
-        // put the above into a function
         Users.createIndexes([{ location: '2dsphere' }]);
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();

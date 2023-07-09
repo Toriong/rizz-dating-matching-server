@@ -41,6 +41,13 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
             $near: {
                 $geometry: { type: "Point", coordinates: [longitude as number, latitude as number] },
                 $maxDistance: (radiusInMilesInt as number) * METERS_IN_A_MILE,
+                // CONDITIONS: 
+                // the user went through users based on x radius and there are no more users to show
+
+                // GOAL: 
+                // query for users based on the following conditions:
+                // minDistance: x (the previous radius)
+                // maxDistance: y (the new radius)
             }
         },
         sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
@@ -49,7 +56,6 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
         birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
     }
     const pageOpts = { skip: skipDocsNum as number, limit: 5 };
-    // put the above into a function
 
     (Users as any).createIndexes([{ location: '2dsphere' }])
 

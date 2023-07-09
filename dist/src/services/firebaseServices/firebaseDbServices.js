@@ -58,7 +58,7 @@ function getAllUserChats(currentUserId) {
             }
             const userChatIdsObj = getChatUserByIdResult.data;
             if (!((_a = userChatIdsObj === null || userChatIdsObj === void 0 ? void 0 : userChatIdsObj.chatIds) === null || _a === void 0 ? void 0 : _a.length)) {
-                console.log('This users is not chatting with anybody.');
+                console.log('Theses users are not chatting with anybody.');
                 return { wasSuccessful: true, data: [] };
             }
             const currentUserChatsPromises = userChatIdsObj.chatIds.map(chatId => getChatById(chatId));
@@ -74,7 +74,7 @@ function getAllUserChats(currentUserId) {
             return { wasSuccessful: true, data: chatUserRecipientIds };
         }
         catch (error) {
-            console.error('An error has occurred in getting the chat user from the firebase database.');
+            console.error('An error has occurred in getting the chat user from the firebase database. Error message: ', error.message || error);
             return { wasSuccessful: false };
         }
     });
