@@ -18,13 +18,6 @@ interface GetMatchesResult {
     msg?: string
 }
 
-function getFormattedBirthDate(birthDate: Date): string {
-    const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`
-    const day = (birthDate.getDay().toString().length > 1) ? birthDate.getDay() + 1 : `0${birthDate.getDay() + 1}`
-
-    return `${birthDate.getFullYear()}-${month}-${day}`
-}
-
 async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[], currentPotentialMatches: UserBaseModelSchema[] = []): Promise<InterfacePotentialMatchesPage> {
     // put the below into a funtion, call it: createQueryOptsForPagination
     const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
@@ -52,7 +45,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
         },
         sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
         hasPrompts: true,
-        // sexAttraction: currentUser.sexAttraction,
+        sexAttraction: currentUser.sexAttraction,
         birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
     }
     const pageOpts = { skip: skipDocsNum as number, limit: 5 };
@@ -140,8 +133,6 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
             throw new Error("Failed to get the current user from the firebase database.")
         }
 
-
-
         if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !(rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]).length) {
             console.error('Failed to get the rejected users docs for the current user.')
             console.log('The current user either has not been rejected or has not rejected any users.')
@@ -159,41 +150,45 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
 
         // THIS IS ALL TESTING CODE
 
-        // const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
-        // let updatedSkipDocsNum = skipDocsNum;
-        // console.log('skipDocsNum: ', skipDocsNum)
-        // const currentPageNum = (skipDocsNum as number) / 5;
-        // console.log('currentPageNum: ', currentPageNum)
-        // const METERS_IN_A_MILE = 1609.34;
-        // const [minAge, maxAge] = desiredAgeRange;
-        // const { latitude, longitude } = userLocation;
-        // const paginationQueryOpts: PaginationQueryingOpts = {
-        //     location: {
-        //         $near: {
-        //             $geometry: { type: "Point", coordinates: [longitude as number, latitude as number] },
-        //             $maxDistance: (radiusInMilesInt as number) * METERS_IN_A_MILE,
-        //         }
-        //     },
-        //     sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
-        //     hasPrompts: true,
-        //     // sexAttraction: currentUser.sexAttraction,
-        //     birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
-        // }
-        // const pageOpts = { skip: 80, limit: 5 };
+        const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
+        let updatedSkipDocsNum = skipDocsNum;
+        console.log('skipDocsNum: ', skipDocsNum)
+        const currentPageNum = (skipDocsNum as number) / 5;
+        console.log('currentPageNum: ', currentPageNum)
+        const METERS_IN_A_MILE = 1609.34;
+        const [minAge, maxAge] = desiredAgeRange;
+        const { latitude, longitude } = userLocation;
+        const paginationQueryOpts: PaginationQueryingOpts = {
+            location: {
+                $near: {
+                    $geometry: { type: "Point", coordinates: [longitude as number, latitude as number] },
+                    $maxDistance: (radiusInMilesInt as number) * METERS_IN_A_MILE,
+                }
+            },
+            sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
+            hasPrompts: true,
+            // sexAttraction: currentUser.sexAttraction,
+            birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
+        }
+        const pageOpts = { skip: 10, limit: 5 };
 
-        // (Users as any).createIndexes([{ location: '2dsphere' }])
+        (Users as any).createIndexes([{ location: '2dsphere' }])
 
-        // const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
-        // const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
-        // let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
+        const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
+        const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
+        let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
 
+        console.log('user ids: ')
+        console.table(pageQueryUsers.map(({ _id }) => _id))
+
+        return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } }
         // THE ABOVE IS TESTING CODE
 
 
 
-        const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches)
+        // const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches)
 
-        return { status: 200, data: { ...potentialMatchesPaginationObj } }
+        // return { status: 200, data: { ...potentialMatchesPaginationObj } }
     } catch (error) {
         console.error('An error has occurred in getting matches: ', error)
         const errMsg = `An error has occurred in getting matches for user: ${error}`

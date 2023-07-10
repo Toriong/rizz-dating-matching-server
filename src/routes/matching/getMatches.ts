@@ -106,9 +106,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     let getUsersWithPromptsResult: IFilterUserWithoutPromptsReturnVal = { potentialMatches: filterUsersWithoutPromptsPotentialMatches, prompts }
 
+    // at least one user doesn't have any prompts in the db
     if (filterUsersWithoutPromptsPotentialMatches.length < 5) {
         console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.')
-        // data.page.hasValidUsersToDisplayOnCurrentPg is true, then use the current page's skipDocsNum. Else, add 5 to it if it is false
         const updatedSkipDocNumInt = (typeof queryMatchesResults.data.updatedSkipDocsNum === 'string') ? parseInt(queryMatchesResults.data.updatedSkipDocsNum) : queryMatchesResults.data.updatedSkipDocsNum
         const _userQueryOpts = { ...userQueryOpts, skipDocsNum: queryMatchesResults.data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
         getUsersWithPromptsResult = await getUsersWithPrompts(_userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, filterUsersWithoutPromptsPotentialMatches);
@@ -129,9 +129,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.log('Potential matches info has been retrieved. Will check if the user has valid pic urls.')
 
 
+    // at least one user does not have a valid url matching pic stored in aws s3
     if ((potentialMatchesForClientResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
-        console.log("At least one user does not have a valid pic url. Will get more users with prompts and valid pic urls.")
-
         const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum
         const _userQueryOpts: UserQueryOpts = { ...userQueryOpts, skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
         const getMoreUsersAfterPicUrlFailureResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(_userQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatchesForClientResult.usersWithValidUrlPics)

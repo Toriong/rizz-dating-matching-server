@@ -12,11 +12,6 @@ import moment from "moment";
 import { getUserById } from "../globalMongoDbServices.js";
 import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
-function getFormattedBirthDate(birthDate) {
-    const month = ((birthDate.getMonth() + 1).toString().length > 1) ? (birthDate.getMonth() + 1) : `0${(birthDate.getMonth() + 1)}`;
-    const day = (birthDate.getDay().toString().length > 1) ? birthDate.getDay() + 1 : `0${birthDate.getDay() + 1}`;
-    return `${birthDate.getFullYear()}-${month}-${day}`;
-}
 function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches = []) {
     return __awaiter(this, void 0, void 0, function* () {
         // put the below into a funtion, call it: createQueryOptsForPagination
@@ -44,7 +39,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             },
             sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
             hasPrompts: true,
-            // sexAttraction: currentUser.sexAttraction,
+            sexAttraction: currentUser.sexAttraction,
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         };
         const pageOpts = { skip: skipDocsNum, limit: 5 };
@@ -124,34 +119,37 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
             ];
             const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
             // THIS IS ALL TESTING CODE
-            // const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
-            // let updatedSkipDocsNum = skipDocsNum;
-            // console.log('skipDocsNum: ', skipDocsNum)
-            // const currentPageNum = (skipDocsNum as number) / 5;
-            // console.log('currentPageNum: ', currentPageNum)
-            // const METERS_IN_A_MILE = 1609.34;
-            // const [minAge, maxAge] = desiredAgeRange;
-            // const { latitude, longitude } = userLocation;
-            // const paginationQueryOpts: PaginationQueryingOpts = {
-            //     location: {
-            //         $near: {
-            //             $geometry: { type: "Point", coordinates: [longitude as number, latitude as number] },
-            //             $maxDistance: (radiusInMilesInt as number) * METERS_IN_A_MILE,
-            //         }
-            //     },
-            //     sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
-            //     hasPrompts: true,
-            //     // sexAttraction: currentUser.sexAttraction,
-            //     birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
-            // }
-            // const pageOpts = { skip: 80, limit: 5 };
-            // (Users as any).createIndexes([{ location: '2dsphere' }])
-            // const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
-            // const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
-            // let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
+            const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
+            let updatedSkipDocsNum = skipDocsNum;
+            console.log('skipDocsNum: ', skipDocsNum);
+            const currentPageNum = skipDocsNum / 5;
+            console.log('currentPageNum: ', currentPageNum);
+            const METERS_IN_A_MILE = 1609.34;
+            const [minAge, maxAge] = desiredAgeRange;
+            const { latitude, longitude } = userLocation;
+            const paginationQueryOpts = {
+                location: {
+                    $near: {
+                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                        $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                    }
+                },
+                sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
+                hasPrompts: true,
+                // sexAttraction: currentUser.sexAttraction,
+                birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
+            };
+            const pageOpts = { skip: 10, limit: 5 };
+            Users.createIndexes([{ location: '2dsphere' }]);
+            const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
+            const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
+            let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
+            console.log('user ids: ');
+            console.table(pageQueryUsers.map(({ _id }) => _id));
+            return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } };
             // THE ABOVE IS TESTING CODE
-            const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
-            return { status: 200, data: Object.assign({}, potentialMatchesPaginationObj) };
+            // const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches)
+            // return { status: 200, data: { ...potentialMatchesPaginationObj } }
         }
         catch (error) {
             console.error('An error has occurred in getting matches: ', error);
