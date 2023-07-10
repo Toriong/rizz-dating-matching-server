@@ -145,7 +145,6 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
                 })
                 .filter(userId => currentUserId !== userId))
         ]
-
         const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats]
 
         // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
@@ -184,8 +183,6 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
         // return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } }
 
         // THE ABOVE IS FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
-
-
 
         const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
 
