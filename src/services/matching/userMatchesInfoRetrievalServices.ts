@@ -4,7 +4,7 @@ import { InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMa
 import { IUserAndPrompts, PromptInterface, PromptModelInterface } from "../../types-and-interfaces/interfaces/promptsInterfaces.js";
 import { UserLocation, UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
-import { getMatchPicUrl } from "./helper-fns/aws.js";
+import { getDoesImgAwsObjExist, getMatchPicUrl } from "./helper-fns/aws.js";
 import { getMatches } from "./matchesQueryServices.js";
 import dotenv from 'dotenv';
 
@@ -112,24 +112,31 @@ async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], 
     for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
         const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
         const matchingPic = pics.find(({ isMatching }) => isMatching) as Picture;
-        const getMatchPicUrlResult = await getMatchPicUrl(matchingPic.picFileNameOnAws);
+        let matchingPicUrl: null | string = null;
+        const doesMatchigPicUrlExist = await getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
+
+        if (doesMatchigPicUrlExist) {
+            const getMatchPicUrlResult = await getMatchPicUrl(matchingPic.picFileNameOnAws);
+            matchingPicUrl = getMatchPicUrlResult.matchPicUrl as string;
+        }
+
         const userPrompts = prompts.find(({ userId }) => userId === _id)
 
-        if (!userPrompts || !getMatchPicUrlResult.wasSuccessful) {
+        if (!userPrompts || !matchingPicUrl) {
             continue;
         }
 
         console.log('Getting coordinates of user: ', location.coordinates)
 
         const { wasSuccessful, data: userLocationStr } = await getReverseGeoCode(location.coordinates);
-        
+
         console.log('userLocationStr: ', userLocationStr)
 
         let userInfoAndPromptsObj: IUserAndPrompts = {
             _id: _id,
             firstName: name.first,
             prompts: userPrompts.prompts,
-            matchingPicUrl: getMatchPicUrlResult.matchPicUrl as string,
+            matchingPicUrl: matchingPicUrl,
         }
 
         if (wasSuccessful) {

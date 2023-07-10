@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import axios from "axios";
 import { getPrompstByUserIds } from "../promptsServices/getPromptsServices.js";
-import { getMatchPicUrl } from "./helper-fns/aws.js";
+import { getDoesImgAwsObjExist, getMatchPicUrl } from "./helper-fns/aws.js";
 import { getMatches } from "./matchesQueryServices.js";
 import dotenv from 'dotenv';
 function filterUsersWithoutPrompts(potentialMatches) {
@@ -92,9 +92,14 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
         for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
             const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
             const matchingPic = pics.find(({ isMatching }) => isMatching);
-            const getMatchPicUrlResult = yield getMatchPicUrl(matchingPic.picFileNameOnAws);
+            let matchingPicUrl = null;
+            const doesMatchigPicUrlExist = yield getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
+            if (doesMatchigPicUrlExist) {
+                const getMatchPicUrlResult = yield getMatchPicUrl(matchingPic.picFileNameOnAws);
+                matchingPicUrl = getMatchPicUrlResult.matchPicUrl;
+            }
             const userPrompts = prompts.find(({ userId }) => userId === _id);
-            if (!userPrompts || !getMatchPicUrlResult.wasSuccessful) {
+            if (!userPrompts || !matchingPicUrl) {
                 continue;
             }
             console.log('Getting coordinates of user: ', location.coordinates);
@@ -104,7 +109,7 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
                 _id: _id,
                 firstName: name.first,
                 prompts: userPrompts.prompts,
-                matchingPicUrl: getMatchPicUrlResult.matchPicUrl,
+                matchingPicUrl: matchingPicUrl,
             };
             if (wasSuccessful) {
                 userInfoAndPromptsObj.locationStr = userLocationStr;
