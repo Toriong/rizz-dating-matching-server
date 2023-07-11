@@ -15,11 +15,15 @@ import dotenv from 'dotenv';
 function filterUsersWithoutPrompts(potentialMatches) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const getPrompstByUserIdsResult = yield getPrompstByUserIds(potentialMatches.map(({ _id }) => _id));
+            const userIds = potentialMatches.map(({ _id }) => _id);
+            const getPrompstByUserIdsResult = yield getPrompstByUserIds(userIds);
             const userPrompts = getPrompstByUserIdsResult.data;
+            console.log('userPrompts filterUserWithoutPrompts: ', userPrompts);
             const userIdsOfPrompts = userPrompts.map(({ userId }) => userId);
+            const potentialMatchesUpdated = potentialMatches.filter(({ _id }) => userIdsOfPrompts.includes(_id));
+            console.log("potentialMatchesUpdated: ", potentialMatchesUpdated);
             return {
-                potentialMatches: potentialMatches.filter(({ _id }) => userIdsOfPrompts.includes(_id)),
+                potentialMatches: potentialMatchesUpdated,
                 prompts: userPrompts
             };
         }
@@ -29,8 +33,14 @@ function filterUsersWithoutPrompts(potentialMatches) {
         }
     });
 }
+// BRAIN DUMP:
+// bug is occurring below 
+// when a user doesn't have valid url pics nor valid prompts, this function is executed in order to get more users
+// this function is getting user with prompts 
+// should a return a non empty array
+// bug is occurring in filterUsersWithoutPrompts function
 function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
-    var _a, _b;
+    var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const queryMatchesResults = yield getMatches(userQueryOpts, currentUserId, potentialMatches);
@@ -39,12 +49,20 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
             }
             let usersAndPrompts = { potentialMatches: [], prompts: [] };
             const { canStillQueryCurrentPageForUsers, potentialMatches: getMatchesUsersResult, updatedSkipDocsNum, hasReachedPaginationEnd } = queryMatchesResults.data;
+            console.log("getMatchesUsersResult: ", getMatchesUsersResult);
             const filterUserWithoutPromptsResult = yield filterUsersWithoutPrompts(getMatchesUsersResult);
             if ((((_b = filterUserWithoutPromptsResult === null || filterUserWithoutPromptsResult === void 0 ? void 0 : filterUserWithoutPromptsResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length) < 5) && !hasReachedPaginationEnd) {
+                console.log('At least one user does not have any prompts. Getting more users.');
                 const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
                 const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
                 usersAndPrompts = yield getUsersWithPrompts(_userQueryOpts, currentUserId, potentialMatches);
             }
+            if (((_c = filterUserWithoutPromptsResult === null || filterUserWithoutPromptsResult === void 0 ? void 0 : filterUserWithoutPromptsResult.potentialMatches) === null || _c === void 0 ? void 0 : _c.length) === 5) {
+                usersAndPrompts = { potentialMatches: filterUserWithoutPromptsResult === null || filterUserWithoutPromptsResult === void 0 ? void 0 : filterUserWithoutPromptsResult.potentialMatches, prompts: filterUserWithoutPromptsResult.prompts };
+            }
+            console.log("userIds of matches: ", filterUserWithoutPromptsResult === null || filterUserWithoutPromptsResult === void 0 ? void 0 : filterUserWithoutPromptsResult.potentialMatches.map((match) => {
+                return match._id;
+            }));
             delete queryMatchesResults.data.potentialMatches;
             return Object.assign(Object.assign({}, usersAndPrompts), { matchesQueryPage: queryMatchesResults.data });
         }
@@ -148,6 +166,7 @@ function getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(userQ
     return __awaiter(this, void 0, void 0, function* () {
         try {
             console.log("userQueryOpts: ", userQueryOpts);
+            console.log("potentialMatches: ", potentialMatches);
             const getUsersWithPromptsResult = yield getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
             console.log("getUsersWithPromptsResult.potentialMatches: ", getUsersWithPromptsResult.potentialMatches);
             if (getUsersWithPromptsResult.errMsg) {

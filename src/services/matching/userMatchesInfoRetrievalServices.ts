@@ -18,12 +18,17 @@ interface IFilterUserWithoutPromptsReturnVal {
 
 async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithoutPromptsReturnVal> {
     try {
-        const getPrompstByUserIdsResult = await getPrompstByUserIds(potentialMatches.map(({ _id }) => _id))
+        const userIds = potentialMatches.map(({ _id }) => _id);
+        const getPrompstByUserIdsResult = await getPrompstByUserIds(userIds)
         const userPrompts = getPrompstByUserIdsResult.data as PromptModelInterface[];
+        console.log('userPrompts filterUserWithoutPrompts: ', userPrompts)
         const userIdsOfPrompts = userPrompts.map(({ userId }) => userId)
+        const potentialMatchesUpdated = potentialMatches.filter(({ _id }) => userIdsOfPrompts.includes(_id));
+
+        console.log("potentialMatchesUpdated: ", potentialMatchesUpdated)
 
         return {
-            potentialMatches: potentialMatches.filter(({ _id }) => userIdsOfPrompts.includes(_id)),
+            potentialMatches: potentialMatchesUpdated,
             prompts: userPrompts
         }
     } catch (error) {
@@ -32,6 +37,14 @@ async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]
         return { potentialMatches: [], prompts: [], }
     }
 }
+
+// BRAIN DUMP:
+// bug is occurring below 
+// when a user doesn't have valid url pics nor valid prompts, this function is executed in order to get more users
+// this function is getting user with prompts 
+// should a return a non empty array
+// bug is occurring in filterUsersWithoutPrompts function
+
 
 async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: string, potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithoutPromptsReturnVal> {
     try {
@@ -43,21 +56,31 @@ async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: 
 
         let usersAndPrompts: IFilterUserWithoutPromptsReturnVal = { potentialMatches: [], prompts: [] }
         const { canStillQueryCurrentPageForUsers, potentialMatches: getMatchesUsersResult, updatedSkipDocsNum, hasReachedPaginationEnd } = queryMatchesResults.data
+        console.log("getMatchesUsersResult: ", getMatchesUsersResult)
         const filterUserWithoutPromptsResult = await filterUsersWithoutPrompts(getMatchesUsersResult);
 
 
         if ((filterUserWithoutPromptsResult?.potentialMatches?.length < 5) && !hasReachedPaginationEnd) {
+            console.log('At least one user does not have any prompts. Getting more users.')
             const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum
             const _userQueryOpts: UserQueryOpts = { ...userQueryOpts, skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
             usersAndPrompts = await getUsersWithPrompts(_userQueryOpts, currentUserId, potentialMatches);
         }
+
+        if (filterUserWithoutPromptsResult?.potentialMatches?.length === 5) {
+            usersAndPrompts = { potentialMatches: filterUserWithoutPromptsResult?.potentialMatches, prompts: filterUserWithoutPromptsResult.prompts }
+        }
+
+        console.log("userIds of matches: ", filterUserWithoutPromptsResult?.potentialMatches.map((match: UserBaseModelSchema) => {
+            return match._id
+        }))
 
         delete queryMatchesResults.data.potentialMatches
 
         return {
             ...usersAndPrompts,
             matchesQueryPage: queryMatchesResults.data
-        };
+        }
     } catch (error: any) {
         console.error('An error has occurred in geting users with prompts: ', error)
 
@@ -194,7 +217,8 @@ async function getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed
 ): Promise<Partial<{ potentialMatches: IUserAndPrompts[], errorMsg: string, matchesQueryPage: MatchesQueryPage }>> {
     try {
         console.log("userQueryOpts: ", userQueryOpts)
-        
+        console.log("potentialMatches: ", potentialMatches)
+
         const getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
 
         console.log("getUsersWithPromptsResult.potentialMatches: ", getUsersWithPromptsResult.potentialMatches)
