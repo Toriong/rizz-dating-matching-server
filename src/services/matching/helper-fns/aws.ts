@@ -16,7 +16,7 @@ interface MatchPicUrlReturnResult {
 function getS3Vars() {
     dotenv.config();
     const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
-    const s3 = getS3Instance(AWS_S3_SECRET_KEY as string, AWS_S3_ACCESS_KEY as string);
+    const s3 = getS3Instance(AWS_S3_ACCESS_KEY as string, AWS_S3_SECRET_KEY as string);
 
     return { s3, AWS_BUCKET_NAME };
 }
@@ -24,18 +24,14 @@ function getS3Vars() {
 async function getDoesImgAwsObjExist(pathToImg: string): Promise<boolean> {
     try {
         dotenv.config();
-        
-        const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
-        const s3 = getS3Instance(AWS_S3_SECRET_KEY as string, AWS_S3_ACCESS_KEY as string);
-        const params = {
-            Bucket: AWS_BUCKET_NAME as string,
-            Key: pathToImg,
-        }
-        const fileObj = await s3.getObject(params).promise()
 
-        return !!fileObj;
+        const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
+        const s3 = getS3Instance(AWS_S3_ACCESS_KEY as string, AWS_S3_SECRET_KEY as string);
+        await s3.headObject({ Bucket: AWS_BUCKET_NAME as string, Key: pathToImg }).promise();
+
+        return true;
     } catch (error) {
-        console.error("Function 'getDoesImgObjectExist.' Error message: ", error)
+        console.error(`'${pathToImg}' does not exist. Error message: `, error)
 
         return false;
     }

@@ -115,6 +115,8 @@ async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], 
         let matchingPicUrl: null | string = null;
         const doesMatchigPicUrlExist = await getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
 
+        console.log("doesMatchigPicUrlExist: ", doesMatchigPicUrlExist )
+
         if (doesMatchigPicUrlExist) {
             const getMatchPicUrlResult = await getMatchPicUrl(matchingPic.picFileNameOnAws);
             matchingPicUrl = getMatchPicUrlResult.matchPicUrl as string;

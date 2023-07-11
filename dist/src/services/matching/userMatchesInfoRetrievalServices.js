@@ -94,6 +94,7 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
             const matchingPic = pics.find(({ isMatching }) => isMatching);
             let matchingPicUrl = null;
             const doesMatchigPicUrlExist = yield getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
+            console.log("doesMatchigPicUrlExist: ", doesMatchigPicUrlExist);
             if (doesMatchigPicUrlExist) {
                 const getMatchPicUrlResult = yield getMatchPicUrl(matchingPic.picFileNameOnAws);
                 matchingPicUrl = getMatchPicUrlResult.matchPicUrl;

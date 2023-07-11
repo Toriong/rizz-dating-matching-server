@@ -27,12 +27,12 @@ function getDoesImgAwsObjExist(pathToImg) {
             dotenv.config();
             const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
             const s3 = getS3Instance(AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY);
-            const params = {
-                Bucket: AWS_BUCKET_NAME,
-                Key: pathToImg,
-            };
-            const fileObj = yield s3.getObject(params).promise();
-            return !!fileObj;
+            const headObjResult = yield s3.headObject({ Bucket: AWS_BUCKET_NAME, Key: pathToImg }).promise();
+            console.log("headObjResult: ", headObjResult);
+            if (headObjResult.$response.error) {
+                throw new Error("Image does not exist in aws bucket.");
+            }
+            return true;
         }
         catch (error) {
             console.error("Function 'getDoesImgObjectExist.' Error message: ", error);
