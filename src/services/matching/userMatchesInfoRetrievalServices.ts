@@ -105,7 +105,7 @@ async function getReverseGeoCode(userLocation: [number, number]): Promise<{ wasS
 
 type GetMatchesInfoForClientReturnVal = Promise<ReturnType<() => ({ potentialMatches: IUserAndPrompts[], usersWithValidUrlPics: UserBaseModelSchema[] })>>
 
-async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], prompts: PromptModelInterface[]): GetMatchesInfoForClientReturnVal {
+async function getPromptsImgUrlsAndUserInfo(potentialMatches: UserBaseModelSchema[], prompts: PromptModelInterface[]): GetMatchesInfoForClientReturnVal {
     console.log('Getting matches info for client, getting user info from db and aws.')
     let userInfoAndPromptsForClient: IUserAndPrompts[] = [];
 
@@ -113,18 +113,22 @@ async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], 
         const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
         const matchingPic = pics.find(({ isMatching }) => isMatching) as Picture;
         let matchingPicUrl: null | string = null;
-        const doesMatchigPicUrlExist = await getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
+        const doesMatchingPicUrlExist = await getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
 
-        console.log("doesMatchigPicUrlExist: ", doesMatchigPicUrlExist )
+        console.log("doesMatchingPicUrlExist: ", doesMatchingPicUrlExist)
 
-        if (doesMatchigPicUrlExist) {
+        if (doesMatchingPicUrlExist) {
             const getMatchPicUrlResult = await getMatchPicUrl(matchingPic.picFileNameOnAws);
             matchingPicUrl = getMatchPicUrlResult.matchPicUrl as string;
         }
 
-        const userPrompts = prompts.find(({ userId }) => userId === _id)
+        const userPrompts = prompts.find(({ userId }) => userId === _id);
 
-        if (!userPrompts || !matchingPicUrl) {
+        if (!matchingPicUrl) {
+            continue;
+        }
+
+        if (!userPrompts) {
             continue;
         }
 
@@ -169,15 +173,31 @@ async function getMatchesInfoForClient(potentialMatches: UserBaseModelSchema[], 
         userInfoAndPromptsForClient.push(userInfoAndPromptsObj);
     }
 
+    // BRAIN DUMP:
+    // if at least one user does not have a valid matching url pic, then userInfoAndPromptsForClient will be less than 5. 
+    // what is sending back to the user is an empty array even though the some users has valid url pics 
+
+    console.log("userInfoAndPromptsForClient length: ", userInfoAndPromptsForClient.length)
+
+    console.log('userInfoAndPromptsForClient: ', userInfoAndPromptsForClient)
+
     return {
         potentialMatches: userInfoAndPromptsForClient,
         usersWithValidUrlPics: potentialMatches.filter(({ _id: userIdPotentialMatch }) => userInfoAndPromptsForClient.some(({ _id: userId }) => userId === userIdPotentialMatch))
     };
 }
 
-async function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryOpts: UserQueryOpts, currentUserId: string, potentialMatches: UserBaseModelSchema[]): Promise<Partial<{ potentialMatches: IUserAndPrompts[], errorMsg: string, matchesQueryPage: MatchesQueryPage }>> {
+async function getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(
+    userQueryOpts: UserQueryOpts,
+    currentUserId: string,
+    potentialMatches: UserBaseModelSchema[]
+): Promise<Partial<{ potentialMatches: IUserAndPrompts[], errorMsg: string, matchesQueryPage: MatchesQueryPage }>> {
     try {
+        console.log("userQueryOpts: ", userQueryOpts)
+        
         const getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
+
+        console.log("getUsersWithPromptsResult.potentialMatches: ", getUsersWithPromptsResult.potentialMatches)
 
         if (getUsersWithPromptsResult.errMsg) {
             throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`)
@@ -187,14 +207,16 @@ async function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryO
             throw new Error("Something went wrong. Couldn't get the matches qeury page object.")
         }
 
-        const potentialMatchesForClientResult = await getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts)
-        const { potentialMatches: updatedPotentialMatches, usersWithValidUrlPics: updatedQueriedUsers } = potentialMatchesForClientResult;
+        const getPromptsImgsUrlsAndUserInfoResult = await getPromptsImgUrlsAndUserInfo(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts)
+        const { potentialMatches: updatedPotentialMatches, usersWithValidUrlPics: updatedQueriedUsers } = getPromptsImgsUrlsAndUserInfoResult;
         const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = getUsersWithPromptsResult.matchesQueryPage;
         let potentialMatchesPaginationObj = { potentialMatches: updatedPotentialMatches, matchesQueryPage: getUsersWithPromptsResult.matchesQueryPage }
 
         if ((updatedPotentialMatches.length < 5) && canStillQueryCurrentPageForUsers && !hasReachedPaginationEnd) {
+            console.log("updatedPotentialMatches is less than 5. At least one of the users do not have a valid url pic nor prompts.")
+
             const _userQueryOpts = { ...userQueryOpts, skipDocsNum: updatedSkipDocsNum }
-            const getUsersWithPromptsAndPicUrlsResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(_userQueryOpts, currentUserId, updatedQueriedUsers)
+            const getUsersWithPromptsAndPicUrlsResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, currentUserId, updatedQueriedUsers)
 
             if (getUsersWithPromptsAndPicUrlsResult.errorMsg) {
                 throw new Error(getUsersWithPromptsAndPicUrlsResult.errorMsg)
@@ -207,6 +229,7 @@ async function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryO
             if (!getUsersWithPromptsAndPicUrlsResult.matchesQueryPage) {
                 throw new Error("Something went wrong. Couldn't get the matches qeury page object.")
             }
+
             potentialMatchesPaginationObj.potentialMatches = getUsersWithPromptsAndPicUrlsResult.potentialMatches;
             potentialMatchesPaginationObj.matchesQueryPage = getUsersWithPromptsAndPicUrlsResult.matchesQueryPage;
         }
@@ -222,4 +245,4 @@ async function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryO
 }
 
 
-export { filterUsersWithoutPrompts, getUsersWithPrompts, getMatchesInfoForClient, getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure }
+export { filterUsersWithoutPrompts, getUsersWithPrompts, getPromptsImgUrlsAndUserInfo, getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed }

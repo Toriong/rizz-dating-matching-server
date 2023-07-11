@@ -85,7 +85,7 @@ function getReverseGeoCode(userLocation) {
         }
     });
 }
-function getMatchesInfoForClient(potentialMatches, prompts) {
+function getPromptsImgUrlsAndUserInfo(potentialMatches, prompts) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log('Getting matches info for client, getting user info from db and aws.');
         let userInfoAndPromptsForClient = [];
@@ -93,14 +93,17 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
             const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
             const matchingPic = pics.find(({ isMatching }) => isMatching);
             let matchingPicUrl = null;
-            const doesMatchigPicUrlExist = yield getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
-            console.log("doesMatchigPicUrlExist: ", doesMatchigPicUrlExist);
-            if (doesMatchigPicUrlExist) {
+            const doesMatchingPicUrlExist = yield getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
+            console.log("doesMatchingPicUrlExist: ", doesMatchingPicUrlExist);
+            if (doesMatchingPicUrlExist) {
                 const getMatchPicUrlResult = yield getMatchPicUrl(matchingPic.picFileNameOnAws);
                 matchingPicUrl = getMatchPicUrlResult.matchPicUrl;
             }
             const userPrompts = prompts.find(({ userId }) => userId === _id);
-            if (!userPrompts || !matchingPicUrl) {
+            if (!matchingPicUrl) {
+                continue;
+            }
+            if (!userPrompts) {
                 continue;
             }
             console.log('Getting coordinates of user: ', location.coordinates);
@@ -130,29 +133,37 @@ function getMatchesInfoForClient(potentialMatches, prompts) {
             }
             userInfoAndPromptsForClient.push(userInfoAndPromptsObj);
         }
+        // BRAIN DUMP:
+        // if at least one user does not have a valid matching url pic, then userInfoAndPromptsForClient will be less than 5. 
+        // what is sending back to the user is an empty array even though the some users has valid url pics 
+        console.log("userInfoAndPromptsForClient length: ", userInfoAndPromptsForClient.length);
+        console.log('userInfoAndPromptsForClient: ', userInfoAndPromptsForClient);
         return {
             potentialMatches: userInfoAndPromptsForClient,
             usersWithValidUrlPics: potentialMatches.filter(({ _id: userIdPotentialMatch }) => userInfoAndPromptsForClient.some(({ _id: userId }) => userId === userIdPotentialMatch))
         };
     });
 }
-function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryOpts, currentUserId, potentialMatches) {
+function getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(userQueryOpts, currentUserId, potentialMatches) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            console.log("userQueryOpts: ", userQueryOpts);
             const getUsersWithPromptsResult = yield getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
+            console.log("getUsersWithPromptsResult.potentialMatches: ", getUsersWithPromptsResult.potentialMatches);
             if (getUsersWithPromptsResult.errMsg) {
                 throw new Error(`An error has occurred in getting users with prompts. Error msg: ${getUsersWithPromptsResult.errMsg}`);
             }
             if (!getUsersWithPromptsResult.matchesQueryPage) {
                 throw new Error("Something went wrong. Couldn't get the matches qeury page object.");
             }
-            const potentialMatchesForClientResult = yield getMatchesInfoForClient(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts);
-            const { potentialMatches: updatedPotentialMatches, usersWithValidUrlPics: updatedQueriedUsers } = potentialMatchesForClientResult;
+            const getPromptsImgsUrlsAndUserInfoResult = yield getPromptsImgUrlsAndUserInfo(getUsersWithPromptsResult.potentialMatches, getUsersWithPromptsResult.prompts);
+            const { potentialMatches: updatedPotentialMatches, usersWithValidUrlPics: updatedQueriedUsers } = getPromptsImgsUrlsAndUserInfoResult;
             const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = getUsersWithPromptsResult.matchesQueryPage;
             let potentialMatchesPaginationObj = { potentialMatches: updatedPotentialMatches, matchesQueryPage: getUsersWithPromptsResult.matchesQueryPage };
             if ((updatedPotentialMatches.length < 5) && canStillQueryCurrentPageForUsers && !hasReachedPaginationEnd) {
+                console.log("updatedPotentialMatches is less than 5. At least one of the users do not have a valid url pic nor prompts.");
                 const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: updatedSkipDocsNum });
-                const getUsersWithPromptsAndPicUrlsResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(_userQueryOpts, currentUserId, updatedQueriedUsers);
+                const getUsersWithPromptsAndPicUrlsResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, currentUserId, updatedQueriedUsers);
                 if (getUsersWithPromptsAndPicUrlsResult.errorMsg) {
                     throw new Error(getUsersWithPromptsAndPicUrlsResult.errorMsg);
                 }
@@ -174,4 +185,4 @@ function getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(userQueryOpts, c
         }
     });
 }
-export { filterUsersWithoutPrompts, getUsersWithPrompts, getMatchesInfoForClient, getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure };
+export { filterUsersWithoutPrompts, getUsersWithPrompts, getPromptsImgUrlsAndUserInfo, getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed };

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import GLOBAL_VALS from '../../globalVals.js';
 import { getMatches } from '../../services/matching/matchesQueryServices.js';
 import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
-import { filterUsersWithoutPrompts, getMatchesInfoForClient, getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
+import { filterUsersWithoutPrompts, getPromptsImgUrlsAndUserInfo, getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
 import { IFilterUserWithoutPromptsReturnVal, InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMap, PotentialMatchesPaginationForClient } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 import { UserBaseModelSchema } from '../../models/User.js';
 import { ReturnTypeQueryForMatchesFn } from '../../types-and-interfaces/types/userQueryTypes.js';
@@ -123,17 +123,22 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     console.log('Getting matches info for client...')
 
-    const potentialMatchesForClientResult = await getMatchesInfoForClient(potentialMatchesToDisplayToUserOnClient, getUsersWithPromptsResult.prompts);
+    const potentialMatchesForClientResult = await getPromptsImgUrlsAndUserInfo(potentialMatchesToDisplayToUserOnClient, getUsersWithPromptsResult.prompts);
     responseBody.potentialMatchesPagination.potentialMatches = potentialMatchesForClientResult.potentialMatches;
 
     console.log('Potential matches info has been retrieved. Will check if the user has valid pic urls.')
 
+    // create a manual get request in the caritas application front end 
 
-    // at least one user does not have a valid url matching pic stored in aws s3
+    // at least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db. 
     if ((potentialMatchesForClientResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
+        console.log("potentialMatchesForClientResult.potentialMatches: ", potentialMatchesForClientResult.potentialMatches)
+        console.log("At least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db.")
         const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum
         const _userQueryOpts: UserQueryOpts = { ...userQueryOpts, skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
-        const getMoreUsersAfterPicUrlFailureResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlRetrievalFailure(_userQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatchesForClientResult.usersWithValidUrlPics)
+        const getMoreUsersAfterPicUrlFailureResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatchesForClientResult.usersWithValidUrlPics)
+
+        console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches: ", getMoreUsersAfterPicUrlFailureResult.potentialMatches)
 
         if (!getMoreUsersAfterPicUrlFailureResult.matchesQueryPage) {
             console.error("Something went wrong. Couldn't get the matches query page object. Will send the available potential matches to the client.")
@@ -149,10 +154,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         }
 
         if (getMoreUsersAfterPicUrlFailureResult.potentialMatches?.length) {
+            console.log("Potential matches received after at least one user did not have valid prompts or a matching pic url. Will send them to the client.");
             responseBody = { potentialMatchesPagination: { ...getMoreUsersAfterPicUrlFailureResult.matchesQueryPage, potentialMatches: getMoreUsersAfterPicUrlFailureResult.potentialMatches } }
         }
 
-        if (!getMoreUsersAfterPicUrlFailureResult.potentialMatches?.length) {
+        if (!getMoreUsersAfterPicUrlFailureResult.potentialMatches?.length || !getMoreUsersAfterPicUrlFailureResult.potentialMatches) {
+            console.log('No potential matches to display to the user on the client side.')
             responseBody = { potentialMatchesPagination: { ...getMoreUsersAfterPicUrlFailureResult.matchesQueryPage, potentialMatches: [] } }
         }
     }
