@@ -19,6 +19,9 @@ function validateFormOfObj(key, obj) {
 function getQueryOptionsValidationArr(queryOpts) {
     console.log('checking options of query. queryOpts: ', queryOpts);
     const validSexes = ['Male', 'Female'];
+    // queryOpts can also have minDistance and a maxDistance
+    // REFACTOR GOAL: instead of radiusInMilesInt use maxDistance and minDistance. If this is the first time that the user 
+    // made a query, then set the minDistance to 0 and set to maxDistance to target distance specified by the user
     const { userLocation, desiredAgeRange, skipDocsNum, radiusInMilesInt } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
     console.log('desiredAgeRange: ', desiredAgeRange);
     const { latitude, longitude } = userLocation !== null && userLocation !== void 0 ? userLocation : {};
