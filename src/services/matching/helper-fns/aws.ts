@@ -13,14 +13,6 @@ interface MatchPicUrlReturnResult {
     wasSuccessful: boolean
 }
 
-function getS3Vars() {
-    dotenv.config();
-    const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
-    const s3 = getS3Instance(AWS_S3_ACCESS_KEY as string, AWS_S3_SECRET_KEY as string);
-
-    return { s3, AWS_BUCKET_NAME };
-}
-
 async function getDoesImgAwsObjExist(pathToImg: string): Promise<boolean> {
     try {
         dotenv.config();
@@ -40,8 +32,9 @@ async function getDoesImgAwsObjExist(pathToImg: string): Promise<boolean> {
 async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 60)): Promise<MatchPicUrlReturnResult> {
     try {
         dotenv.config();
+        
         const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
-        const s3 = getS3Instance(AWS_S3_SECRET_KEY as string, AWS_S3_ACCESS_KEY as string);
+        const s3 = getS3Instance(AWS_S3_ACCESS_KEY as string, AWS_S3_SECRET_KEY as string);
         const params = {
             Bucket: AWS_BUCKET_NAME as string,
             Key: pathToImg,
