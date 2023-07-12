@@ -45,7 +45,6 @@ async function filterUsersWithoutPrompts(potentialMatches: UserBaseModelSchema[]
 // should a return a non empty array
 // bug is occurring in filterUsersWithoutPrompts function
 
-
 async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: string, potentialMatches: UserBaseModelSchema[]): Promise<IFilterUserWithoutPromptsReturnVal> {
     try {
         const queryMatchesResults = await getMatches(userQueryOpts, currentUserId, potentialMatches);
@@ -70,10 +69,6 @@ async function getUsersWithPrompts(userQueryOpts: UserQueryOpts, currentUserId: 
         if (filterUserWithoutPromptsResult?.potentialMatches?.length === 5) {
             usersAndPrompts = { potentialMatches: filterUserWithoutPromptsResult?.potentialMatches, prompts: filterUserWithoutPromptsResult.prompts }
         }
-
-        console.log("userIds of matches: ", filterUserWithoutPromptsResult?.potentialMatches.map((match: UserBaseModelSchema) => {
-            return match._id
-        }))
 
         delete queryMatchesResults.data.potentialMatches
 

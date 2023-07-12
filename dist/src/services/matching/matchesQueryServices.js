@@ -119,7 +119,7 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
             ];
             const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
             // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
-            // const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
+            // const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
             // let updatedSkipDocsNum = skipDocsNum;
             // console.log('skipDocsNum: ', skipDocsNum)
             // const currentPageNum = (skipDocsNum as number) / 5;

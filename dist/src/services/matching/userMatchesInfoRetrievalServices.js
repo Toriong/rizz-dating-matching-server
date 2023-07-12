@@ -60,9 +60,6 @@ function getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches) {
             if (((_c = filterUserWithoutPromptsResult === null || filterUserWithoutPromptsResult === void 0 ? void 0 : filterUserWithoutPromptsResult.potentialMatches) === null || _c === void 0 ? void 0 : _c.length) === 5) {
                 usersAndPrompts = { potentialMatches: filterUserWithoutPromptsResult === null || filterUserWithoutPromptsResult === void 0 ? void 0 : filterUserWithoutPromptsResult.potentialMatches, prompts: filterUserWithoutPromptsResult.prompts };
             }
-            console.log("userIds of matches: ", filterUserWithoutPromptsResult === null || filterUserWithoutPromptsResult === void 0 ? void 0 : filterUserWithoutPromptsResult.potentialMatches.map((match) => {
-                return match._id;
-            }));
             delete queryMatchesResults.data.potentialMatches;
             return Object.assign(Object.assign({}, usersAndPrompts), { matchesQueryPage: queryMatchesResults.data });
         }

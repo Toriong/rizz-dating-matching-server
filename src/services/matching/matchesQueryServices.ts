@@ -1,13 +1,10 @@
 import mongoose from "mongoose";
 import { User as Users, PaginatedModel, PaginationQueryingOpts, PaginationArgsOpts, ReturnTypeOfPaginateFn, UserBaseModelSchema, User } from "../../models/User.js"
 import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
-import { get } from "http";
-import moment, { Moment } from "moment";
-import getFirebaseInfo from "../firebaseServices/helper-fns/connectToFirebase.js";
+import moment from "moment";
 import { getUserById } from "../globalMongoDbServices.js";
 import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
-import { ChatInterface } from "../../types-and-interfaces/interfaces/firebaseInterfaces.js";
 import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js";
 import { InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
 
@@ -149,7 +146,7 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
 
         // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
 
-        // const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
+        // const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
         // let updatedSkipDocsNum = skipDocsNum;
         // console.log('skipDocsNum: ', skipDocsNum)
         // const currentPageNum = (skipDocsNum as number) / 5;
@@ -184,6 +181,8 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
 
         // THE ABOVE IS FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
 
+
+        
         const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
 
         return { status: 200, data: { ...potentialMatchesPaginationObj } }

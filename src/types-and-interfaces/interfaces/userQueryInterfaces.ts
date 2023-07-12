@@ -9,6 +9,7 @@ interface UserQueryOpts {
     radiusInMilesInt: string | number,
     desiredAgeRange: [string, string],
     skipDocsNum: number | string
+    isRadiusSetToAnywhere?: boolean
 }
 interface ReqQueryMatchesParams{
     query: UserQueryOpts,
