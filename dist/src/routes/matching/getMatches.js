@@ -40,6 +40,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
     }
+    // BRAIN DUMP:
+    // userLocationArr will be an array of floats
+    // minAndMaxDistanceArr will be an array of numbers   
     let userQueryOpts = query.query;
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType);

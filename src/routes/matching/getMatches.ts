@@ -64,6 +64,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(400).json({ msg: 'Missing query parameters.' })
     }
 
+    // BRAIN DUMP:
+    // userLocationArr will be an array of floats
+    // minAndMaxDistanceArr will be an array of numbers   
+
     let userQueryOpts: RequestQuery | UserQueryOpts = (query as ReqQueryMatchesParams).query;
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType)
