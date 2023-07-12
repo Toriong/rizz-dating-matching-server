@@ -37,23 +37,27 @@ function validateFormOfObj(key: string, obj: any): { fieldName: string, received
 }
 
 
+type ValsForQueryOptsArr = 'string' | 'number'
+
+function getAreValsInArrayValid(arr: string[] | number[], targetLength: number, valueValidationFn: (val: string | number) => boolean, dataTypeInArrStr: ValsForQueryOptsArr){
+    return Array.isArray(arr) && (arr.length === targetLength) && (arr as any[]).every(val => valueValidationFn(val)) 
+}
+
 function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidationInterface[] {
     console.log('checking options of query. queryOpts: ', queryOpts)
     const validSexes = ['Male', 'Female']
-    // queryOpts can also have minDistance and a maxDistance
-    // REFACTOR GOAL: instead of radiusInMilesInt use maxDistance and minDistance. If this is the first time that the user 
-    // made a query, then set the minDistance to 0 and set to maxDistance to target distance specified by the user
-    const { userLocation, desiredAgeRange, skipDocsNum, radiusInMilesInt } = queryOpts ?? {}
+    const { userLocation, desiredAgeRange, skipDocsNum, minAndMaxDistanceArr } = queryOpts ?? {}
     console.log('desiredAgeRange: ', desiredAgeRange)
     const { latitude, longitude } = userLocation ?? {};
     const areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
+    const areValsInMinAndMaxQueryDistanceArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
     const areDesiredAgeRangeValsValid = { receivedType: typeof desiredAgeRange, recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate), correctVal: 'object', fieldName: 'desiredAgeRange', isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange }
     const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseFloat(longitude as string) === 'number') && (typeof parseFloat(latitude as string) === 'number'))
     const isLongAndLatValid = { receivedType: typeof userLocation, recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)), correctVal: 'number', fieldName: 'userLocation', isCorrectValType: isLongAndLatValueTypeValid, val: userLocation, areFiedNamesPresent: !!latitude && !!longitude }
     const paginationPageNumValidationObj = { receivedType: typeof skipDocsNum, correctVal: 'number', fieldName: 'skipDocsNum', isCorrectValType: typeof parseInt(skipDocsNum as string) === 'number', val: skipDocsNum }
-    const radiusValidationObj = { receivedType: typeof radiusInMilesInt, correctVal: 'number', fieldName: 'radiusInMilesInt', isCorrectValType: typeof parseInt(radiusInMilesInt as string) === 'number', val: radiusInMilesInt }
+    const minAndMaxDistanceQueryArrValidationObj = { receivedType: typeof minAndMaxDistanceArr, correctVal: 'number', fieldName: 'radiusInMilesInt', val: minAndMaxDistanceArr, isCorrectValType: areValsInMinAndMaxQueryDistanceArrValid }
 
-    return [radiusValidationObj, paginationPageNumValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
+    return [minAndMaxDistanceQueryArrValidationObj, paginationPageNumValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
 }
 
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
@@ -85,9 +89,19 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.log("Will get the user's matches and send them to the client.")
 
     const userlocationValsUpdated = { longitude: parseFloat(userQueryOpts.userLocation.longitude as string), latitude: parseFloat(userQueryOpts.userLocation.latitude as string) }
-    const valOfRadiusFieldUpdated = parseInt(userQueryOpts.radiusInMilesInt as string)
     const paginationPageNumUpdated = parseInt(userQueryOpts.skipDocsNum as string)
-    userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, radiusInMilesInt: valOfRadiusFieldUpdated }
+
+    if(userQueryOpts?.minAndMaxDistanceArr?.length){
+        userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, minAndMaxDistanceArr: userQueryOpts.minAndMaxDistanceArr }
+    }
+
+
+    // if the user wants to query to by the radius set to anywhere, then add that field to the query options object
+    // when the user querys based on the radius set to anywhere, then field of the userLocation will be uploaded to the server
+    // for checks, the userLocation and the minAndMqxMileQueryArr will be option 
+    if(userQueryOpts.isRadiusSetToAnywhere){
+        userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, isRadiusSetToAnywhere: true }
+    }
 
     console.log('will query for matches...')
 
