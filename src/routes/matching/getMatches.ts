@@ -17,7 +17,6 @@ interface QueryValidationInterface {
     isCorrectValType: boolean,
     fieldName: string,
     val: unknown,
-    areFieldNamesPresent?: boolean,
     receivedType: string,
     receivedTypeInArr?: string[],
     recievedTypeOfValsInArr?: ({ fieldName: string, receivedType: string } | string)[]
@@ -36,28 +35,54 @@ function validateFormOfObj(key: string, obj: any): { fieldName: string, received
     return { fieldName: key, receivedType: receivedType }
 }
 
-
-type ValsForQueryOptsArr = 'string' | 'number'
-
-function getAreValsInArrayValid(arr: string[] | number[], targetLength: number, valueValidationFn: (val: string | number) => boolean, dataTypeInArrStr: ValsForQueryOptsArr){
-    return Array.isArray(arr) && (arr.length === targetLength) && (arr as any[]).every(val => valueValidationFn(val)) 
-}
-
 function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidationInterface[] {
-    console.log('checking options of query. queryOpts: ', queryOpts)
-    const validSexes = ['Male', 'Female']
-    const { userLocation, desiredAgeRange, skipDocsNum, minAndMaxDistanceArr } = queryOpts ?? {}
-    console.log('desiredAgeRange: ', desiredAgeRange)
-    const { latitude, longitude } = userLocation ?? {};
-    const areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
-    const areValsInMinAndMaxQueryDistanceArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
-    const areDesiredAgeRangeValsValid = { receivedType: typeof desiredAgeRange, recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate), correctVal: 'object', fieldName: 'desiredAgeRange', isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange }
-    const isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof parseFloat(longitude as string) === 'number') && (typeof parseFloat(latitude as string) === 'number'))
-    const isLongAndLatValid = { receivedType: typeof userLocation, recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)), correctVal: 'number', fieldName: 'userLocation', isCorrectValType: isLongAndLatValueTypeValid, val: userLocation, areFiedNamesPresent: !!latitude && !!longitude }
-    const paginationPageNumValidationObj = { receivedType: typeof skipDocsNum, correctVal: 'number', fieldName: 'skipDocsNum', isCorrectValType: typeof parseInt(skipDocsNum as string) === 'number', val: skipDocsNum }
-    const minAndMaxDistanceQueryArrValidationObj = { receivedType: typeof minAndMaxDistanceArr, correctVal: 'number', fieldName: 'radiusInMilesInt', val: minAndMaxDistanceArr, isCorrectValType: areValsInMinAndMaxQueryDistanceArrValid }
+    const { userLocation, desiredAgeRange, skipDocsNum, minAndMaxDistanceArr, isRadiusSetToAnywhere } = queryOpts ?? {}
+    const [latitude, longitude] = userLocation ?? [];
+    let areValsInMinAndMaxQueryDistanceArrValid = false
+    let minAndMaxDistanceQueryArrValidationObj: QueryValidationInterface | null = null
+    let areValsInDesiredAgeRangeArrValid = false;
+    let areDesiredAgeRangeValsValidObj: QueryValidationInterface | null = null;
+    let isLongAndLatValueTypeValid = false;
+    let areLongAndLatValid: QueryValidationInterface | null = null;
 
-    return [minAndMaxDistanceQueryArrValidationObj, paginationPageNumValidationObj, isLongAndLatValid, areDesiredAgeRangeValsValid];
+    if (!isRadiusSetToAnywhere) {
+        areValsInMinAndMaxQueryDistanceArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
+        minAndMaxDistanceQueryArrValidationObj = {
+            receivedType: typeof minAndMaxDistanceArr,
+            correctVal: 'number',
+            fieldName: 'radiusInMilesInt',
+            val: minAndMaxDistanceArr,
+            isCorrectValType: areValsInMinAndMaxQueryDistanceArrValid
+        }
+        areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
+        areDesiredAgeRangeValsValidObj = {
+            receivedType: typeof desiredAgeRange,
+            recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate),
+            correctVal: 'object',
+            fieldName: 'desiredAgeRange',
+            isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange
+        }
+        isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof longitude === 'string') && (typeof latitude === 'string')) && ((typeof parseFloat(longitude as string) === 'number') && (typeof parseFloat(latitude as string) === 'number'))
+        areLongAndLatValid = {
+            receivedType: typeof userLocation,
+            recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)),
+            correctVal: 'number',
+            fieldName: 'userLocation',
+            isCorrectValType: isLongAndLatValueTypeValid,
+            val: userLocation,
+        }
+    }
+
+    const paginationPageNumValidationObj = { receivedType: typeof skipDocsNum, correctVal: 'number', fieldName: 'skipDocsNum', isCorrectValType: typeof parseInt(skipDocsNum as string) === 'number', val: skipDocsNum }
+    let defaultValidationKeyValsArr = [paginationPageNumValidationObj]
+
+    if (!isRadiusSetToAnywhere && minAndMaxDistanceQueryArrValidationObj && areDesiredAgeRangeValsValidObj && areLongAndLatValid) {
+        return [...defaultValidationKeyValsArr, minAndMaxDistanceQueryArrValidationObj, areDesiredAgeRangeValsValidObj, areLongAndLatValid];
+    }
+
+    const isRadiusSetToAnywhereValidtionObj = { receivedType: typeof isRadiusSetToAnywhere, correctVal: 'boolean', fieldName: 'isRadiusSetToAnywhere', isCorrectValType: typeof isRadiusSetToAnywhere === 'boolean', val: isRadiusSetToAnywhere }
+
+    return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj]
 }
 
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
@@ -67,10 +92,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     if (!query || !(query as ReqQueryMatchesParams)?.query || !(query as ReqQueryMatchesParams).userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' })
     }
-
-    // BRAIN DUMP:
-    // userLocationArr will be an array of floats
-    // minAndMaxDistanceArr will be an array of numbers   
 
     let userQueryOpts: RequestQuery | UserQueryOpts = (query as ReqQueryMatchesParams).query;
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
@@ -88,18 +109,20 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     console.log("Will get the user's matches and send them to the client.")
 
-    const userlocationValsUpdated = { longitude: parseFloat(userQueryOpts.userLocation.longitude as string), latitude: parseFloat(userQueryOpts.userLocation.latitude as string) }
-    const paginationPageNumUpdated = parseInt(userQueryOpts.skipDocsNum as string)
+    // change the values in userLocation into a number, assuming they are string since they are stored in the params of the request.
+    const { userLocation, skipDocsNum } = userQueryOpts as UserQueryOpts;
+    const paginationPageNumUpdated = parseInt(skipDocsNum as string)
+    const _userLocation = [userLocation[0] as string, userLocation[1] as string].map(val => parseFloat(val))
 
-    if(userQueryOpts?.minAndMaxDistanceArr?.length){
-        userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: userlocationValsUpdated, minAndMaxDistanceArr: userQueryOpts.minAndMaxDistanceArr }
+    if (userQueryOpts?.minAndMaxDistanceArr?.length) {
+        userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: userQueryOpts.minAndMaxDistanceArr } as UserQueryOpts;
     }
 
 
-    // if the user wants to query to by the radius set to anywhere, then add that field to the query options object
-    // when the user querys based on the radius set to anywhere, then field of the userLocation will be uploaded to the server
-    // for checks, the userLocation and the minAndMqxMileQueryArr will be option 
-    if(userQueryOpts.isRadiusSetToAnywhere){
+    // if the user wants to query based on the radius set to anywhere get the users that blocked the current user nad the users that were blocked by the current user 
+    // get also the users that the current user is chatting with
+
+    if (userQueryOpts.isRadiusSetToAnywhere) {
         userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, isRadiusSetToAnywhere: true }
     }
 
@@ -115,7 +138,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = queryMatchesResults.data;
-    let { errMsg, potentialMatches: filterUsersWithoutPromptsPotentialMatches, prompts } = await filterUsersWithoutPrompts(getMatchesResultPotentialMatches);
+    let { errMsg, potentialMatches: filterUsersWithoutPromptsArr, prompts } = await filterUsersWithoutPrompts(getMatchesResultPotentialMatches);
 
     console.log("filterUsersWithoutPrompts function has been executed. Will check if there was an error.")
 
@@ -125,14 +148,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(500).json({ msg: `Error! Something went wrong. Couldn't get prompts for users. Error msg: ${errMsg}` })
     }
 
-    let getUsersWithPromptsResult: IFilterUserWithoutPromptsReturnVal = { potentialMatches: filterUsersWithoutPromptsPotentialMatches, prompts }
+    let getUsersWithPromptsResult: IFilterUserWithoutPromptsReturnVal = { potentialMatches: filterUsersWithoutPromptsArr, prompts }
 
     // at least one user doesn't have any prompts in the db
-    if (filterUsersWithoutPromptsPotentialMatches.length < 5) {
+    if (filterUsersWithoutPromptsArr.length < 5) {
         console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.')
         const updatedSkipDocNumInt = (typeof queryMatchesResults.data.updatedSkipDocsNum === 'string') ? parseInt(queryMatchesResults.data.updatedSkipDocsNum) : queryMatchesResults.data.updatedSkipDocsNum
         const _userQueryOpts = { ...userQueryOpts, skipDocsNum: queryMatchesResults.data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
-        getUsersWithPromptsResult = await getUsersWithPrompts(_userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, filterUsersWithoutPromptsPotentialMatches);
+        getUsersWithPromptsResult = await getUsersWithPrompts(_userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, filterUsersWithoutPromptsArr);
     }
 
     let potentialMatchesToDisplayToUserOnClient: IUserAndPrompts[] | UserBaseModelSchema[] = getUsersWithPromptsResult.potentialMatches;

@@ -6,9 +6,9 @@ interface UserLocation {
 interface UserQueryOpts {
     sexAttraction: string,
     // first number: latitude, second number: longitude
-    userLocation: [number, number],
+    userLocation: [number | string, number | string],
     // first number: min distance, second number: max distance
-    minAndMaxDistanceArr: [number, number],
+    minAndMaxDistanceArr: [number| string, number | string],
     desiredAgeRange: [string, string],
     skipDocsNum: number | string
     isRadiusSetToAnywhere?: boolean
