@@ -5,7 +5,7 @@ interface UserLocation {
 }
 interface UserQueryOpts {
     sexAttraction: string,
-    userLocation: UserLocation,
+    userLocation: [number, number],
     minAndMaxDistanceArr: [number, number],
     desiredAgeRange: [string, string],
     skipDocsNum: number | string
