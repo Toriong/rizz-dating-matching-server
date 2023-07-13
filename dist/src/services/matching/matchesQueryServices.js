@@ -15,26 +15,21 @@ import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
 function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches = []) {
     return __awaiter(this, void 0, void 0, function* () {
         // put the below into a funtion, call it: createQueryOptsForPagination
-        const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum } = userQueryOpts;
+        const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
         let updatedSkipDocsNum = skipDocsNum;
         console.log('skipDocsNum: ', skipDocsNum);
         const currentPageNum = skipDocsNum / 5;
         console.log('currentPageNum: ', currentPageNum);
         const METERS_IN_A_MILE = 1609.34;
         const [minAge, maxAge] = desiredAgeRange;
-        const { latitude, longitude } = userLocation;
+        const [latitude, longitude] = userLocation;
+        const [minDistance, maxDistance] = minAndMaxDistanceArr;
         const paginationQueryOpts = {
-            // _id: { $nin: allUnshowableUserIds },
             location: {
                 $near: {
                     $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                    $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
-                    // CONDITIONS: 
-                    // the user went through users based on x radius and there are no more users to show
-                    // GOAL: 
-                    // query for users based on the following conditions:
-                    // minDistance: x (the previous radius)
-                    // maxDistance: y (the new radius)
+                    $maxDistance: maxDistance * METERS_IN_A_MILE,
+                    $minDistance: minDistance * METERS_IN_A_MILE
                 }
             },
             sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
@@ -42,6 +37,9 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             sexAttraction: currentUser.sexAttraction,
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         };
+        if (isRadiusSetToAnywhere) {
+            delete paginationQueryOpts.location;
+        }
         const pageOpts = { skip: skipDocsNum, limit: 5 };
         Users.createIndexes([{ location: '2dsphere' }]);
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
@@ -118,31 +116,35 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
                     .filter(userId => currentUserId !== userId))
             ];
             const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
+            // put the above into a function, call it: "getUsersNotToShow"
             // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
-            const { userLocation, radiusInMilesInt, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
+            const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
             let updatedSkipDocsNum = skipDocsNum;
             console.log('skipDocsNum: ', skipDocsNum);
             const currentPageNum = skipDocsNum / 5;
             console.log('currentPageNum: ', currentPageNum);
             const METERS_IN_A_MILE = 1609.34;
             const [minAge, maxAge] = desiredAgeRange;
-            const { latitude, longitude } = userLocation;
+            const [latitude, longitude] = userLocation;
+            const [minDistance, maxDistance] = minAndMaxDistanceArr;
             const paginationQueryOpts = {
                 location: {
                     $near: {
                         $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                        $maxDistance: radiusInMilesInt * METERS_IN_A_MILE,
+                        $maxDistance: maxDistance * METERS_IN_A_MILE,
+                        $minDistance: minDistance * METERS_IN_A_MILE
                     }
                 },
                 sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
                 hasPrompts: true,
-                // sexAttraction: currentUser.sexAttraction,
+                sexAttraction: currentUser.sexAttraction,
                 birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
             };
-            // THE TEST WILL BE AS FOLLOWS:
-            // get the first 50 users 
-            // these users will be the users that has rejected the current user 
-            // for the users on the sixth page, does users are valid. Those users will be displayed on the client-side. 
+            if (isRadiusSetToAnywhere) {
+                // GOAL: add the $nin for the users that can't be shown to the user on the client side
+                delete paginationQueryOpts.location;
+                paginationQueryOpts._id = { $nin: allUnshowableUserIds };
+            }
             const pageOpts = { skip: 0, limit: 50 };
             Users.createIndexes([{ location: '2dsphere' }]);
             const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();

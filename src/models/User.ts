@@ -10,6 +10,8 @@ interface GeometryObj {
     coordinates: [number, number]
 }
 interface PaginationQueryingOpts extends Partial<KeysForPaginationQuerying> {
+    // don't show users by their id given an array of user ids, the ids will be strings
+    _id?: { $nin: string[] },
     location?: {
         $near: {
             $geometry: GeometryObj,
