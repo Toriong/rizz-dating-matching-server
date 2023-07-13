@@ -80,7 +80,8 @@ function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidation
         return [...defaultValidationKeyValsArr, minAndMaxDistanceQueryArrValidationObj, areDesiredAgeRangeValsValidObj, areLongAndLatValid];
     }
 
-    const isRadiusSetToAnywhereValidtionObj = { receivedType: typeof isRadiusSetToAnywhere, correctVal: 'boolean', fieldName: 'isRadiusSetToAnywhere', isCorrectValType: typeof isRadiusSetToAnywhere === 'boolean', val: isRadiusSetToAnywhere }
+    
+    const isRadiusSetToAnywhereValidtionObj = { receivedType: typeof isRadiusSetToAnywhere, correctVal: 'boolean', fieldName: 'isRadiusSetToAnywhere', isCorrectValType: typeof Boolean(isRadiusSetToAnywhere) === 'boolean', val: isRadiusSetToAnywhere }
 
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj]
 }
@@ -122,7 +123,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // if the user wants to query based on the radius set to anywhere get the users that blocked the current user nad the users that were blocked by the current user 
     // get also the users that the current user is chatting with
 
-    if (userQueryOpts.isRadiusSetToAnywhere) {
+    if (userQueryOpts?.isRadiusSetToAnywhere && Boolean(userQueryOpts.isRadiusSetToAnywhere)) {
         userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, isRadiusSetToAnywhere: true }
     }
 

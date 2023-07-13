@@ -41,6 +41,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             delete paginationQueryOpts.location;
         }
         const pageOpts = { skip: skipDocsNum, limit: 5 };
+        // put the above into a funtion, call it: createQueryOptsForPagination
         Users.createIndexes([{ location: '2dsphere' }]);
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
@@ -79,6 +80,36 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
 }
+function getIdsOfUsersNotToShow(currentUserId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const rejectedUsersQuery = {
+            $or: [
+                { rejectedUserId: { $in: [currentUserId] } },
+                { rejectorUserId: { $in: [currentUserId] } }
+            ]
+        };
+        const rejectedUsersThatCurrentUserIsInResult = yield getRejectedUsers(rejectedUsersQuery);
+        const allUserChatsResult = yield getAllUserChats(currentUserId);
+        let allRecipientsOfChats = (Array.isArray(allUserChatsResult.data) && allUserChatsResult.data.length) ? allUserChatsResult.data : [];
+        console.log('allRecipientsOfChats: ', allRecipientsOfChats);
+        if (!allUserChatsResult.wasSuccessful) {
+            console.error("Failed to get the current user from the firebase database.");
+            throw new Error("Failed to get the current user from the firebase database.");
+        }
+        if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !rejectedUsersThatCurrentUserIsInResult.data.length) {
+            console.error('Failed to get the rejected users docs for the current user.');
+            console.log('The current user either has not been rejected or has not rejected any users.');
+        }
+        const allRejectedUserIds = [
+            ...new Set(rejectedUsersThatCurrentUserIsInResult.data
+                .flatMap((rejectedUserInfo) => {
+                return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId];
+            })
+                .filter(userId => currentUserId !== userId))
+        ];
+        return [...allRejectedUserIds, ...allRecipientsOfChats];
+    });
+}
 function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -89,38 +120,13 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
                 console.error('No user was attained from the database.');
                 throw new Error('An error has occurred in getting the current user.');
             }
-            // put the below into a function, call it: "getUsersNotToShow"
-            const rejectedUsersQuery = {
-                $or: [
-                    { rejectedUserId: { $in: [currentUserId] } },
-                    { rejectorUserId: { $in: [currentUserId] } }
-                ]
-            };
-            const rejectedUsersThatCurrentUserIsInResult = yield getRejectedUsers(rejectedUsersQuery);
-            const allUserChatsResult = yield getAllUserChats(currentUserId);
-            let allRecipientsOfChats = (Array.isArray(allUserChatsResult.data) && allUserChatsResult.data.length) ? allUserChatsResult.data : [];
-            console.log('allRecipientsOfChats: ', allRecipientsOfChats);
-            if (!allUserChatsResult.wasSuccessful) {
-                console.error("Failed to get the current user from the firebase database.");
-                throw new Error("Failed to get the current user from the firebase database.");
-            }
-            if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !rejectedUsersThatCurrentUserIsInResult.data.length) {
-                console.error('Failed to get the rejected users docs for the current user.');
-                console.log('The current user either has not been rejected or has not rejected any users.');
-            }
-            const allRejectedUserIds = [
-                ...new Set(rejectedUsersThatCurrentUserIsInResult.data
-                    .flatMap((rejectedUserInfo) => {
-                    return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId];
-                })
-                    .filter(userId => currentUserId !== userId))
-            ];
-            const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats];
-            // put the above into a function, call it: "getUsersNotToShow"
+            const allUnshowableUserIds = yield getIdsOfUsersNotToShow(currentUserId);
             // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
             const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
             let updatedSkipDocsNum = skipDocsNum;
             console.log('skipDocsNum: ', skipDocsNum);
+            // print minAndMaxDistanceArr
+            console.log('minAndMaxDistanceArr: ', minAndMaxDistanceArr);
             const currentPageNum = skipDocsNum / 5;
             console.log('currentPageNum: ', currentPageNum);
             const METERS_IN_A_MILE = 1609.34;
@@ -150,8 +156,6 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
             const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
             const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
             let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
-            console.log('user ids: ');
-            console.table(pageQueryUsers.map(({ _id }) => _id));
             return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } };
             // THE ABOVE IS FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
             // const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);

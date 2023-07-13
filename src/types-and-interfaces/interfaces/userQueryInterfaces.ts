@@ -11,7 +11,7 @@ interface UserQueryOpts {
     minAndMaxDistanceArr: [number| string, number | string],
     desiredAgeRange: [string, string],
     skipDocsNum: number | string
-    isRadiusSetToAnywhere?: boolean
+    isRadiusSetToAnywhere?: boolean | string
 }
 interface ReqQueryMatchesParams{
     query: UserQueryOpts,

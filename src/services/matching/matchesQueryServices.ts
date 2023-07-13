@@ -24,7 +24,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     console.log('currentPageNum: ', currentPageNum)
     const METERS_IN_A_MILE = 1609.34;
     const [minAge, maxAge] = desiredAgeRange;
-    const [latitude, longitude] = userLocation;
+    const [latitude, longitude] = userLocation as [number, number];
     const [minDistance, maxDistance] = minAndMaxDistanceArr;
     const paginationQueryOpts: PaginationQueryingOpts = {
         location: {
@@ -45,6 +45,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     }
 
     const pageOpts = { skip: skipDocsNum as number, limit: 5 };
+    // put the above into a funtion, call it: createQueryOptsForPagination
 
     (Users as any).createIndexes([{ location: '2dsphere' }])
 
@@ -94,7 +95,40 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
 }
 
+async function getIdsOfUsersNotToShow(currentUserId: string): Promise<string[]> {
+    const rejectedUsersQuery = {
+        $or: [
+            { rejectedUserId: { $in: [currentUserId] } },
+            { rejectorUserId: { $in: [currentUserId] } }
+        ]
+    }
+    const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
+    const allUserChatsResult = await getAllUserChats(currentUserId);
+    let allRecipientsOfChats: string[] = (Array.isArray(allUserChatsResult.data) && allUserChatsResult.data.length) ? (allUserChatsResult.data as string[]) : [];
 
+    console.log('allRecipientsOfChats: ', allRecipientsOfChats)
+
+    if (!allUserChatsResult.wasSuccessful) {
+        console.error("Failed to get the current user from the firebase database.")
+
+        throw new Error("Failed to get the current user from the firebase database.")
+    }
+
+    if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !(rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]).length) {
+        console.error('Failed to get the rejected users docs for the current user.')
+        console.log('The current user either has not been rejected or has not rejected any users.')
+    }
+
+    const allRejectedUserIds = [
+        ...new Set((rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])
+            .flatMap((rejectedUserInfo: RejectedUserInterface) => {
+                return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId]
+            })
+            .filter(userId => currentUserId !== userId))
+    ]
+
+    return [...allRejectedUserIds, ...allRecipientsOfChats]
+}
 
 async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, currentPotentialMatches: UserBaseModelSchema[] = []): Promise<GetMatchesResult> {
     try {
@@ -110,50 +144,20 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
             throw new Error('An error has occurred in getting the current user.')
         }
 
-        // put the below into a function, call it: "getUsersNotToShow"
-        const rejectedUsersQuery = {
-            $or: [
-                { rejectedUserId: { $in: [currentUserId] } },
-                { rejectorUserId: { $in: [currentUserId] } }
-            ]
-        }
-        const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
-        const allUserChatsResult = await getAllUserChats(currentUserId);
-        let allRecipientsOfChats: string[] = (Array.isArray(allUserChatsResult.data) && allUserChatsResult.data.length) ? (allUserChatsResult.data as string[]) : [];
-
-        console.log('allRecipientsOfChats: ', allRecipientsOfChats)
-
-        if (!allUserChatsResult.wasSuccessful) {
-            console.error("Failed to get the current user from the firebase database.")
-
-            throw new Error("Failed to get the current user from the firebase database.")
-        }
-
-        if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !(rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]).length) {
-            console.error('Failed to get the rejected users docs for the current user.')
-            console.log('The current user either has not been rejected or has not rejected any users.')
-        }
-
-        const allRejectedUserIds = [
-            ...new Set((rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])
-                .flatMap((rejectedUserInfo: RejectedUserInterface) => {
-                    return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId]
-                })
-                .filter(userId => currentUserId !== userId))
-        ]
-        const allUnshowableUserIds = [...allRejectedUserIds, ...allRecipientsOfChats]
-        // put the above into a function, call it: "getUsersNotToShow"
+        const allUnshowableUserIds = await getIdsOfUsersNotToShow(currentUserId);
 
         // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
 
         const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
         let updatedSkipDocsNum = skipDocsNum;
         console.log('skipDocsNum: ', skipDocsNum)
+        // print minAndMaxDistanceArr
+        console.log('minAndMaxDistanceArr: ', minAndMaxDistanceArr)
         const currentPageNum = (skipDocsNum as number) / 5;
         console.log('currentPageNum: ', currentPageNum)
         const METERS_IN_A_MILE = 1609.34;
         const [minAge, maxAge] = desiredAgeRange;
-        const [latitude, longitude] = userLocation;
+        const [latitude, longitude] = userLocation as [number, number];
         const [minDistance, maxDistance] = minAndMaxDistanceArr;
         const paginationQueryOpts: PaginationQueryingOpts = {
             location: {
@@ -168,7 +172,7 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
             sexAttraction: currentUser.sexAttraction,
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         }
-        
+
         if (isRadiusSetToAnywhere) {
             // GOAL: add the $nin for the users that can't be shown to the user on the client side
             delete paginationQueryOpts.location;
@@ -182,9 +186,6 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
         let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
-
-        console.log('user ids: ')
-        console.table(pageQueryUsers.map(({ _id }) => _id))
 
         return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } }
 
