@@ -22,23 +22,25 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         console.log('currentPageNum: ', currentPageNum);
         const METERS_IN_A_MILE = 1609.34;
         const [minAge, maxAge] = desiredAgeRange;
-        const [latitude, longitude] = userLocation;
-        const [minDistance, maxDistance] = minAndMaxDistanceArr;
         const paginationQueryOpts = {
-            location: {
-                $near: {
-                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                    $maxDistance: maxDistance * METERS_IN_A_MILE,
-                    $minDistance: minDistance * METERS_IN_A_MILE
-                }
-            },
             sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
             hasPrompts: true,
             sexAttraction: currentUser.sexAttraction,
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         };
+        if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
+            const [latitude, longitude] = userLocation;
+            const [minDistance, maxDistance] = minAndMaxDistanceArr;
+            paginationQueryOpts.location = {
+                $near: {
+                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                    $maxDistance: (maxDistance) * METERS_IN_A_MILE,
+                    $minDistance: (minDistance !== null && minDistance !== void 0 ? minDistance : 0) * METERS_IN_A_MILE
+                }
+            };
+        }
         if (isRadiusSetToAnywhere) {
-            delete paginationQueryOpts.location;
+            paginationQueryOpts._id = { $nin: allUnshowableUserIds };
         }
         const pageOpts = { skip: skipDocsNum, limit: 5 };
         // put the above into a funtion, call it: createQueryOptsForPagination
@@ -123,6 +125,16 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
             const allUnshowableUserIds = yield getIdsOfUsersNotToShow(currentUserId);
             // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
             const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
+            // CASE: 
+            // the user querying with a radius set
+            // GOAL:
+            // dynamically add the location field to the paginationQueryOpts object only if the following is true: 
+            // if userLocation is defined
+            // if minAndMaxDistanceArr is defined
+            // CASE:
+            // the user querying with the radius set to anywhere
+            // GOAL:
+            // don't add the location field to the queryOpts object
             let updatedSkipDocsNum = skipDocsNum;
             console.log('skipDocsNum: ', skipDocsNum);
             // print minAndMaxDistanceArr
@@ -131,23 +143,24 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
             console.log('currentPageNum: ', currentPageNum);
             const METERS_IN_A_MILE = 1609.34;
             const [minAge, maxAge] = desiredAgeRange;
-            const [latitude, longitude] = userLocation;
-            const [minDistance, maxDistance] = minAndMaxDistanceArr;
             const paginationQueryOpts = {
-                location: {
-                    $near: {
-                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                        $maxDistance: maxDistance * METERS_IN_A_MILE,
-                        $minDistance: minDistance * METERS_IN_A_MILE
-                    }
-                },
                 sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
                 hasPrompts: true,
                 sexAttraction: currentUser.sexAttraction,
                 birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
             };
+            if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
+                const [latitude, longitude] = userLocation;
+                const [minDistance, maxDistance] = minAndMaxDistanceArr;
+                paginationQueryOpts.location = {
+                    $near: {
+                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                        $maxDistance: (maxDistance) * METERS_IN_A_MILE,
+                        $minDistance: (minDistance) * METERS_IN_A_MILE
+                    }
+                };
+            }
             if (isRadiusSetToAnywhere) {
-                // GOAL: add the $nin for the users that can't be shown to the user on the client side
                 delete paginationQueryOpts.location;
                 paginationQueryOpts._id = { $nin: allUnshowableUserIds };
             }
