@@ -61,7 +61,7 @@ function getQueryOptionsValidationArr(queryOpts) {
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj];
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     console.time('getMatchesRoute');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
@@ -78,11 +78,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     console.log("Will get the user's matches and send them to the client.");
     // change the values in userLocation into a number, assuming they are string since they are stored in the params of the request.
-    const { userLocation, skipDocsNum } = userQueryOpts;
+    const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum);
-    const _userLocation = [userLocation[0], userLocation[1]].map(val => parseFloat(val));
-    if ((_a = userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.minAndMaxDistanceArr) === null || _a === void 0 ? void 0 : _a.length) {
-        userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: userQueryOpts.minAndMaxDistanceArr });
+    if ((minAndMaxDistanceArr === null || minAndMaxDistanceArr === void 0 ? void 0 : minAndMaxDistanceArr.length) && (userLocation === null || userLocation === void 0 ? void 0 : userLocation.length)) {
+        const _userLocation = [userLocation[0], userLocation[1]].map(val => parseFloat(val));
+        userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: minAndMaxDistanceArr });
     }
     // if the user wants to query based on the radius set to anywhere get the users that blocked the current user nad the users that were blocked by the current user 
     // get also the users that the current user is chatting with
@@ -91,7 +91,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     console.log('will query for matches...');
     const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
-    if (!queryMatchesResults.data || !((_b = queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) === null || _b === void 0 ? void 0 : _b.potentialMatches) || (queryMatchesResults.status !== 200)) {
+    if (!queryMatchesResults.data || !((_a = queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) === null || _a === void 0 ? void 0 : _a.potentialMatches) || (queryMatchesResults.status !== 200)) {
         console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", queryMatchesResults.msg);
         console.error('Error status code: ', queryMatchesResults.status);
         return response.status(queryMatchesResults.status).json({ msg: "Something went wrong. Couldnt't matches." });
@@ -138,11 +138,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: potentialMatchesForClientResult.potentialMatches }) };
             return response.status(200).json(responseBody);
         }
-        if ((_c = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _c === void 0 ? void 0 : _c.length) {
+        if ((_b = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length) {
             console.log("Potential matches received after at least one user did not have valid prompts or a matching pic url. Will send them to the client.");
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: getMoreUsersAfterPicUrlFailureResult.potentialMatches }) };
         }
-        if (!((_d = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _d === void 0 ? void 0 : _d.length) || !getMoreUsersAfterPicUrlFailureResult.potentialMatches) {
+        if (!((_c = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _c === void 0 ? void 0 : _c.length) || !getMoreUsersAfterPicUrlFailureResult.potentialMatches) {
             console.log('No potential matches to display to the user on the client side.');
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: [] }) };
         }

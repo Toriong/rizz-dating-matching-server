@@ -128,7 +128,7 @@ async function getPromptsImgUrlsAndUserInfo(potentialMatches: UserBaseModelSchem
     let userInfoAndPromptsForClient: IUserAndPrompts[] = [];
 
     for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
-        const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
+        const { _id, name, hobbies, location, pics, looks, ratingNum } = potentialMatches[numIteration];
         const matchingPic = pics.find(({ isMatching }) => isMatching) as Picture;
         let matchingPicUrl: null | string = null;
         const doesMatchingPicUrlExist = await getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
@@ -153,12 +153,10 @@ async function getPromptsImgUrlsAndUserInfo(potentialMatches: UserBaseModelSchem
         console.log('Getting coordinates of user: ', location.coordinates)
 
         const { wasSuccessful, data: userLocationStr } = await getReverseGeoCode(location.coordinates);
-
-        console.log('userLocationStr: ', userLocationStr)
-
         let userInfoAndPromptsObj: IUserAndPrompts = {
             _id: _id,
             firstName: name.first,
+            ratingNum: ratingNum || 0,
             prompts: userPrompts.prompts,
             matchingPicUrl: matchingPicUrl,
         }

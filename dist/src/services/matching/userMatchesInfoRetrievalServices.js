@@ -105,7 +105,7 @@ function getPromptsImgUrlsAndUserInfo(potentialMatches, prompts) {
         console.log('Getting matches info for client, getting user info from db and aws.');
         let userInfoAndPromptsForClient = [];
         for (let numIteration = 0; numIteration < potentialMatches.length; numIteration++) {
-            const { _id, name, hobbies, location, pics, looks } = potentialMatches[numIteration];
+            const { _id, name, hobbies, location, pics, looks, ratingNum } = potentialMatches[numIteration];
             const matchingPic = pics.find(({ isMatching }) => isMatching);
             let matchingPicUrl = null;
             const doesMatchingPicUrlExist = yield getDoesImgAwsObjExist(matchingPic.picFileNameOnAws);
@@ -123,10 +123,10 @@ function getPromptsImgUrlsAndUserInfo(potentialMatches, prompts) {
             }
             console.log('Getting coordinates of user: ', location.coordinates);
             const { wasSuccessful, data: userLocationStr } = yield getReverseGeoCode(location.coordinates);
-            console.log('userLocationStr: ', userLocationStr);
             let userInfoAndPromptsObj = {
                 _id: _id,
                 firstName: name.first,
+                ratingNum: ratingNum || 0,
                 prompts: userPrompts.prompts,
                 matchingPicUrl: matchingPicUrl,
             };

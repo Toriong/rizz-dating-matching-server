@@ -44,7 +44,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     }
 
 
-    if (isRadiusSetToAnywhere) {        
+    if (isRadiusSetToAnywhere) {
         paginationQueryOpts._id = { $nin: allUnshowableUserIds }
     }
 
@@ -183,7 +183,7 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
             sexAttraction: currentUser.sexAttraction,
             birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
         }
-        
+
         if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
             const [latitude, longitude] = userLocation as [number, number];
             const [minDistance, maxDistance] = minAndMaxDistanceArr as [number, number];
@@ -196,14 +196,13 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
             }
         }
 
+        console.log("isRadiusSetToAnywhere: ", isRadiusSetToAnywhere)
 
-        if (isRadiusSetToAnywhere) {
-            delete paginationQueryOpts.location;
-
+        if ((isRadiusSetToAnywhere === 'true') && Boolean(isRadiusSetToAnywhere)) {
             paginationQueryOpts._id = { $nin: allUnshowableUserIds }
         }
 
-        const pageOpts = { skip: 0, limit: 50 };
+        const pageOpts = { skip: 50, limit: 5 };
 
         (Users as any).createIndexes([{ location: '2dsphere' }])
 

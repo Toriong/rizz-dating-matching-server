@@ -13,13 +13,10 @@ interface PotentialMatchesPaginationForClient extends Omit<InterfacePotentialMat
 type MatchesQueryPage = Omit<InterfacePotentialMatchesPage, "potentialMatches">
 type KeysPotentialMatchesPageMap = keyof InterfacePotentialMatchesPage
 type PotentialMatchesPageMap = Record<KeysPotentialMatchesPageMap, InterfacePotentialMatchesPage[keyof MatchesQueryPage]>
-
 interface IFilterUserWithoutPromptsReturnVal {
     potentialMatches: UserBaseModelSchema[];
     prompts: PromptModelInterface[];
     errorMsg?: string
 }
-
-
 
 export { InterfacePotentialMatchesPage, PotentialMatchesPaginationForClient, IFilterUserWithoutPromptsReturnVal, MatchesQueryPage, PotentialMatchesPageMap }

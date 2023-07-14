@@ -111,12 +111,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.log("Will get the user's matches and send them to the client.")
 
     // change the values in userLocation into a number, assuming they are string since they are stored in the params of the request.
-    const { userLocation, skipDocsNum } = userQueryOpts as UserQueryOpts;
+    const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts as UserQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum as string)
-    const _userLocation = [userLocation[0] as string, userLocation[1] as string].map(val => parseFloat(val))
-
-    if (userQueryOpts?.minAndMaxDistanceArr?.length) {
-        userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: userQueryOpts.minAndMaxDistanceArr } as UserQueryOpts;
+    
+    if (minAndMaxDistanceArr?.length && userLocation?.length) {
+        const _userLocation = ([userLocation[0], userLocation[1]] as [string, string]).map(val => parseFloat(val))
+        userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: minAndMaxDistanceArr } as UserQueryOpts;
     }
 
 

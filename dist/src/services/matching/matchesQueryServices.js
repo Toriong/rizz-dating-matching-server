@@ -160,11 +160,11 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
                     }
                 };
             }
-            if (isRadiusSetToAnywhere) {
-                delete paginationQueryOpts.location;
+            console.log("isRadiusSetToAnywhere: ", isRadiusSetToAnywhere);
+            if ((isRadiusSetToAnywhere === 'true') && Boolean(isRadiusSetToAnywhere)) {
                 paginationQueryOpts._id = { $nin: allUnshowableUserIds };
             }
-            const pageOpts = { skip: 0, limit: 50 };
+            const pageOpts = { skip: 50, limit: 5 };
             Users.createIndexes([{ location: '2dsphere' }]);
             const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
             const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
