@@ -8,6 +8,10 @@ import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
 import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js";
 import { InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
 
+// NOTES:
+// the 'main' functions for this file are the functions that return values to their respective route file
+// the helper functios are the functions that help out the main functions
+
 
 interface GetMatchesResult {
     status: number,
@@ -15,10 +19,17 @@ interface GetMatchesResult {
     msg?: string
 }
 
-async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[], currentPotentialMatches: UserBaseModelSchema[] = []): Promise<InterfacePotentialMatchesPage> {
-    // put the below into a funtion, call it: createQueryOptsForPagination
+interface IQueryOptsForPagination{
+    skipAndLimitObj: {
+        skip: number
+        limit: number
+    }, 
+    paginationQueryOpts: PaginationQueryingOpts, 
+    currentPageNum: number
+}
+
+function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[] | null = null): IQueryOptsForPagination {
     const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
-    let updatedSkipDocsNum = skipDocsNum;
     console.log('skipDocsNum: ', skipDocsNum)
     const currentPageNum = (skipDocsNum as number) / 5;
     console.log('currentPageNum: ', currentPageNum)
@@ -44,17 +55,26 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     }
 
 
-    if (isRadiusSetToAnywhere) {
+    if (isRadiusSetToAnywhere && allUnshowableUserIds?.length) {
         paginationQueryOpts._id = { $nin: allUnshowableUserIds }
     }
 
-    const pageOpts = { skip: skipDocsNum as number, limit: 5 };
-    // put the above into a funtion, call it: createQueryOptsForPagination
+    const skipAndLimitObj = { skip: skipDocsNum as number, limit: 5 };
+    const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
+
+    console.log("returnVal: ", returnVal);
+
+    return returnVal;
+}
+
+async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[], currentPotentialMatches: UserBaseModelSchema[] = []): Promise<InterfacePotentialMatchesPage> {
+    const { skipAndLimitObj, paginationQueryOpts, currentPageNum } = createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds);
+    let updatedSkipDocsNum = userQueryOpts.skipDocsNum;
 
     (Users as any).createIndexes([{ location: '2dsphere' }])
 
     const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
-    const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
+    const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean()
     let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
     const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
 
@@ -67,7 +87,7 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
 
     if (!pageQueryUsers.length && !hasReachedPaginationEnd) {
         console.log('no users were found for the current query.')
-        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: (((skipDocsNum as number) / 5) + 1) * 5 }
+        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: (((userQueryOpts.skipDocsNum as number) / 5) + 1) * 5 }
         const results = await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
         const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
         potentialMatches = updatedPotentialMatches?.length ? updatedPotentialMatches : [];
@@ -79,10 +99,13 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     if ((sumBetweenPotentialMatchesAndPgQueryUsers < 5) && (sumBetweenPotentialMatchesAndPgQueryUsers > 0)) {
         console.log('Not enough user to display to the user on the client side, querying for more users...')
         potentialMatches = [...potentialMatches, ...pageQueryUsers]
-        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: (((skipDocsNum as number) / 5) + 1) * 5 }
-        const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
+        // put the below into a function
+        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: (((userQueryOpts.skipDocsNum as number) / 5) + 1) * 5 }
+        const queryForPotentialMatchesResultsObj = await queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches)
+        const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = queryForPotentialMatchesResultsObj
         potentialMatches = updatedPotentialMatches?.length ? updatedPotentialMatches : [];
         updatedSkipDocsNum = _updatedSkipDocsNum as number;
+        // put the above into a function
     }
 
     let endingSliceNum = 5;
@@ -149,76 +172,9 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
         }
 
         const allUnshowableUserIds = await getIdsOfUsersNotToShow(currentUserId);
+        const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
 
-        // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
-
-        const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
-
-        // CASE: 
-        // the user querying with a radius set
-
-        // GOAL:
-        // dynamically add the location field to the paginationQueryOpts object only if the following is true: 
-        // if userLocation is defined
-        // if minAndMaxDistanceArr is defined
-
-
-        // CASE:
-        // the user querying with the radius set to anywhere
-
-        // GOAL:
-        // don't add the location field to the queryOpts object
-
-        let updatedSkipDocsNum = skipDocsNum;
-        console.log('skipDocsNum: ', skipDocsNum)
-        // print minAndMaxDistanceArr
-        console.log('minAndMaxDistanceArr: ', minAndMaxDistanceArr)
-        const currentPageNum = (skipDocsNum as number) / 5;
-        console.log('currentPageNum: ', currentPageNum)
-        const METERS_IN_A_MILE = 1609.34;
-        const [minAge, maxAge] = desiredAgeRange;
-        const paginationQueryOpts: PaginationQueryingOpts = {
-            sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
-            hasPrompts: true,
-            sexAttraction: currentUser.sexAttraction,
-            birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
-        }
-
-        if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
-            const [latitude, longitude] = userLocation as [number, number];
-            const [minDistance, maxDistance] = minAndMaxDistanceArr as [number, number];
-            paginationQueryOpts.location = {
-                $near: {
-                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                    $maxDistance: (maxDistance) * METERS_IN_A_MILE,
-                    $minDistance: (minDistance) * METERS_IN_A_MILE
-                }
-            }
-        }
-
-        console.log("isRadiusSetToAnywhere: ", isRadiusSetToAnywhere)
-
-        if ((isRadiusSetToAnywhere === 'true') && Boolean(isRadiusSetToAnywhere)) {
-            paginationQueryOpts._id = { $nin: allUnshowableUserIds }
-        }
-
-        const pageOpts = { skip: 50, limit: 5 };
-
-        (Users as any).createIndexes([{ location: '2dsphere' }])
-
-        const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
-        const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
-        let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
-
-        return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } }
-
-        // THE ABOVE IS FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
-
-
-
-        // const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
-
-        // return { status: 200, data: { ...potentialMatchesPaginationObj } }
+        return { status: 200, data: { ...potentialMatchesPaginationObj } }
     } catch (error) {
         console.error('An error has occurred in getting matches: ', error)
         const errMsg = `An error has occurred in getting matches for user: ${error}`
@@ -228,3 +184,68 @@ async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, c
 }
 
 export { getMatches }
+
+
+// FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
+
+        // const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
+
+        // // CASE: 
+        // // the user querying with a radius set
+
+        // // GOAL:
+        // // dynamically add the location field to the paginationQueryOpts object only if the following is true: 
+        // // if userLocation is defined
+        // // if minAndMaxDistanceArr is defined
+
+
+        // // CASE:
+        // // the user querying with the radius set to anywhere
+
+        // // GOAL:
+        // // don't add the location field to the queryOpts object
+
+        // let updatedSkipDocsNum = skipDocsNum;
+        // console.log('skipDocsNum: ', skipDocsNum)
+        // // print minAndMaxDistanceArr
+        // console.log('minAndMaxDistanceArr: ', minAndMaxDistanceArr)
+        // const currentPageNum = (skipDocsNum as number) / 5;
+        // console.log('currentPageNum: ', currentPageNum)
+        // const METERS_IN_A_MILE = 1609.34;
+        // const [minAge, maxAge] = desiredAgeRange;
+        // const paginationQueryOpts: PaginationQueryingOpts = {
+        //     sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
+        //     hasPrompts: true,
+        //     sexAttraction: currentUser.sexAttraction,
+        //     birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
+        // }
+
+        // if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
+        //     const [latitude, longitude] = userLocation as [number, number];
+        //     const [minDistance, maxDistance] = minAndMaxDistanceArr as [number, number];
+        //     paginationQueryOpts.location = {
+        //         $near: {
+        //             $geometry: { type: "Point", coordinates: [longitude, latitude] },
+        //             $maxDistance: (maxDistance) * METERS_IN_A_MILE,
+        //             $minDistance: (minDistance) * METERS_IN_A_MILE
+        //         }
+        //     }
+        // }
+
+        // console.log("isRadiusSetToAnywhere: ", isRadiusSetToAnywhere)
+
+        // if ((isRadiusSetToAnywhere === 'true') && Boolean(isRadiusSetToAnywhere)) {
+        //     paginationQueryOpts._id = { $nin: allUnshowableUserIds }
+        // }
+
+        // const pageOpts = { skip: 50, limit: 5 };
+
+        // (Users as any).createIndexes([{ location: '2dsphere' }])
+
+        // const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
+        // const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
+        // let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
+
+        // return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } }
+
+        // THE ABOVE IS FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY

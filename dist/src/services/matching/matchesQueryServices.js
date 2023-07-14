@@ -12,41 +12,45 @@ import moment from "moment";
 import { getUserById } from "../globalMongoDbServices.js";
 import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
+function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds = null) {
+    const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
+    console.log('skipDocsNum: ', skipDocsNum);
+    const currentPageNum = skipDocsNum / 5;
+    console.log('currentPageNum: ', currentPageNum);
+    const METERS_IN_A_MILE = 1609.34;
+    const [minAge, maxAge] = desiredAgeRange;
+    const paginationQueryOpts = {
+        sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
+        hasPrompts: true,
+        sexAttraction: currentUser.sexAttraction,
+        birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
+    };
+    if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
+        const [latitude, longitude] = userLocation;
+        const [minDistance, maxDistance] = minAndMaxDistanceArr;
+        paginationQueryOpts.location = {
+            $near: {
+                $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                $maxDistance: (maxDistance) * METERS_IN_A_MILE,
+                $minDistance: (minDistance !== null && minDistance !== void 0 ? minDistance : 0) * METERS_IN_A_MILE
+            }
+        };
+    }
+    if (isRadiusSetToAnywhere && (allUnshowableUserIds === null || allUnshowableUserIds === void 0 ? void 0 : allUnshowableUserIds.length)) {
+        paginationQueryOpts._id = { $nin: allUnshowableUserIds };
+    }
+    const skipAndLimitObj = { skip: skipDocsNum, limit: 5 };
+    const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
+    console.log("returnVal: ", returnVal);
+    return returnVal;
+}
 function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches = []) {
     return __awaiter(this, void 0, void 0, function* () {
-        // put the below into a funtion, call it: createQueryOptsForPagination
-        const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
-        let updatedSkipDocsNum = skipDocsNum;
-        console.log('skipDocsNum: ', skipDocsNum);
-        const currentPageNum = skipDocsNum / 5;
-        console.log('currentPageNum: ', currentPageNum);
-        const METERS_IN_A_MILE = 1609.34;
-        const [minAge, maxAge] = desiredAgeRange;
-        const paginationQueryOpts = {
-            sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
-            hasPrompts: true,
-            sexAttraction: currentUser.sexAttraction,
-            birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
-        };
-        if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
-            const [latitude, longitude] = userLocation;
-            const [minDistance, maxDistance] = minAndMaxDistanceArr;
-            paginationQueryOpts.location = {
-                $near: {
-                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                    $maxDistance: (maxDistance) * METERS_IN_A_MILE,
-                    $minDistance: (minDistance !== null && minDistance !== void 0 ? minDistance : 0) * METERS_IN_A_MILE
-                }
-            };
-        }
-        if (isRadiusSetToAnywhere) {
-            paginationQueryOpts._id = { $nin: allUnshowableUserIds };
-        }
-        const pageOpts = { skip: skipDocsNum, limit: 5 };
-        // put the above into a funtion, call it: createQueryOptsForPagination
+        const { skipAndLimitObj, paginationQueryOpts, currentPageNum } = createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds);
+        let updatedSkipDocsNum = userQueryOpts.skipDocsNum;
         Users.createIndexes([{ location: '2dsphere' }]);
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
-        const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
+        const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
         if (totalUsersForQuery === 0) {
@@ -56,7 +60,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         let potentialMatches = currentPotentialMatches;
         if (!pageQueryUsers.length && !hasReachedPaginationEnd) {
             console.log('no users were found for the current query.');
-            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
+            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((userQueryOpts.skipDocsNum / 5) + 1) * 5 });
             const results = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
             const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
             potentialMatches = (updatedPotentialMatches === null || updatedPotentialMatches === void 0 ? void 0 : updatedPotentialMatches.length) ? updatedPotentialMatches : [];
@@ -66,10 +70,13 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         if ((sumBetweenPotentialMatchesAndPgQueryUsers < 5) && (sumBetweenPotentialMatchesAndPgQueryUsers > 0)) {
             console.log('Not enough user to display to the user on the client side, querying for more users...');
             potentialMatches = [...potentialMatches, ...pageQueryUsers];
-            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((skipDocsNum / 5) + 1) * 5 });
-            const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
+            // put the below into a function
+            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((userQueryOpts.skipDocsNum / 5) + 1) * 5 });
+            const queryForPotentialMatchesResultsObj = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
+            const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = queryForPotentialMatchesResultsObj;
             potentialMatches = (updatedPotentialMatches === null || updatedPotentialMatches === void 0 ? void 0 : updatedPotentialMatches.length) ? updatedPotentialMatches : [];
             updatedSkipDocsNum = _updatedSkipDocsNum;
+            // put the above into a function
         }
         let endingSliceNum = 5;
         if (sumBetweenPotentialMatchesAndPgQueryUsers > 0) {
@@ -123,56 +130,8 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
                 throw new Error('An error has occurred in getting the current user.');
             }
             const allUnshowableUserIds = yield getIdsOfUsersNotToShow(currentUserId);
-            // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
-            const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
-            // CASE: 
-            // the user querying with a radius set
-            // GOAL:
-            // dynamically add the location field to the paginationQueryOpts object only if the following is true: 
-            // if userLocation is defined
-            // if minAndMaxDistanceArr is defined
-            // CASE:
-            // the user querying with the radius set to anywhere
-            // GOAL:
-            // don't add the location field to the queryOpts object
-            let updatedSkipDocsNum = skipDocsNum;
-            console.log('skipDocsNum: ', skipDocsNum);
-            // print minAndMaxDistanceArr
-            console.log('minAndMaxDistanceArr: ', minAndMaxDistanceArr);
-            const currentPageNum = skipDocsNum / 5;
-            console.log('currentPageNum: ', currentPageNum);
-            const METERS_IN_A_MILE = 1609.34;
-            const [minAge, maxAge] = desiredAgeRange;
-            const paginationQueryOpts = {
-                sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
-                hasPrompts: true,
-                sexAttraction: currentUser.sexAttraction,
-                birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
-            };
-            if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
-                const [latitude, longitude] = userLocation;
-                const [minDistance, maxDistance] = minAndMaxDistanceArr;
-                paginationQueryOpts.location = {
-                    $near: {
-                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                        $maxDistance: (maxDistance) * METERS_IN_A_MILE,
-                        $minDistance: (minDistance) * METERS_IN_A_MILE
-                    }
-                };
-            }
-            console.log("isRadiusSetToAnywhere: ", isRadiusSetToAnywhere);
-            if ((isRadiusSetToAnywhere === 'true') && Boolean(isRadiusSetToAnywhere)) {
-                paginationQueryOpts._id = { $nin: allUnshowableUserIds };
-            }
-            const pageOpts = { skip: 50, limit: 5 };
-            Users.createIndexes([{ location: '2dsphere' }]);
-            const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
-            const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean();
-            let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
-            return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } };
-            // THE ABOVE IS FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
-            // const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
-            // return { status: 200, data: { ...potentialMatchesPaginationObj } }
+            const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
+            return { status: 200, data: Object.assign({}, potentialMatchesPaginationObj) };
         }
         catch (error) {
             console.error('An error has occurred in getting matches: ', error);
@@ -182,3 +141,51 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
     });
 }
 export { getMatches };
+// FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
+// const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
+// // CASE: 
+// // the user querying with a radius set
+// // GOAL:
+// // dynamically add the location field to the paginationQueryOpts object only if the following is true: 
+// // if userLocation is defined
+// // if minAndMaxDistanceArr is defined
+// // CASE:
+// // the user querying with the radius set to anywhere
+// // GOAL:
+// // don't add the location field to the queryOpts object
+// let updatedSkipDocsNum = skipDocsNum;
+// console.log('skipDocsNum: ', skipDocsNum)
+// // print minAndMaxDistanceArr
+// console.log('minAndMaxDistanceArr: ', minAndMaxDistanceArr)
+// const currentPageNum = (skipDocsNum as number) / 5;
+// console.log('currentPageNum: ', currentPageNum)
+// const METERS_IN_A_MILE = 1609.34;
+// const [minAge, maxAge] = desiredAgeRange;
+// const paginationQueryOpts: PaginationQueryingOpts = {
+//     sex: (currentUser.sex === 'Male') ? 'Female' : 'Male',
+//     hasPrompts: true,
+//     sexAttraction: currentUser.sexAttraction,
+//     birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
+// }
+// if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
+//     const [latitude, longitude] = userLocation as [number, number];
+//     const [minDistance, maxDistance] = minAndMaxDistanceArr as [number, number];
+//     paginationQueryOpts.location = {
+//         $near: {
+//             $geometry: { type: "Point", coordinates: [longitude, latitude] },
+//             $maxDistance: (maxDistance) * METERS_IN_A_MILE,
+//             $minDistance: (minDistance) * METERS_IN_A_MILE
+//         }
+//     }
+// }
+// console.log("isRadiusSetToAnywhere: ", isRadiusSetToAnywhere)
+// if ((isRadiusSetToAnywhere === 'true') && Boolean(isRadiusSetToAnywhere)) {
+//     paginationQueryOpts._id = { $nin: allUnshowableUserIds }
+// }
+// const pageOpts = { skip: 50, limit: 5 };
+// (Users as any).createIndexes([{ location: '2dsphere' }])
+// const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
+// const potentialMatchesPromise = Users.find(paginationQueryOpts, null, pageOpts).sort({ ratingNum: 'desc' }).lean()
+// let [totalUsersForQuery, pageQueryUsers]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
+// return { status: 200, data: { potentialMatches: pageQueryUsers, updatedSkipDocsNum: 5, canStillQueryCurrentPageForUsers: true, hasReachedPaginationEnd: false } }
+// THE ABOVE IS FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
