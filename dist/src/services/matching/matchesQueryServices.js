@@ -28,20 +28,8 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
     };
     console.log('adding long, lat, distance query if sent from client...');
     if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
-        console.log('radius is not set to anywhere...');
-        console.log("userLocation: ", userLocation);
-        console.log("minAndMaxDistanceArr: ", minAndMaxDistanceArr);
         const [latitude, longitude] = userLocation;
-        console.log("latitude: ", latitude);
-        console.log("longitude: ", longitude);
-        // get the type for the above values
-        console.log("type for latitude: ", typeof latitude);
-        console.log("type for longitude: ", typeof longitude);
         const [minDistance, maxDistance] = minAndMaxDistanceArr;
-        console.log("minDistance: ", minDistance);
-        console.log("maxDistance: ", maxDistance);
-        console.log("type for minDistance: ", typeof minDistance);
-        console.log("type for maxDistance: ", typeof maxDistance);
         paginationQueryOpts.location = {
             $near: {
                 $geometry: { type: "Point", coordinates: [longitude, latitude] },
@@ -63,10 +51,18 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
     return __awaiter(this, void 0, void 0, function* () {
         const { skipAndLimitObj, paginationQueryOpts, currentPageNum } = createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds);
         let updatedSkipDocsNum = userQueryOpts.skipDocsNum;
+        console.log('currentPotentialMatches: ', currentPotentialMatches);
+        console.log('allUnshowableUserIds: ', allUnshowableUserIds);
         Users.createIndexes([{ location: '2dsphere' }]);
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
+        // GOAL: for the pageQueryUsers array, filter out all of the users that are in the currentPotentialMatches array
+        // filter out any of the users in the pageQueryUsers array if they appear in the currentPotentialMatches array 
+        const currentPotentialMatchesIds = currentPotentialMatches.map(({ _id }) => _id);
+        console.log('currentPotentialMatchesIds: ', currentPotentialMatchesIds);
+        console.log('currentPotentialMactchesIds: ', currentPotentialMatches.length);
+        console.log('pageQueryUsers filtered: ', pageQueryUsers.filter(({ _id }) => !currentPotentialMatchesIds.includes(_id)));
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
         if (totalUsersForQuery === 0) {
             return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
@@ -84,11 +80,16 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         const sumBetweenPotentialMatchesAndPgQueryUsers = pageQueryUsers.length + potentialMatches.length;
         if ((sumBetweenPotentialMatchesAndPgQueryUsers < 5) && (sumBetweenPotentialMatchesAndPgQueryUsers > 0)) {
             console.log('Not enough user to display to the user on the client side, querying for more users...');
+            // print out the ids of potentialMatches and pageQueryUsers
+            console.log('potentialMatches ids: ', potentialMatches.map(({ _id }) => _id));
+            console.log('pageQueryUsers: ', pageQueryUsers.map(({ _id }) => _id));
+            // before the below step, delete any of the users in the pageQueryUsers array if they appear in the currentPotentialMatches array
             potentialMatches = [...potentialMatches, ...pageQueryUsers];
             // put the below into a function
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((userQueryOpts.skipDocsNum / 5) + 1) * 5 });
             const queryForPotentialMatchesResultsObj = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
             const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = queryForPotentialMatchesResultsObj;
+            console.log("updatedPotentialMatches: ", updatedPotentialMatches);
             potentialMatches = (updatedPotentialMatches === null || updatedPotentialMatches === void 0 ? void 0 : updatedPotentialMatches.length) ? updatedPotentialMatches : [];
             updatedSkipDocsNum = _updatedSkipDocsNum;
             // put the above into a function
@@ -97,10 +98,15 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         if (sumBetweenPotentialMatchesAndPgQueryUsers > 0) {
             console.log('Getting users to add to the existing potential matches array.');
             endingSliceNum = 5 - potentialMatches.length;
+            console.log("endingSliceNum: ", endingSliceNum);
+            console.log('pageQueryUsers: ', pageQueryUsers);
+            console.log("potentialMatches: ", potentialMatches);
             const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
             potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
         }
         console.log('Returning potential matches page info...');
+        // WHERE IS THE DUPLCATION OCCURING? 
+        // check the third conditional scope, check if the duplication is occuring there
         return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
 }

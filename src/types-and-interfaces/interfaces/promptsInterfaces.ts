@@ -28,6 +28,8 @@ interface IUserAndPrompts extends UserPotentialMatchType {
     ratingNum: number,
     matchingPicUrl: string,
     locationErrorMsg?: LocationErrorMsgStr,
+    // the first value is the latitude, the second is the longitude
+    userLocationArr?: [number, number],
     prompts: PromptInterface[]
 }
 

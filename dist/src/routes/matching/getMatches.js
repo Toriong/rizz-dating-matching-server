@@ -61,7 +61,7 @@ function getQueryOptionsValidationArr(queryOpts) {
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj];
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     console.time('getMatchesRoute');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
@@ -122,15 +122,16 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log('Potential matches info has been retrieved. Will check if the user has valid pic urls.');
     // create a manual get request in the caritas application front end 
     // at least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db. 
+    console.log("potentialMatchesForClientResult.potentialMatches: ", potentialMatchesForClientResult.potentialMatches);
+    console.log("potentialMatchesForClientResult.potentialMatches length: ", potentialMatchesForClientResult.potentialMatches.length);
     if ((potentialMatchesForClientResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
-        console.log("potentialMatchesForClientResult.potentialMatches: ", potentialMatchesForClientResult.potentialMatches);
         console.log("At least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db.");
         const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
         const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
-        console.log("_userQueryOpts: ", _userQueryOpts);
         // BUG OCCURING IN THIS FUNCTION, GETTIG DUPLICATIONS OF MATCHES. 
         const getMoreUsersAfterPicUrlFailureResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, query.userId, potentialMatchesForClientResult.usersWithValidUrlPics);
         console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches: ", getMoreUsersAfterPicUrlFailureResult.potentialMatches);
+        console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches length: ", (_b = getMoreUsersAfterPicUrlFailureResult === null || getMoreUsersAfterPicUrlFailureResult === void 0 ? void 0 : getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length);
         if (!getMoreUsersAfterPicUrlFailureResult.matchesQueryPage) {
             console.error("Something went wrong. Couldn't get the matches query page object. Will send the available potential matches to the client.");
             return response.status(200).json(responseBody);
@@ -140,11 +141,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: potentialMatchesForClientResult.potentialMatches }) };
             return response.status(200).json(responseBody);
         }
-        if ((_b = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length) {
+        if ((_c = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _c === void 0 ? void 0 : _c.length) {
             console.log("Potential matches received after at least one user did not have valid prompts or a matching pic url. Will send them to the client.");
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: getMoreUsersAfterPicUrlFailureResult.potentialMatches }) };
         }
-        if (!((_c = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _c === void 0 ? void 0 : _c.length) || !getMoreUsersAfterPicUrlFailureResult.potentialMatches) {
+        if (!((_d = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _d === void 0 ? void 0 : _d.length) || !getMoreUsersAfterPicUrlFailureResult.potentialMatches) {
             console.log('No potential matches to display to the user on the client side.');
             responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: [] }) };
         }

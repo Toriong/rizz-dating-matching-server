@@ -114,7 +114,8 @@ async function getReverseGeoCode(userLocation: [number, number]): Promise<{ wasS
 
         return { wasSuccessful: true, data: userLocationStr }
     } catch (error) {
-        console.error("Failed to get the reverse geocode of the user's location. Error message: ", error)
+        console.error('Failed to get the reverse geocode of the user\'s location.')
+        // console.error("Error message: ", error)
 
         return { wasSuccessful: false }
     }
@@ -164,7 +165,11 @@ async function getPromptsImgUrlsAndUserInfo(potentialMatches: UserBaseModelSchem
         if (wasSuccessful) {
             userInfoAndPromptsObj.locationStr = userLocationStr as string;
         } else {
-            userInfoAndPromptsObj.locationErrorMsg = "Unable to get user's location."
+            userInfoAndPromptsObj = {
+                ...userInfoAndPromptsObj,
+                locationErrorMsg: "Unable to get user's location.",
+                userLocationArr: [location.coordinates[1], location.coordinates[0]]
+            }
         }
 
         if (looks && hobbies) {
@@ -212,6 +217,11 @@ async function getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed
         console.log("userQueryOpts: ", userQueryOpts)
         console.log("potentialMatches: ", potentialMatches)
 
+        // CASE: 
+        // THE potentialMatches array is less than 5 
+        
+
+        // GOAL: have the matches array be 5 
         const getUsersWithPromptsResult = await getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
 
         console.log("getUsersWithPromptsResult.potentialMatches: ", getUsersWithPromptsResult.potentialMatches)
@@ -230,7 +240,7 @@ async function getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed
         let potentialMatchesPaginationObj = { potentialMatches: updatedPotentialMatches, matchesQueryPage: getUsersWithPromptsResult.matchesQueryPage }
 
         if ((updatedPotentialMatches.length < 5) && canStillQueryCurrentPageForUsers && !hasReachedPaginationEnd) {
-            console.log("updatedPotentialMatches is less than 5. At least one of the users do not have a valid url pic nor prompts.")
+            console.log("updatedPotentialMatches is less than 5. At least one of the users do not have a valid url pic or prompts.")
 
             const _userQueryOpts = { ...userQueryOpts, skipDocsNum: updatedSkipDocsNum }
             const getUsersWithPromptsAndPicUrlsResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, currentUserId, updatedQueriedUsers)

@@ -95,7 +95,8 @@ function getReverseGeoCode(userLocation) {
             return { wasSuccessful: true, data: userLocationStr };
         }
         catch (error) {
-            console.error("Failed to get the reverse geocode of the user's location. Error message: ", error);
+            console.error('Failed to get the reverse geocode of the user\'s location.');
+            // console.error("Error message: ", error)
             return { wasSuccessful: false };
         }
     });
@@ -134,7 +135,7 @@ function getPromptsImgUrlsAndUserInfo(potentialMatches, prompts) {
                 userInfoAndPromptsObj.locationStr = userLocationStr;
             }
             else {
-                userInfoAndPromptsObj.locationErrorMsg = "Unable to get user's location.";
+                userInfoAndPromptsObj = Object.assign(Object.assign({}, userInfoAndPromptsObj), { locationErrorMsg: "Unable to get user's location.", userLocationArr: [location.coordinates[1], location.coordinates[0]] });
             }
             if (looks && hobbies) {
                 userInfoAndPromptsObj = Object.assign(Object.assign({}, userInfoAndPromptsObj), { looks: looks, hobbies: hobbies });
@@ -164,6 +165,9 @@ function getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(userQ
         try {
             console.log("userQueryOpts: ", userQueryOpts);
             console.log("potentialMatches: ", potentialMatches);
+            // CASE: 
+            // THE potentialMatches array is less than 5 
+            // GOAL: have the matches array be 5 
             const getUsersWithPromptsResult = yield getUsersWithPrompts(userQueryOpts, currentUserId, potentialMatches);
             console.log("getUsersWithPromptsResult.potentialMatches: ", getUsersWithPromptsResult.potentialMatches);
             if (getUsersWithPromptsResult.errMsg) {
@@ -177,7 +181,7 @@ function getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(userQ
             const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = getUsersWithPromptsResult.matchesQueryPage;
             let potentialMatchesPaginationObj = { potentialMatches: updatedPotentialMatches, matchesQueryPage: getUsersWithPromptsResult.matchesQueryPage };
             if ((updatedPotentialMatches.length < 5) && canStillQueryCurrentPageForUsers && !hasReachedPaginationEnd) {
-                console.log("updatedPotentialMatches is less than 5. At least one of the users do not have a valid url pic nor prompts.");
+                console.log("updatedPotentialMatches is less than 5. At least one of the users do not have a valid url pic or prompts.");
                 const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: updatedSkipDocsNum });
                 const getUsersWithPromptsAndPicUrlsResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, currentUserId, updatedQueriedUsers);
                 if (getUsersWithPromptsAndPicUrlsResult.errorMsg) {

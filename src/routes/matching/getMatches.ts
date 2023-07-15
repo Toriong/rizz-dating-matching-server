@@ -176,16 +176,17 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // create a manual get request in the caritas application front end 
 
     // at least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db. 
+    console.log("potentialMatchesForClientResult.potentialMatches: ", potentialMatchesForClientResult.potentialMatches)
+    console.log("potentialMatchesForClientResult.potentialMatches length: ", potentialMatchesForClientResult.potentialMatches.length)
     if ((potentialMatchesForClientResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
-        console.log("potentialMatchesForClientResult.potentialMatches: ", potentialMatchesForClientResult.potentialMatches)
         console.log("At least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db.")
         const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum
         const _userQueryOpts: UserQueryOpts = { ...userQueryOpts, skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
-        console.log("_userQueryOpts: ", _userQueryOpts)
         // BUG OCCURING IN THIS FUNCTION, GETTIG DUPLICATIONS OF MATCHES. 
         const getMoreUsersAfterPicUrlFailureResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatchesForClientResult.usersWithValidUrlPics)
 
         console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches: ", getMoreUsersAfterPicUrlFailureResult.potentialMatches)
+        console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches length: ", getMoreUsersAfterPicUrlFailureResult?.potentialMatches?.length)
 
         if (!getMoreUsersAfterPicUrlFailureResult.matchesQueryPage) {
             console.error("Something went wrong. Couldn't get the matches query page object. Will send the available potential matches to the client.")
