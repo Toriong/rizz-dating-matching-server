@@ -14,6 +14,7 @@ import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
 function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds = null) {
     const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
+    console.log("userQueryOpts: ", userQueryOpts);
     console.log('skipDocsNum: ', skipDocsNum);
     const currentPageNum = skipDocsNum / 5;
     console.log('currentPageNum: ', currentPageNum);
@@ -25,9 +26,22 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
         sexAttraction: currentUser.sexAttraction,
         birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
     };
+    console.log('adding long, lat, distance query if sent from client...');
     if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
+        console.log('radius is not set to anywhere...');
+        console.log("userLocation: ", userLocation);
+        console.log("minAndMaxDistanceArr: ", minAndMaxDistanceArr);
         const [latitude, longitude] = userLocation;
+        console.log("latitude: ", latitude);
+        console.log("longitude: ", longitude);
+        // get the type for the above values
+        console.log("type for latitude: ", typeof latitude);
+        console.log("type for longitude: ", typeof longitude);
         const [minDistance, maxDistance] = minAndMaxDistanceArr;
+        console.log("minDistance: ", minDistance);
+        console.log("maxDistance: ", maxDistance);
+        console.log("type for minDistance: ", typeof minDistance);
+        console.log("type for maxDistance: ", typeof maxDistance);
         paginationQueryOpts.location = {
             $near: {
                 $geometry: { type: "Point", coordinates: [longitude, latitude] },
@@ -42,6 +56,7 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
     const skipAndLimitObj = { skip: skipDocsNum, limit: 5 };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
     console.log("returnVal: ", returnVal);
+    console.log("paginationQueryOpts: ", paginationQueryOpts);
     return returnVal;
 }
 function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches = []) {

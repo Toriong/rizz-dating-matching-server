@@ -116,18 +116,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     
     if (minAndMaxDistanceArr?.length && userLocation?.length) {
         const _userLocation = ([userLocation[0], userLocation[1]] as [string, string]).map(val => parseFloat(val))
-        userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: minAndMaxDistanceArr } as UserQueryOpts;
+        const _minAndMaxDistanceArrUpdated = minAndMaxDistanceArr.map(val => parseInt(val as string))
+        userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: _minAndMaxDistanceArrUpdated } as UserQueryOpts;
     }
 
 
-    // if the user wants to query based on the radius set to anywhere get the users that blocked the current user nad the users that were blocked by the current user 
-    // get also the users that the current user is chatting with
-
-    if (userQueryOpts?.isRadiusSetToAnywhere && Boolean(userQueryOpts.isRadiusSetToAnywhere)) {
+    if (userQueryOpts?.isRadiusSetToAnywhere && (Boolean(userQueryOpts.isRadiusSetToAnywhere) && (userQueryOpts.isRadiusSetToAnywhere === 'true'))) {
         userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, isRadiusSetToAnywhere: true }
     }
 
     console.log('will query for matches...')
+
+    console.log("userQueryOpts: ", userQueryOpts)
 
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
 
@@ -181,6 +181,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         console.log("At least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db.")
         const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum
         const _userQueryOpts: UserQueryOpts = { ...userQueryOpts, skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
+        console.log("_userQueryOpts: ", _userQueryOpts)
+        // BUG OCCURING IN THIS FUNCTION, GETTIG DUPLICATIONS OF MATCHES. 
         const getMoreUsersAfterPicUrlFailureResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatchesForClientResult.usersWithValidUrlPics)
 
         console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches: ", getMoreUsersAfterPicUrlFailureResult.potentialMatches)

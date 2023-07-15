@@ -82,14 +82,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     const paginationPageNumUpdated = parseInt(skipDocsNum);
     if ((minAndMaxDistanceArr === null || minAndMaxDistanceArr === void 0 ? void 0 : minAndMaxDistanceArr.length) && (userLocation === null || userLocation === void 0 ? void 0 : userLocation.length)) {
         const _userLocation = [userLocation[0], userLocation[1]].map(val => parseFloat(val));
-        userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: minAndMaxDistanceArr });
+        const _minAndMaxDistanceArrUpdated = minAndMaxDistanceArr.map(val => parseInt(val));
+        userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: paginationPageNumUpdated, userLocation: _userLocation, minAndMaxDistanceArr: _minAndMaxDistanceArrUpdated });
     }
-    // if the user wants to query based on the radius set to anywhere get the users that blocked the current user nad the users that were blocked by the current user 
-    // get also the users that the current user is chatting with
-    if ((userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.isRadiusSetToAnywhere) && Boolean(userQueryOpts.isRadiusSetToAnywhere)) {
+    if ((userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.isRadiusSetToAnywhere) && (Boolean(userQueryOpts.isRadiusSetToAnywhere) && (userQueryOpts.isRadiusSetToAnywhere === 'true'))) {
         userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: paginationPageNumUpdated, isRadiusSetToAnywhere: true });
     }
     console.log('will query for matches...');
+    console.log("userQueryOpts: ", userQueryOpts);
     const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
     if (!queryMatchesResults.data || !((_a = queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) === null || _a === void 0 ? void 0 : _a.potentialMatches) || (queryMatchesResults.status !== 200)) {
         console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", queryMatchesResults.msg);
@@ -127,6 +127,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.log("At least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db.");
         const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
         const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
+        console.log("_userQueryOpts: ", _userQueryOpts);
+        // BUG OCCURING IN THIS FUNCTION, GETTIG DUPLICATIONS OF MATCHES. 
         const getMoreUsersAfterPicUrlFailureResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, query.userId, potentialMatchesForClientResult.usersWithValidUrlPics);
         console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches: ", getMoreUsersAfterPicUrlFailureResult.potentialMatches);
         if (!getMoreUsersAfterPicUrlFailureResult.matchesQueryPage) {
