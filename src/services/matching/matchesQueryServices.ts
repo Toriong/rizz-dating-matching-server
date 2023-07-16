@@ -5,7 +5,9 @@ import { getUserById } from "../globalMongoDbServices.js";
 import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
 import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
 import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js";
-import { InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
+import { IUserMatch, InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
+import { getMatchesWithPrompts } from "../promptsServices/getPromptsServices.js";
+import { getMatchingPicUrlForUsers } from "./helper-fns/aws.js";
 
 interface GetMatchesResult {
     status: number,
@@ -106,7 +108,31 @@ async function getMatches(queryOptsForPagination: IQueryOptsForPagination, skipD
     }
 }
 
-export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow }
+async function getPromptsAndMatchingPicForClient(matches: IUserMatch[]){
+    try{
+        const matchesWithPromptsResult = await getMatchesWithPrompts(matches);
+
+        if(!matchesWithPromptsResult.wasSuccessful){
+            throw new Error('Failed to get prompts for matches.')
+        }
+
+        const matchesWithPicsResult = await getMatchingPicUrlForUsers(matchesWithPromptsResult.data as IUserMatch[])
+
+        // get the location text for each user
+
+        if(!matchesWithPicsResult.wasSuccessful){
+            throw new Error('An error has occurred in getting matching pic for users.')
+        }
+
+        return { wasSuccessful: true, data: matchesWithPicsResult.data }
+    } catch(error:any){
+        console.error('Getting prompts and matching pic for client error: ', error);
+
+        return { wasSuccessful: false, msg: 'Getting prompts and matching pic for client error: ' + error?.message }
+    }
+}
+
+export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow, getPromptsAndMatchingPicForClient }
 
 
 // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY

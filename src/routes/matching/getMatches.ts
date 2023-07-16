@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express'
 import GLOBAL_VALS from '../../globalVals.js';
-import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getMatches } from '../../services/matching/matchesQueryServices.js';
+import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getMatches, getPromptsAndMatchingPicForClient } from '../../services/matching/matchesQueryServices.js';
 import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
 import { filterUsersWithoutPrompts, getPromptsImgUrlsAndUserInfo, getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
-import { IFilterUserWithoutPromptsReturnVal, InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMap, PotentialMatchesPaginationForClient } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
+import { IFilterUserWithoutPromptsReturnVal, IUserMatch, InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMap, PotentialMatchesPaginationForClient } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 import { UserBaseModelSchema } from '../../models/User.js';
 import { ReturnTypeQueryForMatchesFn } from '../../types-and-interfaces/types/userQueryTypes.js';
 import { IUserAndPrompts } from '../../types-and-interfaces/interfaces/promptsInterfaces.js';
@@ -15,7 +15,7 @@ import { get } from 'http';
 import { RejectedUserInterface } from '../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
 import { getUserById } from '../../services/globalMongoDbServices.js';
 import { getPrompstByUserIds, filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
-import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
+import { IMatchingPicUser, filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 
 export const getMatchesRoute = Router();
 
@@ -102,7 +102,7 @@ interface IGetValidMatchesReturnVal {
 }
 type TResponseBodyGetMatches = Omit<IGetValidMatchesReturnVal, 'validMatches'>
 interface IResponseBodyGetMatches extends TResponseBodyGetMatches {
-    validMatches?: IUserAndPrompts[]
+    validMatches?: IMatchingPicUser[]
 } 
 
 async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: string, validUserMatches: UserBaseModelSchema[]): Promise<IGetValidMatchesReturnVal> {
@@ -243,8 +243,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
         matchesToSendToClient = getValidMatchesResult.validMatches;
     }
+    const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
+        const _user = (user as UserBaseModelSchema);
 
-    
+        return { ...(_user as UserBaseModelSchema), firstName: _user.name.first  }
+    })
+    const promptsAndMatchingPicForClientResult = await getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
 
-    // get the prompts and the matching pic urls for each of the users
+    if(!promptsAndMatchingPicForClientResult.wasSuccessful){
+        return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg })
+    }
+
+    paginationMatchesObj.validMatches = promptsAndMatchingPicForClientResult.data
+
+    return response.status(200).json({ paginationMatches: paginationMatchesObj })
 })

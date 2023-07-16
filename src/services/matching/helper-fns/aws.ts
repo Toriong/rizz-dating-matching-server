@@ -1,6 +1,7 @@
 import aws from 'aws-sdk'
 import dotenv from 'dotenv';
 import { Picture, UserBaseModelSchema } from '../../../models/User.js';
+import { IUserMatch } from '../../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 
 function getS3Instance(accessKeyId: string, secretAccessKey: string) {
     return new aws.S3({
@@ -37,7 +38,7 @@ async function filterInUsersWithValidMatchingPicUrl(users: UserBaseModelSchema[]
         const user = users[numIteration];
         const mathcingPicObj = user.pics.find(({ isMatching }) => isMatching)
 
-        if(mathcingPicObj?.isMatching && await getDoesImgAwsObjExist(mathcingPicObj.picFileNameOnAws)){
+        if (mathcingPicObj?.isMatching && await getDoesImgAwsObjExist(mathcingPicObj.picFileNameOnAws)) {
             usersWithMatchingPicUrls.push(user)
         }
     }
@@ -66,6 +67,32 @@ async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 
     }
 }
 
+type TMatchingPicUser = Pick<UserBaseModelSchema, 'pics'>;
+interface IMatchingPicUser extends TMatchingPicUser, IUserMatch {}
 
+async function getMatchingPicUrlForUsers(users: IMatchingPicUser[]) {
+    try {
+        let matches = [];
 
-export { getMatchPicUrl, getDoesImgAwsObjExist, filterInUsersWithValidMatchingPicUrl }
+        for (let numIteration = 0; numIteration < users.length; numIteration++) {
+            const user = users[numIteration];
+            const mathcingPicObj = user.pics.find(({ isMatching }) => isMatching)
+
+            if (mathcingPicObj?.isMatching) {
+                const { wasSuccessful, matchPicUrl } = await getMatchPicUrl(mathcingPicObj.picFileNameOnAws);
+
+                if (wasSuccessful) {
+                    matches.push({ ...user, matchingPicUrl: matchPicUrl })
+                }
+            }
+        }
+
+        return { wasSuccessful: true, data: matches }
+    } catch (error: any) {
+        console.error('An error has occurred in getting match pic url for users: ', error?.message)
+
+        return { wasSuccessful: false, msg: `An error has occurred in getting match pic url for users: ${error.message}` }
+    }
+}
+
+export { getMatchPicUrl, getDoesImgAwsObjExist, filterInUsersWithValidMatchingPicUrl, getMatchingPicUrlForUsers, IMatchingPicUser }

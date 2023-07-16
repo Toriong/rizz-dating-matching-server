@@ -20,7 +20,7 @@ interface IFilterUserWithoutPromptsReturnVal {
 }
 
 
-type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" >;
+type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" | "pics" >;
 type LocationErrorMsgStr = "Can't get user's location." | "Unable to get user's location."
 interface IUserMatch extends TUser {
     prompts?: PromptInterface[]

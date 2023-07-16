@@ -28,7 +28,7 @@ async function getPrompstByUserIds(userIds: string[]): Promise<CRUDResult> {
     }
 }
 
-type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" >;
+type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" | "pics" >;
 type LocationErrorMsgStr = "Can't get user's location." | "Unable to get user's location."
 interface IUserMatch extends TUser {
     prompts?: PromptInterface[]
@@ -48,7 +48,7 @@ async function getMatchesWithPrompts(users: IUserMatch[]): Promise<CRUDResult> {
         const usersWithPrompts: IUserMatch[] = users.map(user => {
             const { name, _id } = user;
             const findPromptResultObj = (getPromptsByUserIdsResult.data as PromptModelInterface[]).find(({ userId }) => userId === _id)
-            const _user: IUserMatch = { ...user, name: name as UserNames, prompts: findPromptResultObj?.prompts }
+            const _user: IUserMatch = { ...user, firstName: (name as UserNames)?.first, prompts: findPromptResultObj?.prompts }
 
             delete _user.name;
 
