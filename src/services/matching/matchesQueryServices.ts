@@ -186,21 +186,10 @@ async function getIdsOfUsersNotToShow(currentUserId: string): Promise<string[]> 
     return [...allRejectedUserIds, ...allRecipientsOfChats]
 }
 
-async function getMatches(userQueryOpts: UserQueryOpts, currentUserId: string, currentPotentialMatches: UserBaseModelSchema[] = []): Promise<GetMatchesResult> {
+// create a function that will get the current user 
+
+async function getMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[],currentPotentialMatches: UserBaseModelSchema[] = []): Promise<GetMatchesResult> {
     try {
-
-        console.log('getMatches, currentUserId: ', currentUserId)
-
-        const currentUser = await getUserById(currentUserId)
-
-        console.log('currentUser: ', currentUser)
-
-        if (!currentUser) {
-            console.error('No user was attained from the database.')
-            throw new Error('An error has occurred in getting the current user.')
-        }
-
-        const allUnshowableUserIds = await getIdsOfUsersNotToShow(currentUserId);
         const potentialMatchesPaginationObj = await queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
 
         return { status: 200, data: { ...potentialMatchesPaginationObj } }
