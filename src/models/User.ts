@@ -137,4 +137,4 @@ UserSchema.plugin(mongoosePagination)
 
 const User = model('users', UserSchema);
 
-export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema, Picture };
+export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema, Picture, UserNames };

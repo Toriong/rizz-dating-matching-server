@@ -23,6 +23,7 @@ type UserFirstName = Pick<UserBaseModelSchema, "name">["name"]["first"];
 type LocationErrorMsgStr = "Can't get user's location." | "Unable to get user's location."
 
 interface IUserAndPrompts extends UserPotentialMatchType {
+    _id: string,
     firstName: UserFirstName,
     locationStr?: string,
     ratingNum: number,

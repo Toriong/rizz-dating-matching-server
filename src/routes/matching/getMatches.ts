@@ -93,7 +93,19 @@ function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidation
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj]
 }
 
-async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: string, validUserMatches: UserBaseModelSchema[]): Promise<UserBaseModelSchema[]> {
+interface IGetValidMatchesReturnVal {
+    hasReachedPaginationEnd: boolean,
+    validMatches: UserBaseModelSchema[] | [],
+    updatedSkipDocsNum: number,
+    canStillQueryCurrentPageForUsers: boolean,
+    didErrorOccur?: boolean
+}
+type TResponseBodyGetMatches = Omit<IGetValidMatchesReturnVal, 'validMatches'>
+interface IResponseBodyGetMatches extends TResponseBodyGetMatches {
+    validMatches?: IUserAndPrompts[]
+} 
+
+async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: string, validUserMatches: UserBaseModelSchema[]): Promise<IGetValidMatchesReturnVal> {
     const usersToRetrieveNum = 5 - validUserMatches.length;
     const allUserChatsResult = await getAllUserChats(currentUserId);
     const rejectedUsersQuery = {
@@ -111,35 +123,38 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: stri
     if (!currentUser) {
         console.error('Could not find current user in the db.');
 
-        return validUserMatches;
+        return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum as number, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
     }
 
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
     const queryMatchesResults = await getMatches(queryOptsForPagination, userQueryOpts.skipDocsNum as number);
-    const { hasReachedPaginationEnd, potentialMatches } = queryMatchesResults.data as InterfacePotentialMatchesPage;
+    const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data as InterfacePotentialMatchesPage;
 
     if (queryMatchesResults.status !== 200) {
-        return validUserMatches;
+
+        return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum as number, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
     }
 
     if (potentialMatches === undefined) {
         console.log('Potential matches: ', potentialMatches);
 
-        return validUserMatches;
+        return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum as number, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
     }
 
     let matchesToSendToClient = await filterInUsersWithValidMatchingPicUrl(potentialMatches)
     matchesToSendToClient = matchesToSendToClient?.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
     matchesToSendToClient = matchesToSendToClient?.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, usersToRetrieveNum) : [];
     matchesToSendToClient = [...matchesToSendToClient, ...validUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum)
+    const _updatedSkipDocsNum = typeof updatedSkipDocsNum === 'string' ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+    let getValidMatchesResult: IGetValidMatchesReturnVal = { hasReachedPaginationEnd, validMatches: potentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum, canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers }
 
     if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
         const _skipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
         const _userQueryOpts = { ...userQueryOpts, skipDocsNum: _skipDocsNum + 5 };
-        matchesToSendToClient = await getValidMatches(_userQueryOpts, currentUserId, matchesToSendToClient)
+        getValidMatchesResult = await getValidMatches(_userQueryOpts, currentUserId, matchesToSendToClient) as IGetValidMatchesReturnVal;
     }
 
-    return matchesToSendToClient;
+    return getValidMatchesResult;
 }
 
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
@@ -203,7 +218,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
     const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);
-    const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data as InterfacePotentialMatchesPage;
+    const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
+    const _updateSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
 
     if (queryMatchesResults.status !== 200) {
         return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
@@ -217,10 +233,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     let matchesToSendToClient: UserBaseModelSchema[] | IUserAndPrompts[] = await filterInUsersWithValidMatchingPicUrl(potentialMatches) as UserBaseModelSchema[];
     matchesToSendToClient = matchesToSendToClient?.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
-
-    if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
-        matchesToSendToClient = await getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
+    let paginationMatchesObj: IResponseBodyGetMatches = {
+        hasReachedPaginationEnd: hasReachedPaginationEnd,
+        updatedSkipDocsNum: _updateSkipDocsNum,
+        canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
     }
 
-    // get the promts and the matching pic urls for each of the users
+    if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
+        const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
+        matchesToSendToClient = getValidMatchesResult.validMatches;
+    }
+
+    
+
+    // get the prompts and the matching pic urls for each of the users
 })
