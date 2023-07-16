@@ -64,11 +64,16 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
         console.log('currentPotentialMactchesIds: ', currentPotentialMatches.length);
         console.log('pageQueryUsers filtered: ', pageQueryUsers.filter(({ _id }) => !currentPotentialMatchesIds.includes(_id)));
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
+        console.log("totalUsersForQuery: ", totalUsersForQuery);
+        console.log("hasReachedPaginationEnd: ", hasReachedPaginationEnd);
         if (totalUsersForQuery === 0) {
             return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
         }
         pageQueryUsers = pageQueryUsers.filter(({ _id }) => !allUnshowableUserIds.includes(_id));
         let potentialMatches = currentPotentialMatches;
+        if (hasReachedPaginationEnd) {
+            return { potentialMatches: potentialMatches, updatedSkipDocsNum: updatedSkipDocsNum, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
+        }
         if (!pageQueryUsers.length && !hasReachedPaginationEnd) {
             console.log('no users were found for the current query.');
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((userQueryOpts.skipDocsNum / 5) + 1) * 5 });
@@ -101,7 +106,7 @@ function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserI
             console.log("endingSliceNum: ", endingSliceNum);
             console.log('pageQueryUsers: ', pageQueryUsers);
             console.log("potentialMatches: ", potentialMatches);
-            const usersToAddToMatches = pageQueryUsers.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
+            const usersToAddToMatches = pageQueryUsers.filter(({ _id }) => !currentPotentialMatchesIds.includes(_id)).sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
             potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
         }
         console.log('Returning potential matches page info...');

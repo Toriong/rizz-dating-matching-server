@@ -89,6 +89,8 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
     console.log('currentPotentialMactchesIds: ', currentPotentialMatches.length)
     console.log('pageQueryUsers filtered: ', pageQueryUsers.filter(({ _id }) => !currentPotentialMatchesIds.includes(_id)))
     const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
+    console.log("totalUsersForQuery: ",totalUsersForQuery)
+    console.log("hasReachedPaginationEnd: ", hasReachedPaginationEnd)
 
     if (totalUsersForQuery === 0) {
         return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true }
@@ -96,6 +98,10 @@ async function queryForPotentialMatches(userQueryOpts: UserQueryOpts, currentUse
 
     pageQueryUsers = pageQueryUsers.filter(({ _id }) => !allUnshowableUserIds.includes(_id))
     let potentialMatches = currentPotentialMatches;
+
+    if(hasReachedPaginationEnd){
+        return { potentialMatches: potentialMatches, updatedSkipDocsNum: updatedSkipDocsNum, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true}
+    }
 
     if (!pageQueryUsers.length && !hasReachedPaginationEnd) {
         console.log('no users were found for the current query.')
