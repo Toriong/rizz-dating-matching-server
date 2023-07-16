@@ -100,7 +100,20 @@ function getValidMatches(userQueryOpts, currentUserId, validUserMatches) {
         matchesToSendToClient = [...matchesToSendToClient, ...validUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
         const _updatedSkipDocsNum = typeof updatedSkipDocsNum === 'string' ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
         let getValidMatchesResult = { hasReachedPaginationEnd, validMatches: potentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum, canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers };
+        // BRAIN DUMP:
+        // get the first 50 users
+        // for the first 50 users, do the following:
+        // get the amount of users that have imgage 3 as their matching pic, those users will be unshowable
+        // the rest of the users will have their prompts deleted from the db
+        // the target users of the page will be the three users of the sixth page. For the sixth page, get the users
+        // that has the 3rd image as their matching pic
+        // get users from the seventh page, and add them to page that will be present to the user on the client side.  
+        // GOAL #1: the target users of the page is retrieved and sent to the client.
+        // GOAL #2: get the users of the sixth and seventh page 
+        // GOAL #3: get the users of the first 5 pages. These users will have their prompts delete from the db or have their matching pic url deleted from aws if their 
+        // matching pic is test-img-3.
         if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
+            console.log('At least one user does not have a valid matching pic url or prompts. Getting new users.');
             const _skipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: _skipDocsNum + 5 });
             getValidMatchesResult = (yield getValidMatches(_userQueryOpts, currentUserId, matchesToSendToClient));
