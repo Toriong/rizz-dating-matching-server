@@ -1,5 +1,6 @@
 import aws from 'aws-sdk'
 import dotenv from 'dotenv';
+import { Picture, UserBaseModelSchema } from '../../../models/User.js';
 
 function getS3Instance(accessKeyId: string, secretAccessKey: string) {
     return new aws.S3({
@@ -29,10 +30,25 @@ async function getDoesImgAwsObjExist(pathToImg: string): Promise<boolean> {
     }
 }
 
+async function filterInUsersWithValidMatchingPicUrl(users: UserBaseModelSchema[]): Promise<UserBaseModelSchema[] | []> {
+    let usersWithMatchingPicUrls: UserBaseModelSchema[] = [];
+
+    for (let numIteration = 0; numIteration < users.length; numIteration++) {
+        const user = users[numIteration];
+        const mathcingPicObj = user.pics.find(({ isMatching }) => isMatching)
+
+        if(mathcingPicObj?.isMatching && await getDoesImgAwsObjExist(mathcingPicObj.picFileNameOnAws)){
+            usersWithMatchingPicUrls.push(user)
+        }
+    }
+
+    return usersWithMatchingPicUrls;
+}
+
 async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 60)): Promise<MatchPicUrlReturnResult> {
     try {
         dotenv.config();
-        
+
         const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
         const s3 = getS3Instance(AWS_S3_ACCESS_KEY as string, AWS_S3_SECRET_KEY as string);
         const params = {
@@ -52,4 +68,4 @@ async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 
 
 
 
-export { getMatchPicUrl, getDoesImgAwsObjExist }
+export { getMatchPicUrl, getDoesImgAwsObjExist, filterInUsersWithValidMatchingPicUrl }

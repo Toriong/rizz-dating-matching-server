@@ -80,16 +80,6 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
 }
 
 async function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUserInterface[], allRecipientsOfChats: string[]): Promise<string[]> {
-    // put the below into its own function
-    const rejectedUsersQuery = {
-        $or: [
-            { rejectedUserId: { $in: [currentUserId] } },
-            { rejectorUserId: { $in: [currentUserId] } }
-        ]
-    }
-    const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
-    const allUserChatsResult = await getAllUserChats(currentUserId);
-    // put the above into its own function
     const allRejectedUserIds = [
         ...new Set((rejectedUsers)
             .flatMap((rejectedUserInfo: RejectedUserInterface) => {
