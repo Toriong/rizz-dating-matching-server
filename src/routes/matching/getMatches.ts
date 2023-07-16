@@ -131,90 +131,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
 
-    if (!queryMatchesResults.data || !queryMatchesResults?.data?.potentialMatches || (queryMatchesResults.status !== 200)) {
-        console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", queryMatchesResults.msg)
-        console.error('Error status code: ', queryMatchesResults.status)
+    // BRAIN DUMP:
+    // 1. get the matches
+    // 2. get the prompts for each of the users 
+    // 3. get the pic urls for each of the users
 
-        return response.status(queryMatchesResults.status).json({ msg: "Something went wrong. Couldnt't matches." })
-    }
+    // are there less than 5 users and has the pagination not reached its end? 
+    // Yes, get more users 
 
-    const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = queryMatchesResults.data;
-    let { errMsg, potentialMatches: filterUsersWithoutPromptsArr, prompts } = await filterUsersWithoutPrompts(getMatchesResultPotentialMatches);
-
-    console.log("filterUsersWithoutPrompts function has been executed. Will check if there was an error.")
-
-    if (errMsg) {
-        console.error("An error has occurred in filtering out users without prompts. Error msg: ", errMsg);
-
-        return response.status(500).json({ msg: `Error! Something went wrong. Couldn't get prompts for users. Error msg: ${errMsg}` })
-    }
-
-    let getUsersWithPromptsResult: IFilterUserWithoutPromptsReturnVal = { potentialMatches: filterUsersWithoutPromptsArr, prompts }
-
-    // at least one user doesn't have any prompts in the db
-    if (filterUsersWithoutPromptsArr.length < 5) {
-        console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.')
-        const updatedSkipDocNumInt = (typeof queryMatchesResults.data.updatedSkipDocsNum === 'string') ? parseInt(queryMatchesResults.data.updatedSkipDocsNum) : queryMatchesResults.data.updatedSkipDocsNum
-        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: queryMatchesResults.data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
-        getUsersWithPromptsResult = await getUsersWithPrompts(_userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId, filterUsersWithoutPromptsArr);
-    }
-
-    let potentialMatchesToDisplayToUserOnClient: IUserAndPrompts[] | UserBaseModelSchema[] = getUsersWithPromptsResult.potentialMatches;
-    let responseBody: MatchesQueryRespsonseBodyBuild | MatchesQueryResponseBody = { potentialMatchesPagination: { ...queryMatchesResults.data, potentialMatches: potentialMatchesToDisplayToUserOnClient } }
-
-    if ((potentialMatchesToDisplayToUserOnClient.length === 0)) {
-        return response.status(200).json(responseBody)
-    }
-
-    console.log('Getting matches info for client...')
-
-    const potentialMatchesForClientResult = await getPromptsImgUrlsAndUserInfo(potentialMatchesToDisplayToUserOnClient, getUsersWithPromptsResult.prompts);
-    responseBody.potentialMatchesPagination.potentialMatches = potentialMatchesForClientResult.potentialMatches;
-
-    console.log('Potential matches info has been retrieved. Will check if the user has valid pic urls.')
-
-    // create a manual get request in the caritas application front end 
-
-    // at least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db. 
-    console.log("potentialMatchesForClientResult.potentialMatches: ", potentialMatchesForClientResult.potentialMatches)
-    console.log("potentialMatchesForClientResult.potentialMatches length: ", potentialMatchesForClientResult.potentialMatches.length)
-    if ((potentialMatchesForClientResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
-        console.log("At least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db.")
-        const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum
-        const _userQueryOpts: UserQueryOpts = { ...userQueryOpts, skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) }
-        // BUG OCCURING IN THIS FUNCTION, GETTIG DUPLICATIONS OF MATCHES. 
-        const getMoreUsersAfterPicUrlFailureResult = await getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, (query as ReqQueryMatchesParams).userId, potentialMatchesForClientResult.usersWithValidUrlPics)
-
-        console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches: ", getMoreUsersAfterPicUrlFailureResult.potentialMatches)
-        console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches length: ", getMoreUsersAfterPicUrlFailureResult?.potentialMatches?.length)
-
-        if (!getMoreUsersAfterPicUrlFailureResult.matchesQueryPage) {
-            console.error("Something went wrong. Couldn't get the matches query page object. Will send the available potential matches to the client.")
-
-            return response.status(200).json(responseBody as MatchesQueryResponseBody)
-        }
-
-        if (getMoreUsersAfterPicUrlFailureResult.errorMsg) {
-            console.error("Failed to get more users with valid pic urls. Sending current matches that have valid pic aws urls. Error message: ", getMoreUsersAfterPicUrlFailureResult.errorMsg)
-            responseBody = { potentialMatchesPagination: { ...getMoreUsersAfterPicUrlFailureResult.matchesQueryPage, potentialMatches: potentialMatchesForClientResult.potentialMatches } }
-
-            return response.status(200).json(responseBody as MatchesQueryResponseBody)
-        }
-
-        if (getMoreUsersAfterPicUrlFailureResult.potentialMatches?.length) {
-            console.log("Potential matches received after at least one user did not have valid prompts or a matching pic url. Will send them to the client.");
-            responseBody = { potentialMatchesPagination: { ...getMoreUsersAfterPicUrlFailureResult.matchesQueryPage, potentialMatches: getMoreUsersAfterPicUrlFailureResult.potentialMatches } }
-        }
-
-        if (!getMoreUsersAfterPicUrlFailureResult.potentialMatches?.length || !getMoreUsersAfterPicUrlFailureResult.potentialMatches) {
-            console.log('No potential matches to display to the user on the client side.')
-            responseBody = { potentialMatchesPagination: { ...getMoreUsersAfterPicUrlFailureResult.matchesQueryPage, potentialMatches: [] } }
-        }
-    }
-    console.timeEnd('getMatchesRoute')
-
-    console.log("Potential matches has been retrieved. Will send them to the client.")
+    // No, send the array (potentialMatches array) to the client
 
 
-    return response.status(200).json(responseBody)
+    
+
+
 })
