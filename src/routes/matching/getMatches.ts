@@ -130,6 +130,8 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: stri
     const queryMatchesResults = await getMatches(queryOptsForPagination, userQueryOpts.skipDocsNum as number);
     const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data as InterfacePotentialMatchesPage;
 
+    console.log('getMatches, potentialMatches array: ', potentialMatches)
+
     if (queryMatchesResults.status !== 200) {
 
         return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum as number, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
@@ -155,7 +157,8 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: stri
     // the rest of the users will have their prompts deleted from the db
     // the target users of the page will be the three users of the sixth page. For the sixth page, get the users
     // that has the 3rd image as their matching pic
-    // get users from the seventh page, and add them to page that will be present to the user on the client side.  
+    // get users from the seventh page, and add them to page that will be present to the user on the client side.
+    // check what is being received for the getMatches function  
     
     // GOAL #1: the target users of the page is retrieved and sent to the client.
 

@@ -87,6 +87,7 @@ function getValidMatches(userQueryOpts, currentUserId, validUserMatches) {
         const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
         const queryMatchesResults = yield getMatches(queryOptsForPagination, userQueryOpts.skipDocsNum);
         const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data;
+        console.log('getMatches, potentialMatches array: ', potentialMatches);
         if (queryMatchesResults.status !== 200) {
             return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
         }
@@ -107,7 +108,8 @@ function getValidMatches(userQueryOpts, currentUserId, validUserMatches) {
         // the rest of the users will have their prompts deleted from the db
         // the target users of the page will be the three users of the sixth page. For the sixth page, get the users
         // that has the 3rd image as their matching pic
-        // get users from the seventh page, and add them to page that will be present to the user on the client side.  
+        // get users from the seventh page, and add them to page that will be present to the user on the client side.
+        // check what is being received for the getMatches function  
         // GOAL #1: the target users of the page is retrieved and sent to the client.
         // GOAL #2: get the users of the sixth and seventh page 
         // GOAL #3: get the users of the first 5 pages. These users will have their prompts delete from the db or have their matching pic url deleted from aws if their 
