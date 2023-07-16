@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import GLOBAL_VALS from '../../globalVals.js';
-import { getMatches } from '../../services/matching/matchesQueryServices.js';
+import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getMatches } from '../../services/matching/matchesQueryServices.js';
 import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
 import { filterUsersWithoutPrompts, getPromptsImgUrlsAndUserInfo, getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
 import { IFilterUserWithoutPromptsReturnVal, InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMap, PotentialMatchesPaginationForClient } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
@@ -9,6 +9,11 @@ import { ReturnTypeQueryForMatchesFn } from '../../types-and-interfaces/types/us
 import { IUserAndPrompts } from '../../types-and-interfaces/interfaces/promptsInterfaces.js';
 import { User } from 'aws-sdk/clients/budgets.js';
 import { MatchesQueryResponseBody, MatchesQueryRespsonseBodyBuild } from '../../types-and-interfaces/interfaces/responses/getMatches.js';
+import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
+import { getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
+import { get } from 'http';
+import { RejectedUserInterface } from '../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
+import { getUserById } from '../../services/globalMongoDbServices.js';
 
 export const getMatchesRoute = Router();
 
@@ -95,6 +100,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     let userQueryOpts: RequestQuery | UserQueryOpts = (query as ReqQueryMatchesParams).query;
+    const currentUserId = (query as ReqQueryMatchesParams).userId;
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType)
 
@@ -128,8 +134,27 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.log('will query for matches...')
 
     console.log("userQueryOpts: ", userQueryOpts)
+    const allUserChatsResult = await getAllUserChats(currentUserId);
+    const rejectedUsersQuery = {
+        $or: [
+            { rejectedUserId: { $in: [currentUserId] } },
+            { rejectorUserId: { $in: [currentUserId] } }
+        ]
+    }
+    const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
+    const rejectedUsers = (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])?.length ? (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]) : [];
+    const allChatUsers = (allUserChatsResult.data as string[])?.length ? (allUserChatsResult.data as string[]) : [];
+    const idsOfUsersNotToShow = await getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
+    const currentUser = await getUserById(currentUserId);
 
-    const queryMatchesResults = await getMatches(userQueryOpts as UserQueryOpts, (query as ReqQueryMatchesParams).userId);
+    if(!currentUser){
+        console.error('Could not find current user in the db.');
+
+        return response.status(404).json({msg: 'Could not find current user in the db.'})
+    }
+
+    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
+    const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);
 
     // BRAIN DUMP:
     // 1. get the matches

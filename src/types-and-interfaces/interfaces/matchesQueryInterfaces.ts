@@ -2,10 +2,10 @@ import { UserBaseModelSchema } from "../../models/User.js";
 import { IUserAndPrompts, PromptModelInterface } from "./promptsInterfaces.js";
 
 interface InterfacePotentialMatchesPage {
-    potentialMatches?: UserBaseModelSchema[];
     updatedSkipDocsNum: string | number;
-    canStillQueryCurrentPageForUsers: boolean;
     hasReachedPaginationEnd: boolean;
+    canStillQueryCurrentPageForUsers?: boolean;
+    potentialMatches?: UserBaseModelSchema[];
 }
 interface PotentialMatchesPaginationForClient extends Omit<InterfacePotentialMatchesPage, "potentialMatches"> {
     potentialMatches: IUserAndPrompts[]
