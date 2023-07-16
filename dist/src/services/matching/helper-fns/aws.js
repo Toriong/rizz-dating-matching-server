@@ -30,6 +30,19 @@ function getDoesImgAwsObjExist(pathToImg) {
         }
     });
 }
+function filterInUsersWithValidMatchingPicUrl(users) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let usersWithMatchingPicUrls = [];
+        for (let numIteration = 0; numIteration < users.length; numIteration++) {
+            const user = users[numIteration];
+            const mathcingPicObj = user.pics.find(({ isMatching }) => isMatching);
+            if ((mathcingPicObj === null || mathcingPicObj === void 0 ? void 0 : mathcingPicObj.isMatching) && (yield getDoesImgAwsObjExist(mathcingPicObj.picFileNameOnAws))) {
+                usersWithMatchingPicUrls.push(user);
+            }
+        }
+        return usersWithMatchingPicUrls;
+    });
+}
 function getMatchPicUrl(pathToImg, expiresNum = (60000 * 60)) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -50,4 +63,26 @@ function getMatchPicUrl(pathToImg, expiresNum = (60000 * 60)) {
         }
     });
 }
-export { getMatchPicUrl, getDoesImgAwsObjExist };
+function getMatchingPicUrlForUsers(users) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            let matches = [];
+            for (let numIteration = 0; numIteration < users.length; numIteration++) {
+                const user = users[numIteration];
+                const mathcingPicObj = user.pics.find(({ isMatching }) => isMatching);
+                if (mathcingPicObj === null || mathcingPicObj === void 0 ? void 0 : mathcingPicObj.isMatching) {
+                    const { wasSuccessful, matchPicUrl } = yield getMatchPicUrl(mathcingPicObj.picFileNameOnAws);
+                    if (wasSuccessful) {
+                        matches.push(Object.assign(Object.assign({}, user), { matchingPicUrl: matchPicUrl }));
+                    }
+                }
+            }
+            return { wasSuccessful: true, data: matches };
+        }
+        catch (error) {
+            console.error('An error has occurred in getting match pic url for users: ', error === null || error === void 0 ? void 0 : error.message);
+            return { wasSuccessful: false, msg: `An error has occurred in getting match pic url for users: ${error.message}` };
+        }
+    });
+}
+export { getMatchPicUrl, getDoesImgAwsObjExist, filterInUsersWithValidMatchingPicUrl, getMatchingPicUrlForUsers };

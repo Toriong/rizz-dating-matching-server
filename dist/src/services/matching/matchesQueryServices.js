@@ -9,15 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { User as Users } from "../../models/User.js";
 import moment from "moment";
-import { getUserById } from "../globalMongoDbServices.js";
-import { getRejectedUsers } from "../rejectingUsers/rejectedUsersService.js";
-import { getAllUserChats } from "../firebaseServices/firebaseDbServices.js";
-function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds = null) {
+import { getMatchesWithPrompts } from "../promptsServices/getPromptsServices.js";
+import { getMatchingPicUrlForUsers } from "./helper-fns/aws.js";
+function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds) {
     const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
-    console.log("userQueryOpts: ", userQueryOpts);
-    console.log('skipDocsNum: ', skipDocsNum);
     const currentPageNum = skipDocsNum / 5;
-    console.log('currentPageNum: ', currentPageNum);
     const METERS_IN_A_MILE = 1609.34;
     const [minAge, maxAge] = desiredAgeRange;
     const paginationQueryOpts = {
@@ -26,7 +22,9 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
         sexAttraction: currentUser.sexAttraction,
         birthDate: { $gt: moment.utc(minAge).toDate(), $lt: moment.utc(maxAge).toDate() }
     };
-    console.log('adding long, lat, distance query if sent from client...');
+    if (allUnshowableUserIds === null || allUnshowableUserIds === void 0 ? void 0 : allUnshowableUserIds.length) {
+        paginationQueryOpts._id = { $nin: allUnshowableUserIds };
+    }
     if (userLocation && minAndMaxDistanceArr && !isRadiusSetToAnywhere) {
         const [latitude, longitude] = userLocation;
         const [minDistance, maxDistance] = minAndMaxDistanceArr;
@@ -38,105 +36,32 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
             }
         };
     }
-    if (isRadiusSetToAnywhere && (allUnshowableUserIds === null || allUnshowableUserIds === void 0 ? void 0 : allUnshowableUserIds.length)) {
-        paginationQueryOpts._id = { $nin: allUnshowableUserIds };
-    }
     const skipAndLimitObj = { skip: skipDocsNum, limit: 5 };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
-    console.log("returnVal: ", returnVal);
-    console.log("paginationQueryOpts: ", paginationQueryOpts);
     return returnVal;
 }
-function queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches = []) {
+function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { skipAndLimitObj, paginationQueryOpts, currentPageNum } = createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds);
-        let updatedSkipDocsNum = userQueryOpts.skipDocsNum;
-        console.log('currentPotentialMatches: ', currentPotentialMatches);
-        console.log('allUnshowableUserIds: ', allUnshowableUserIds);
+        const { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
+        let updatedSkipDocsNum = skipDocsNum;
         Users.createIndexes([{ location: '2dsphere' }]);
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
-        let [totalUsersForQuery, pageQueryUsers] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
-        // GOAL: for the pageQueryUsers array, filter out all of the users that are in the currentPotentialMatches array
-        // filter out any of the users in the pageQueryUsers array if they appear in the currentPotentialMatches array 
-        const currentPotentialMatchesIds = currentPotentialMatches.map(({ _id }) => _id);
-        console.log('currentPotentialMatchesIds: ', currentPotentialMatchesIds);
-        console.log('currentPotentialMactchesIds: ', currentPotentialMatches.length);
-        console.log('pageQueryUsers filtered: ', pageQueryUsers.filter(({ _id }) => !currentPotentialMatchesIds.includes(_id)));
+        let [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
-        console.log("totalUsersForQuery: ", totalUsersForQuery);
-        console.log("hasReachedPaginationEnd: ", hasReachedPaginationEnd);
         if (totalUsersForQuery === 0) {
             return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
         }
-        pageQueryUsers = pageQueryUsers.filter(({ _id }) => !allUnshowableUserIds.includes(_id));
-        let potentialMatches = currentPotentialMatches;
         if (hasReachedPaginationEnd) {
             return { potentialMatches: potentialMatches, updatedSkipDocsNum: updatedSkipDocsNum, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
         }
-        if (!pageQueryUsers.length && !hasReachedPaginationEnd) {
-            console.log('no users were found for the current query.');
-            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((userQueryOpts.skipDocsNum / 5) + 1) * 5 });
-            const results = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
-            const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = results;
-            potentialMatches = (updatedPotentialMatches === null || updatedPotentialMatches === void 0 ? void 0 : updatedPotentialMatches.length) ? updatedPotentialMatches : [];
-            updatedSkipDocsNum = _updatedSkipDocsNum;
-        }
-        const sumBetweenPotentialMatchesAndPgQueryUsers = pageQueryUsers.length + potentialMatches.length;
-        if ((sumBetweenPotentialMatchesAndPgQueryUsers < 5) && (sumBetweenPotentialMatchesAndPgQueryUsers > 0)) {
-            console.log('Not enough user to display to the user on the client side, querying for more users...');
-            // print out the ids of potentialMatches and pageQueryUsers
-            console.log('potentialMatches ids: ', potentialMatches.map(({ _id }) => _id));
-            console.log('pageQueryUsers: ', pageQueryUsers.map(({ _id }) => _id));
-            // before the below step, delete any of the users in the pageQueryUsers array if they appear in the currentPotentialMatches array
-            potentialMatches = [...potentialMatches, ...pageQueryUsers];
-            // put the below into a function
-            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: ((userQueryOpts.skipDocsNum / 5) + 1) * 5 });
-            const queryForPotentialMatchesResultsObj = yield queryForPotentialMatches(_userQueryOpts, currentUser, allUnshowableUserIds, potentialMatches);
-            const { potentialMatches: updatedPotentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum } = queryForPotentialMatchesResultsObj;
-            console.log("updatedPotentialMatches: ", updatedPotentialMatches);
-            potentialMatches = (updatedPotentialMatches === null || updatedPotentialMatches === void 0 ? void 0 : updatedPotentialMatches.length) ? updatedPotentialMatches : [];
-            updatedSkipDocsNum = _updatedSkipDocsNum;
-            // put the above into a function
-        }
-        let endingSliceNum = 5;
-        if (sumBetweenPotentialMatchesAndPgQueryUsers > 0) {
-            console.log('Getting users to add to the existing potential matches array.');
-            endingSliceNum = 5 - potentialMatches.length;
-            console.log("endingSliceNum: ", endingSliceNum);
-            console.log('pageQueryUsers: ', pageQueryUsers);
-            console.log("potentialMatches: ", potentialMatches);
-            const usersToAddToMatches = pageQueryUsers.filter(({ _id }) => !currentPotentialMatchesIds.includes(_id)).sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceNum);
-            potentialMatches = [...potentialMatches, ...usersToAddToMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
-        }
-        console.log('Returning potential matches page info...');
-        // WHERE IS THE DUPLCATION OCCURING? 
-        // check the third conditional scope, check if the duplication is occuring there
-        return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: endingSliceNum < 5, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
+        return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
 }
-function getIdsOfUsersNotToShow(currentUserId) {
+function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfChats) {
     return __awaiter(this, void 0, void 0, function* () {
-        const rejectedUsersQuery = {
-            $or: [
-                { rejectedUserId: { $in: [currentUserId] } },
-                { rejectorUserId: { $in: [currentUserId] } }
-            ]
-        };
-        const rejectedUsersThatCurrentUserIsInResult = yield getRejectedUsers(rejectedUsersQuery);
-        const allUserChatsResult = yield getAllUserChats(currentUserId);
-        let allRecipientsOfChats = (Array.isArray(allUserChatsResult.data) && allUserChatsResult.data.length) ? allUserChatsResult.data : [];
-        console.log('allRecipientsOfChats: ', allRecipientsOfChats);
-        if (!allUserChatsResult.wasSuccessful) {
-            console.error("Failed to get the current user from the firebase database.");
-            throw new Error("Failed to get the current user from the firebase database.");
-        }
-        if ((rejectedUsersThatCurrentUserIsInResult.status !== 200) || !rejectedUsersThatCurrentUserIsInResult.data.length) {
-            console.error('Failed to get the rejected users docs for the current user.');
-            console.log('The current user either has not been rejected or has not rejected any users.');
-        }
         const allRejectedUserIds = [
-            ...new Set(rejectedUsersThatCurrentUserIsInResult.data
+            ...new Set((rejectedUsers)
                 .flatMap((rejectedUserInfo) => {
                 return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId];
             })
@@ -145,18 +70,11 @@ function getIdsOfUsersNotToShow(currentUserId) {
         return [...allRejectedUserIds, ...allRecipientsOfChats];
     });
 }
-function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) {
+// this function will only get the users based on queryOpts object
+function getMatches(queryOptsForPagination, skipDocsNum) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log('getMatches, currentUserId: ', currentUserId);
-            const currentUser = yield getUserById(currentUserId);
-            console.log('currentUser: ', currentUser);
-            if (!currentUser) {
-                console.error('No user was attained from the database.');
-                throw new Error('An error has occurred in getting the current user.');
-            }
-            const allUnshowableUserIds = yield getIdsOfUsersNotToShow(currentUserId);
-            const potentialMatchesPaginationObj = yield queryForPotentialMatches(userQueryOpts, currentUser, allUnshowableUserIds, currentPotentialMatches);
+            const potentialMatchesPaginationObj = yield queryForPotentialMatches(queryOptsForPagination, skipDocsNum);
             return { status: 200, data: Object.assign({}, potentialMatchesPaginationObj) };
         }
         catch (error) {
@@ -166,7 +84,30 @@ function getMatches(userQueryOpts, currentUserId, currentPotentialMatches = []) 
         }
     });
 }
-export { getMatches };
+function getPromptsAndMatchingPicForClient(matches) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const matchesWithPromptsResult = yield getMatchesWithPrompts(matches);
+            console.log("matchesWithPromptsResult: ", matchesWithPromptsResult);
+            if (!matchesWithPromptsResult.wasSuccessful) {
+                throw new Error('Failed to get prompts for matches.');
+            }
+            const matchesWithPicsResult = yield getMatchingPicUrlForUsers(matchesWithPromptsResult.data);
+            console.log("matchesWithPicsResult: ", matchesWithPicsResult);
+            // get the location text for each user
+            if (!matchesWithPicsResult.wasSuccessful) {
+                throw new Error('An error has occurred in getting matching pic for users.');
+            }
+            console.log("matchesWithPicsResult.data getPromptsAndMatchingPicForClient: ", matchesWithPicsResult.data);
+            return { wasSuccessful: true, data: matchesWithPicsResult.data };
+        }
+        catch (error) {
+            console.error('Getting prompts and matching pic for client error: ', error);
+            return { wasSuccessful: false, msg: 'Getting prompts and matching pic for client error: ' + (error === null || error === void 0 ? void 0 : error.message) };
+        }
+    });
+}
+export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow, getPromptsAndMatchingPicForClient };
 // FOR CHECKING WHAT USERS ARE ATTAINED BASED ON A SPECIFIC QUERY
 // const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
 // // CASE: 

@@ -42,4 +42,4 @@ const UserSchema = new Schema({
 UserSchema.index({ location: '2dsphere' });
 UserSchema.plugin(mongoosePagination);
 const User = model('users', UserSchema);
-export { User };
+export { User, UserNames };

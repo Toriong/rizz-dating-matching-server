@@ -103,7 +103,7 @@ interface IGetValidMatchesReturnVal {
 type TResponseBodyGetMatches = Omit<IGetValidMatchesReturnVal, 'validMatches'>
 interface IResponseBodyGetMatches extends TResponseBodyGetMatches {
     validMatches?: IMatchingPicUser[]
-} 
+}
 
 async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: string, validUserMatches: UserBaseModelSchema[]): Promise<IGetValidMatchesReturnVal> {
     const usersToRetrieveNum = 5 - validUserMatches.length;
@@ -239,18 +239,29 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
     }
 
+    console.log("hasReachedPaginationEnd: ", hasReachedPaginationEnd)
+    console.log("matchesToSendToClient: ", matchesToSendToClient)
+
     if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
+        console.log("Some users either don't have prompts or a matching pic. Getting new users.")
         const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
+        console.log("getValidMatchesResult: ", getValidMatchesResult)
         matchesToSendToClient = getValidMatchesResult.validMatches;
     }
+
     const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
         const _user = (user as UserBaseModelSchema);
 
-        return { ...(_user as UserBaseModelSchema), firstName: _user.name.first  }
+        return { ..._user, firstName: _user.name.first } as IUserMatch
     })
+
+    console.log("matchesToSendToClientUpdated: ", matchesToSendToClientUpdated)
+
     const promptsAndMatchingPicForClientResult = await getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
 
-    if(!promptsAndMatchingPicForClientResult.wasSuccessful){
+    console.log("promptsAndMatchingPicForClientResult: ", promptsAndMatchingPicForClientResult)
+
+    if (!promptsAndMatchingPicForClientResult.wasSuccessful) {
         return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg })
     }
 

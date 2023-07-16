@@ -9,8 +9,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { Router } from 'express';
 import GLOBAL_VALS from '../../globalVals.js';
-import { getMatches } from '../../services/matching/matchesQueryServices.js';
-import { filterUsersWithoutPrompts, getPromptsImgUrlsAndUserInfo, getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
+import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getMatches, getPromptsAndMatchingPicForClient } from '../../services/matching/matchesQueryServices.js';
+import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
+import { getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
+import { getUserById } from '../../services/globalMongoDbServices.js';
+import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
+import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -60,14 +64,59 @@ function getQueryOptionsValidationArr(queryOpts) {
     const isRadiusSetToAnywhereValidtionObj = { receivedType: typeof isRadiusSetToAnywhere, correctVal: 'boolean', fieldName: 'isRadiusSetToAnywhere', isCorrectValType: typeof Boolean(isRadiusSetToAnywhere) === 'boolean', val: isRadiusSetToAnywhere };
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj];
 }
+function getValidMatches(userQueryOpts, currentUserId, validUserMatches) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        const usersToRetrieveNum = 5 - validUserMatches.length;
+        const allUserChatsResult = yield getAllUserChats(currentUserId);
+        const rejectedUsersQuery = {
+            $or: [
+                { rejectedUserId: { $in: [currentUserId] } },
+                { rejectorUserId: { $in: [currentUserId] } }
+            ]
+        };
+        const rejectedUsersThatCurrentUserIsInResult = yield getRejectedUsers(rejectedUsersQuery);
+        const rejectedUsers = ((_a = rejectedUsersThatCurrentUserIsInResult.data) === null || _a === void 0 ? void 0 : _a.length) ? rejectedUsersThatCurrentUserIsInResult.data : [];
+        const allChatUsers = ((_b = allUserChatsResult.data) === null || _b === void 0 ? void 0 : _b.length) ? allUserChatsResult.data : [];
+        const idsOfUsersNotToShow = yield getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
+        const currentUser = yield getUserById(currentUserId);
+        if (!currentUser) {
+            console.error('Could not find current user in the db.');
+            return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
+        }
+        const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
+        const queryMatchesResults = yield getMatches(queryOptsForPagination, userQueryOpts.skipDocsNum);
+        const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data;
+        if (queryMatchesResults.status !== 200) {
+            return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
+        }
+        if (potentialMatches === undefined) {
+            console.log('Potential matches: ', potentialMatches);
+            return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
+        }
+        let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
+        matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
+        matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, usersToRetrieveNum) : [];
+        matchesToSendToClient = [...matchesToSendToClient, ...validUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+        const _updatedSkipDocsNum = typeof updatedSkipDocsNum === 'string' ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+        let getValidMatchesResult = { hasReachedPaginationEnd, validMatches: potentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum, canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers };
+        if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
+            const _skipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
+            const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: _skipDocsNum + 5 });
+            getValidMatchesResult = (yield getValidMatches(_userQueryOpts, currentUserId, matchesToSendToClient));
+        }
+        return getValidMatchesResult;
+    });
+}
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b;
     console.time('getMatchesRoute');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
     }
     let userQueryOpts = query.query;
+    const currentUserId = query.userId;
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType);
     if (!areQueryOptsValid) {
@@ -88,69 +137,58 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if ((userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.isRadiusSetToAnywhere) && (Boolean(userQueryOpts.isRadiusSetToAnywhere) && (userQueryOpts.isRadiusSetToAnywhere === 'true'))) {
         userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: paginationPageNumUpdated, isRadiusSetToAnywhere: true });
     }
-    console.log('will query for matches...');
-    console.log("userQueryOpts: ", userQueryOpts);
-    const queryMatchesResults = yield getMatches(userQueryOpts, query.userId);
-    if (!queryMatchesResults.data || !((_a = queryMatchesResults === null || queryMatchesResults === void 0 ? void 0 : queryMatchesResults.data) === null || _a === void 0 ? void 0 : _a.potentialMatches) || (queryMatchesResults.status !== 200)) {
-        console.error("Something went wrong. Couldn't get matches from the database. Message from query result: ", queryMatchesResults.msg);
-        console.error('Error status code: ', queryMatchesResults.status);
-        return response.status(queryMatchesResults.status).json({ msg: "Something went wrong. Couldnt't matches." });
+    const allUserChatsResult = yield getAllUserChats(currentUserId);
+    const rejectedUsersQuery = {
+        $or: [
+            { rejectedUserId: { $in: [currentUserId] } },
+            { rejectorUserId: { $in: [currentUserId] } }
+        ]
+    };
+    const rejectedUsersThatCurrentUserIsInResult = yield getRejectedUsers(rejectedUsersQuery);
+    const rejectedUsers = ((_a = rejectedUsersThatCurrentUserIsInResult.data) === null || _a === void 0 ? void 0 : _a.length) ? rejectedUsersThatCurrentUserIsInResult.data : [];
+    const allChatUsers = ((_b = allUserChatsResult.data) === null || _b === void 0 ? void 0 : _b.length) ? allUserChatsResult.data : [];
+    const idsOfUsersNotToShow = yield getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
+    const currentUser = yield getUserById(currentUserId);
+    if (!currentUser) {
+        console.error('Could not find current user in the db.');
+        return response.status(404).json({ msg: 'Could not find current user in the db.' });
     }
-    const { potentialMatches: getMatchesResultPotentialMatches, hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, updatedSkipDocsNum } = queryMatchesResults.data;
-    let { errMsg, potentialMatches: filterUsersWithoutPromptsArr, prompts } = yield filterUsersWithoutPrompts(getMatchesResultPotentialMatches);
-    console.log("filterUsersWithoutPrompts function has been executed. Will check if there was an error.");
-    if (errMsg) {
-        console.error("An error has occurred in filtering out users without prompts. Error msg: ", errMsg);
-        return response.status(500).json({ msg: `Error! Something went wrong. Couldn't get prompts for users. Error msg: ${errMsg}` });
+    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
+    const queryMatchesResults = yield getMatches(queryOptsForPagination, paginationPageNumUpdated);
+    const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
+    const _updateSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+    if (queryMatchesResults.status !== 200) {
+        return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg });
     }
-    let getUsersWithPromptsResult = { potentialMatches: filterUsersWithoutPromptsArr, prompts };
-    // at least one user doesn't have any prompts in the db
-    if (filterUsersWithoutPromptsArr.length < 5) {
-        console.log('At least one user does not have any prompts in the db. Will get users with prompts from the database.');
-        const updatedSkipDocNumInt = (typeof queryMatchesResults.data.updatedSkipDocsNum === 'string') ? parseInt(queryMatchesResults.data.updatedSkipDocsNum) : queryMatchesResults.data.updatedSkipDocsNum;
-        const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: queryMatchesResults.data.canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
-        getUsersWithPromptsResult = yield getUsersWithPrompts(_userQueryOpts, query.userId, filterUsersWithoutPromptsArr);
+    if (potentialMatches === undefined) {
+        console.log('Potential matches: ', potentialMatches);
+        return response.status(500).json({ msg: "Failed to get potential matches." });
     }
-    let potentialMatchesToDisplayToUserOnClient = getUsersWithPromptsResult.potentialMatches;
-    let responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, queryMatchesResults.data), { potentialMatches: potentialMatchesToDisplayToUserOnClient }) };
-    if ((potentialMatchesToDisplayToUserOnClient.length === 0)) {
-        return response.status(200).json(responseBody);
+    let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
+    matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
+    let paginationMatchesObj = {
+        hasReachedPaginationEnd: hasReachedPaginationEnd,
+        updatedSkipDocsNum: _updateSkipDocsNum,
+        canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
+    };
+    console.log("hasReachedPaginationEnd: ", hasReachedPaginationEnd);
+    console.log("matchesToSendToClient: ", matchesToSendToClient);
+    if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
+        console.log("Some users either don't have prompts or a matching pic. Getting new users.");
+        const getValidMatchesResult = yield getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
+        console.log("getValidMatchesResult: ", getValidMatchesResult);
+        matchesToSendToClient = getValidMatchesResult.validMatches;
     }
-    console.log('Getting matches info for client...');
-    const potentialMatchesForClientResult = yield getPromptsImgUrlsAndUserInfo(potentialMatchesToDisplayToUserOnClient, getUsersWithPromptsResult.prompts);
-    responseBody.potentialMatchesPagination.potentialMatches = potentialMatchesForClientResult.potentialMatches;
-    console.log('Potential matches info has been retrieved. Will check if the user has valid pic urls.');
-    // create a manual get request in the caritas application front end 
-    // at least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db. 
-    console.log("potentialMatchesForClientResult.potentialMatches: ", potentialMatchesForClientResult.potentialMatches);
-    console.log("potentialMatchesForClientResult.potentialMatches length: ", potentialMatchesForClientResult.potentialMatches.length);
-    if ((potentialMatchesForClientResult.potentialMatches.length < 5) && !hasReachedPaginationEnd) {
-        console.log("At least one user does not have a valid url matching pic stored in aws s3 or does not have any prompts stored in the db.");
-        const updatedSkipDocNumInt = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
-        const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: canStillQueryCurrentPageForUsers ? updatedSkipDocNumInt : (updatedSkipDocNumInt + 5) });
-        // BUG OCCURING IN THIS FUNCTION, GETTIG DUPLICATIONS OF MATCHES. 
-        const getMoreUsersAfterPicUrlFailureResult = yield getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed(_userQueryOpts, query.userId, potentialMatchesForClientResult.usersWithValidUrlPics);
-        console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches: ", getMoreUsersAfterPicUrlFailureResult.potentialMatches);
-        console.log("getMoreUsersAfterPicUrlFailureResult.potentialMatches length: ", (_b = getMoreUsersAfterPicUrlFailureResult === null || getMoreUsersAfterPicUrlFailureResult === void 0 ? void 0 : getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _b === void 0 ? void 0 : _b.length);
-        if (!getMoreUsersAfterPicUrlFailureResult.matchesQueryPage) {
-            console.error("Something went wrong. Couldn't get the matches query page object. Will send the available potential matches to the client.");
-            return response.status(200).json(responseBody);
-        }
-        if (getMoreUsersAfterPicUrlFailureResult.errorMsg) {
-            console.error("Failed to get more users with valid pic urls. Sending current matches that have valid pic aws urls. Error message: ", getMoreUsersAfterPicUrlFailureResult.errorMsg);
-            responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: potentialMatchesForClientResult.potentialMatches }) };
-            return response.status(200).json(responseBody);
-        }
-        if ((_c = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _c === void 0 ? void 0 : _c.length) {
-            console.log("Potential matches received after at least one user did not have valid prompts or a matching pic url. Will send them to the client.");
-            responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: getMoreUsersAfterPicUrlFailureResult.potentialMatches }) };
-        }
-        if (!((_d = getMoreUsersAfterPicUrlFailureResult.potentialMatches) === null || _d === void 0 ? void 0 : _d.length) || !getMoreUsersAfterPicUrlFailureResult.potentialMatches) {
-            console.log('No potential matches to display to the user on the client side.');
-            responseBody = { potentialMatchesPagination: Object.assign(Object.assign({}, getMoreUsersAfterPicUrlFailureResult.matchesQueryPage), { potentialMatches: [] }) };
-        }
+    const matchesToSendToClientUpdated = matchesToSendToClient.map((user) => {
+        const _user = user;
+        return Object.assign(Object.assign({}, _user), { firstName: _user.name.first });
+    });
+    console.log("matchesToSendToClientUpdated: ", matchesToSendToClientUpdated);
+    const promptsAndMatchingPicForClientResult = yield getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
+    console.log("promptsAndMatchingPicForClientResult: ", promptsAndMatchingPicForClientResult);
+    if (!promptsAndMatchingPicForClientResult.wasSuccessful) {
+        return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg });
     }
-    console.timeEnd('getMatchesRoute');
-    console.log("Potential matches has been retrieved. Will send them to the client.");
-    return response.status(200).json(responseBody);
+    paginationMatchesObj.validMatches = promptsAndMatchingPicForClientResult.data;
+    return response.status(200).json({ paginationMatches: paginationMatchesObj });
 }));

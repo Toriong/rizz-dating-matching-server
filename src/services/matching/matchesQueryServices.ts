@@ -112,17 +112,23 @@ async function getPromptsAndMatchingPicForClient(matches: IUserMatch[]){
     try{
         const matchesWithPromptsResult = await getMatchesWithPrompts(matches);
 
+        console.log("matchesWithPromptsResult: ", matchesWithPromptsResult)
+
         if(!matchesWithPromptsResult.wasSuccessful){
             throw new Error('Failed to get prompts for matches.')
         }
 
         const matchesWithPicsResult = await getMatchingPicUrlForUsers(matchesWithPromptsResult.data as IUserMatch[])
 
+        console.log("matchesWithPicsResult: ", matchesWithPicsResult)
+
         // get the location text for each user
 
         if(!matchesWithPicsResult.wasSuccessful){
             throw new Error('An error has occurred in getting matching pic for users.')
         }
+
+        console.log("matchesWithPicsResult.data getPromptsAndMatchingPicForClient: ", matchesWithPicsResult.data)
 
         return { wasSuccessful: true, data: matchesWithPicsResult.data }
     } catch(error:any){

@@ -54,6 +54,7 @@ async function getMatchesWithPrompts(users: IUserMatch[]): Promise<CRUDResult> {
 
             return _user;
         })
+        console.log("usersWithPrompts: ", usersWithPrompts)
         return { wasSuccessful: true, data: usersWithPrompts }
     } catch (error) {
 
