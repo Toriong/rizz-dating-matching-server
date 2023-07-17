@@ -254,18 +254,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const usersWithTestImg3 = potentialMatches.filter(({ pics }) => {
         const matchingPic = pics.find(({ isMatching }) => isMatching);
 
-        if(matchingPic?.picFileNameOnAws === "test-img-3.jpg"){
+        if (matchingPic?.picFileNameOnAws === "test-img-3.jpg") {
             return true;
         }
-        
+
         return false;
     })
     const idsOfUsersWithTestImg3 = usersWithTestImg3.map(({ _id }) => _id);
     console.log("idsOfUsersWithTestImg3, after getMatches function was executed:  ", idsOfUsersWithTestImg3)
-    const usersToDeletePromptsFromDb = potentialMatches.filter(({ _id }) => !idsOfUsersWithTestImg3.includes(_id));
-    const idsOfUsersToDeletePromptsFromDb = usersToDeletePromptsFromDb.map(({ _id }) => _id);
-    console.log("idsOfUsersToDeletePromptsFromDb, after getMatches function was executed: ", idsOfUsersToDeletePromptsFromDb)
-    const totalUnshowableUsersNum = idsOfUsersToDeletePromptsFromDb.length + idsOfUsersWithTestImg3.length;
+    const nonTestImg3Users = potentialMatches.filter(({ _id }) => !idsOfUsersWithTestImg3.includes(_id));
+    const idsOfNonTestImg3Users = nonTestImg3Users.map(({ _id, ratingNum }) => ({ _id, ratingNum })).sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+    console.log("idsOfNonTestImg3Users, after getMatches function was executed: ", idsOfNonTestImg3Users)
+    const totalUnshowableUsersNum = idsOfNonTestImg3Users.length + idsOfUsersWithTestImg3.length;
     console.log("totalUnshowableUsersNum, after getMatches function was executed: ", totalUnshowableUsersNum)
 
     let matchesToSendToClient: UserBaseModelSchema[] | IUserAndPrompts[] = await filterInUsersWithValidMatchingPicUrl(potentialMatches) as UserBaseModelSchema[];

@@ -46,7 +46,9 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
         let updatedSkipDocsNum = skipDocsNum;
         Users.createIndexes([{ location: '2dsphere' }]);
         // THE BELOW IS FOR TESTING:
-        skipAndLimitObj = { skip: 0, limit: 50 };
+        // skip: 50, limit: 5, the users of the sixth page
+        // skip: 55, limit: 5, the users of the seventh page
+        skipAndLimitObj = { skip: 55, limit: 5 };
         // THE ABOVE IS FOR TESTING:
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
@@ -73,7 +75,7 @@ function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfCha
         return [...allRejectedUserIds, ...allRecipientsOfChats];
     });
 }
-// GET THE FIRST 50 USERS FOR THE PAGE
+// get the users of the sixth page
 function getMatches(queryOptsForPagination, skipDocsNum) {
     return __awaiter(this, void 0, void 0, function* () {
         try {

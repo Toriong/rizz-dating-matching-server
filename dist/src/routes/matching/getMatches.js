@@ -191,10 +191,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     });
     const idsOfUsersWithTestImg3 = usersWithTestImg3.map(({ _id }) => _id);
     console.log("idsOfUsersWithTestImg3, after getMatches function was executed:  ", idsOfUsersWithTestImg3);
-    const usersToDeletePromptsFromDb = potentialMatches.filter(({ _id }) => !idsOfUsersWithTestImg3.includes(_id));
-    const idsOfUsersToDeletePromptsFromDb = usersToDeletePromptsFromDb.map(({ _id }) => _id);
-    console.log("idsOfUsersToDeletePromptsFromDb, after getMatches function was executed: ", idsOfUsersToDeletePromptsFromDb);
-    const totalUnshowableUsersNum = idsOfUsersToDeletePromptsFromDb.length + idsOfUsersWithTestImg3.length;
+    const nonTestImg3Users = potentialMatches.filter(({ _id }) => !idsOfUsersWithTestImg3.includes(_id));
+    const idsOfNonTestImg3Users = nonTestImg3Users.map(({ _id, ratingNum }) => ({ _id, ratingNum })).sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+    console.log("idsOfNonTestImg3Users, after getMatches function was executed: ", idsOfNonTestImg3Users);
+    const totalUnshowableUsersNum = idsOfNonTestImg3Users.length + idsOfUsersWithTestImg3.length;
     console.log("totalUnshowableUsersNum, after getMatches function was executed: ", totalUnshowableUsersNum);
     let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
     // getting a empty array for filterInUsersWithPropmts function call, THIS IS A BUG

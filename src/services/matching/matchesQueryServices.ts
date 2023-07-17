@@ -65,7 +65,9 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     (Users as any).createIndexes([{ location: '2dsphere' }])
 
     // THE BELOW IS FOR TESTING:
-    skipAndLimitObj = { skip: 0, limit: 50  }
+    // skip: 50, limit: 5, the users of the sixth page
+    // skip: 55, limit: 5, the users of the seventh page
+    skipAndLimitObj = { skip: 55, limit: 5  }
     // THE ABOVE IS FOR TESTING:
 
     const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
@@ -97,7 +99,7 @@ async function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: Reje
     return [...allRejectedUserIds, ...allRecipientsOfChats]
 }
 
-// GET THE FIRST 50 USERS FOR THE PAGE
+// get the users of the sixth page
 async function getMatches(queryOptsForPagination: IQueryOptsForPagination, skipDocsNum: number): Promise<GetMatchesResult> {
     try {
         const potentialMatchesPaginationObj = await queryForPotentialMatches(queryOptsForPagination, skipDocsNum);
