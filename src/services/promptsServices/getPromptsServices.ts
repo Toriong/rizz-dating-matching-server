@@ -1,13 +1,17 @@
 import Prompts from "../../models/Prompt.js"
 import { UserBaseModelSchema, UserNames } from "../../models/User.js"
 import { CRUDResult } from "../../types-and-interfaces/interfaces/globalInterfaces.js"
-import { IUserAndPrompts, PromptInterface, PromptModelInterface } from "../../types-and-interfaces/interfaces/promptsInterfaces.js"
+import { PromptInterface, PromptModelInterface } from "../../types-and-interfaces/interfaces/promptsInterfaces.js"
 
 async function getPromptByUserId(userId: string): Promise<CRUDResult> {
     try {
-        const prompt = await Prompts.findOne({ userId: userId }).lean()
+        const promptDoc: PromptModelInterface | null = await Prompts.findOne({ userId: userId }).lean()
 
-        return { wasSuccessful: true, data: prompt }
+        if(!promptDoc){
+            throw new Error('Prompt doc not found.')
+        }
+
+        return { wasSuccessful: true, data: promptDoc.prompts }
     } catch (error) {
         console.error('An error has occurred in getting the prompt of the target user. Error: ', error)
 
@@ -28,7 +32,7 @@ async function getPrompstByUserIds(userIds: string[]): Promise<CRUDResult> {
     }
 }
 
-type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" | "pics" >;
+type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" | "pics">;
 type LocationErrorMsgStr = "Can't get user's location." | "Unable to get user's location."
 interface IUserMatch extends TUser {
     prompts?: PromptInterface[]
@@ -54,7 +58,7 @@ async function getMatchesWithPrompts(users: IUserMatch[]): Promise<CRUDResult> {
 
             return _user;
         })
-        console.log("usersWithPrompts: ", usersWithPrompts)
+
         return { wasSuccessful: true, data: usersWithPrompts }
     } catch (error) {
 
@@ -71,17 +75,23 @@ async function getMatchesWithPrompts(users: IUserMatch[]): Promise<CRUDResult> {
 async function filterInUsersWithPrompts(users: UserBaseModelSchema[]): Promise<UserBaseModelSchema[] | []> {
     let usersWithPrompts = []
 
+    console.log("getting prompts for users...")
+    
     for (let numIteration = 0; numIteration < users.length; numIteration++) {
         const user = users[numIteration]
         const userPromptsResult = await getPromptByUserId(user._id)
 
-        if (userPromptsResult.wasSuccessful && (userPromptsResult.data as PromptInterface[])?.length) {
+        console.log((userPromptsResult.data as PromptModelInterface[])?.length)
+
+        if (userPromptsResult.wasSuccessful && (userPromptsResult.data as PromptModelInterface[])?.length) {
+            console.log("User has prompts, will push into the userWithPrompts array.")
             usersWithPrompts.push(user)
         }
     }
 
+    console.log("usersWithPrompts.length: ", usersWithPrompts.length)
+
     return usersWithPrompts;
 }
-
 
 export { getPromptByUserId, getPrompstByUserIds, filterInUsersWithPrompts, getMatchesWithPrompts }

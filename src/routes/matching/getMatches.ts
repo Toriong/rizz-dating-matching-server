@@ -1,21 +1,16 @@
 import { Router, Request, Response } from 'express'
-import GLOBAL_VALS from '../../globalVals.js';
 import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getMatches, getPromptsAndMatchingPicForClient } from '../../services/matching/matchesQueryServices.js';
 import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
-import { filterUsersWithoutPrompts, getPromptsImgUrlsAndUserInfo, getPromptsAndPicUrlsOfUsersAfterPicUrlOrPromptsRetrievalHasFailed, getUsersWithPrompts } from '../../services/matching/userMatchesInfoRetrievalServices.js';
-import { IFilterUserWithoutPromptsReturnVal, IUserMatch, InterfacePotentialMatchesPage, MatchesQueryPage, PotentialMatchesPageMap, PotentialMatchesPaginationForClient } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 import { UserBaseModelSchema } from '../../models/User.js';
-import { ReturnTypeQueryForMatchesFn } from '../../types-and-interfaces/types/userQueryTypes.js';
 import { IUserAndPrompts } from '../../types-and-interfaces/interfaces/promptsInterfaces.js';
-import { User } from 'aws-sdk/clients/budgets.js';
-import { MatchesQueryResponseBody, MatchesQueryRespsonseBodyBuild } from '../../types-and-interfaces/interfaces/responses/getMatches.js';
 import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
 import { getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
-import { get } from 'http';
 import { RejectedUserInterface } from '../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
 import { getUserById } from '../../services/globalMongoDbServices.js';
-import { getPrompstByUserIds, filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
+import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { IMatchingPicUser, filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
+import { IUserMatch, InterfacePotentialMatchesPage } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
+import GLOBAL_VALS from '../../globalVals.js';
 
 export const getMatchesRoute = Router();
 
@@ -102,7 +97,7 @@ interface IGetValidMatchesReturnVal {
 }
 type TResponseBodyGetMatches = Omit<IGetValidMatchesReturnVal, 'validMatches'>
 interface IResponseBodyGetMatches extends TResponseBodyGetMatches {
-    validMatches?: IMatchingPicUser[]
+    potentialMatches?: IMatchingPicUser[]
 }
 
 async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: string, validUserMatches: UserBaseModelSchema[]): Promise<IGetValidMatchesReturnVal> {
@@ -159,13 +154,15 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: stri
     // that has the 3rd image as their matching pic
     // get users from the seventh page, and add them to page that will be present to the user on the client side.
     // check what is being received for the getMatches function  
-    
+
     // GOAL #1: the target users of the page is retrieved and sent to the client.
 
     // GOAL #2: get the users of the sixth and seventh page 
-    
+
     // GOAL #3: get the users of the first 5 pages. These users will have their prompts delete from the db or have their matching pic url deleted from aws if their 
     // matching pic is test-img-3.
+
+    console.log("getting users")
 
     if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
         console.log('At least one user does not have a valid matching pic url or prompts. Getting new users.')
@@ -239,7 +236,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
     const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);
     const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
+    console.log("potentialMatches.length: ", potentialMatches?.length)
     const _updateSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+
 
     if (queryMatchesResults.status !== 200) {
         return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
@@ -251,7 +250,26 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(500).json({ msg: "Failed to get potential matches." })
     }
 
+    console.log("potentialMatches.length, after getMatches function was executed: ", potentialMatches.length)
+    const usersWithTestImg3 = potentialMatches.filter(({ pics }) => {
+        const matchingPic = pics.find(({ isMatching }) => isMatching);
+
+        if(matchingPic?.picFileNameOnAws === "test-img-3.jpg"){
+            return true;
+        }
+        
+        return false;
+    })
+    const idsOfUsersWithTestImg3 = usersWithTestImg3.map(({ _id }) => _id);
+    console.log("idsOfUsersWithTestImg3, after getMatches function was executed:  ", idsOfUsersWithTestImg3)
+    const usersToDeletePromptsFromDb = potentialMatches.filter(({ _id }) => !idsOfUsersWithTestImg3.includes(_id));
+    const idsOfUsersToDeletePromptsFromDb = usersToDeletePromptsFromDb.map(({ _id }) => _id);
+    console.log("idsOfUsersToDeletePromptsFromDb, after getMatches function was executed: ", idsOfUsersToDeletePromptsFromDb)
+    const totalUnshowableUsersNum = idsOfUsersToDeletePromptsFromDb.length + idsOfUsersWithTestImg3.length;
+    console.log("totalUnshowableUsersNum, after getMatches function was executed: ", totalUnshowableUsersNum)
+
     let matchesToSendToClient: UserBaseModelSchema[] | IUserAndPrompts[] = await filterInUsersWithValidMatchingPicUrl(potentialMatches) as UserBaseModelSchema[];
+    // getting a empty array for filterInUsersWithPropmts function call, THIS IS A BUG
     matchesToSendToClient = matchesToSendToClient?.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
     let paginationMatchesObj: IResponseBodyGetMatches = {
         hasReachedPaginationEnd: hasReachedPaginationEnd,
@@ -260,13 +278,17 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     console.log("hasReachedPaginationEnd: ", hasReachedPaginationEnd)
-    console.log("matchesToSendToClient: ", matchesToSendToClient)
+    console.log("matchesToSendToClient.length, before getValidMatches function call: ", matchesToSendToClient.length)
+
+    // BRAIN DUMP:
+    // something is being recursively called.
+    // with the first 50 users, get their prompts from the db and mathcing url pic from aws 
 
     if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
         console.log("Some users either don't have prompts or a matching pic. Getting new users.")
-        const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
-        console.log("getValidMatchesResult: ", getValidMatchesResult)
-        matchesToSendToClient = getValidMatchesResult.validMatches;
+        // const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
+        // console.log("getValidMatchesResult: ", getValidMatchesResult)
+        // matchesToSendToClient = getValidMatchesResult.validMatches;
     }
 
     const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
@@ -275,17 +297,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return { ..._user, firstName: _user.name.first } as IUserMatch
     })
 
-    console.log("matchesToSendToClientUpdated: ", matchesToSendToClientUpdated)
 
     const promptsAndMatchingPicForClientResult = await getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
-
-    console.log("promptsAndMatchingPicForClientResult: ", promptsAndMatchingPicForClientResult)
 
     if (!promptsAndMatchingPicForClientResult.wasSuccessful) {
         return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg })
     }
 
-    paginationMatchesObj.validMatches = promptsAndMatchingPicForClientResult.data
+    paginationMatchesObj.potentialMatches = promptsAndMatchingPicForClientResult.data
 
     return response.status(200).json({ paginationMatches: paginationMatchesObj })
 })
