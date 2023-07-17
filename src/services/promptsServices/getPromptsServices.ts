@@ -8,7 +8,7 @@ async function getPromptByUserId(userId: string): Promise<CRUDResult> {
         const promptDoc: PromptModelInterface | null = await Prompts.findOne({ userId: userId }).lean()
 
         if(!promptDoc){
-            throw new Error('Prompt doc not found.')
+            throw new Error('Prompt document not found.')
         }
 
         return { wasSuccessful: true, data: promptDoc.prompts }

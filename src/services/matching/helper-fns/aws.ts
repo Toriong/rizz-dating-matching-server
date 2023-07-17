@@ -36,9 +36,11 @@ async function filterInUsersWithValidMatchingPicUrl(users: UserBaseModelSchema[]
 
     for (let numIteration = 0; numIteration < users.length; numIteration++) {
         const user = users[numIteration];
-        const mathcingPicObj = user.pics.find(({ isMatching }) => isMatching)
+        const matchingPicObj = user.pics.find(({ isMatching }) => isMatching)
+        const doesImgAwsObjExist = (matchingPicObj?.isMatching && matchingPicObj?.picFileNameOnAws) ? await getDoesImgAwsObjExist(matchingPicObj.picFileNameOnAws) : false;
 
-        if (mathcingPicObj?.isMatching && await getDoesImgAwsObjExist(mathcingPicObj.picFileNameOnAws)) {
+        if (doesImgAwsObjExist && matchingPicObj?.picFileNameOnAws) {
+            console.log('image exist, image file name: ', matchingPicObj.picFileNameOnAws);
             usersWithMatchingPicUrls.push(user)
         }
     }

@@ -35,8 +35,10 @@ function filterInUsersWithValidMatchingPicUrl(users) {
         let usersWithMatchingPicUrls = [];
         for (let numIteration = 0; numIteration < users.length; numIteration++) {
             const user = users[numIteration];
-            const mathcingPicObj = user.pics.find(({ isMatching }) => isMatching);
-            if ((mathcingPicObj === null || mathcingPicObj === void 0 ? void 0 : mathcingPicObj.isMatching) && (yield getDoesImgAwsObjExist(mathcingPicObj.picFileNameOnAws))) {
+            const matchingPicObj = user.pics.find(({ isMatching }) => isMatching);
+            const doesImgAwsObjExist = ((matchingPicObj === null || matchingPicObj === void 0 ? void 0 : matchingPicObj.isMatching) && (matchingPicObj === null || matchingPicObj === void 0 ? void 0 : matchingPicObj.picFileNameOnAws)) ? yield getDoesImgAwsObjExist(matchingPicObj.picFileNameOnAws) : false;
+            if (doesImgAwsObjExist && (matchingPicObj === null || matchingPicObj === void 0 ? void 0 : matchingPicObj.picFileNameOnAws)) {
+                console.log('image exist, image file name: ', matchingPicObj.picFileNameOnAws);
                 usersWithMatchingPicUrls.push(user);
             }
         }

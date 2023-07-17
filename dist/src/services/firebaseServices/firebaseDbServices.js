@@ -11,13 +11,11 @@ import getFirebaseInfo from "./helper-fns/connectToFirebase.js";
 function getChatUserById(userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log('getting chat user by id: ', userId);
             const { db, child, get, ref } = getFirebaseInfo();
             const chatUserDataSnapShot = yield get(child(ref(db), `userChatIds/${userId}`));
             if (!chatUserDataSnapShot.exists()) {
                 throw new Error('The chat user does not exist in the firebase db.');
             }
-            console.log('chatUserDataSnapShot.val(): ', chatUserDataSnapShot.val());
             return { wasSuccessful: true, data: chatUserDataSnapShot.val() };
         }
         catch (error) {
@@ -47,9 +45,7 @@ function getAllUserChats(currentUserId) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log("Getting thet chat id of the following user: ", currentUserId);
             const getChatUserByIdResult = yield getChatUserById(currentUserId);
-            console.log('getChatUserByidResult: ', getChatUserByIdResult);
             if (!getChatUserByIdResult.wasSuccessful) {
                 throw new Error('An error has occurred in getting the chat user from the database.');
             }
@@ -64,13 +60,11 @@ function getAllUserChats(currentUserId) {
             const currentUserChatsPromises = userChatIdsObj.chatIds.map(chatId => getChatById(chatId));
             let currentUserChats = yield Promise.all(currentUserChatsPromises);
             currentUserChats = currentUserChats.filter(chat => chat.wasSuccessful).map(chat => chat.data);
-            console.log('currentUserChats: ', currentUserChats);
             let chatUserRecipientIds = [
                 ...new Set(currentUserChats
                     .flatMap(({ userIdA, userIdB }) => [userIdA, userIdB])
                     .filter(userId => currentUserId !== userId))
             ];
-            console.log('The ids of the users that the current user is chatting with: ', chatUserRecipientIds);
             return { wasSuccessful: true, data: chatUserRecipientIds };
         }
         catch (error) {

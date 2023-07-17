@@ -48,7 +48,7 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
         // THE BELOW IS FOR TESTING:
         // skip: 50, limit: 5, the users of the sixth page
         // skip: 55, limit: 5, the users of the seventh page
-        skipAndLimitObj = { skip: 55, limit: 5 };
+        // skipAndLimitObj = { skip: 55, limit: 5  }
         // THE ABOVE IS FOR TESTING:
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();

@@ -64,10 +64,10 @@ function getQueryOptionsValidationArr(queryOpts) {
     const isRadiusSetToAnywhereValidtionObj = { receivedType: typeof isRadiusSetToAnywhere, correctVal: 'boolean', fieldName: 'isRadiusSetToAnywhere', isCorrectValType: typeof Boolean(isRadiusSetToAnywhere) === 'boolean', val: isRadiusSetToAnywhere };
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj];
 }
-function getValidMatches(userQueryOpts, currentUserId, validUserMatches) {
+function getValidMatches(userQueryOpts, currentUserId, currentValidUserMatches) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        const usersToRetrieveNum = 5 - validUserMatches.length;
+        const usersToRetrieveNum = 5 - currentValidUserMatches.length;
         const allUserChatsResult = yield getAllUserChats(currentUserId);
         const rejectedUsersQuery = {
             $or: [
@@ -82,39 +82,24 @@ function getValidMatches(userQueryOpts, currentUserId, validUserMatches) {
         const currentUser = yield getUserById(currentUserId);
         if (!currentUser) {
             console.error('Could not find current user in the db.');
-            return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
+            return { hasReachedPaginationEnd: true, validMatches: currentValidUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
         }
         const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
         const queryMatchesResults = yield getMatches(queryOptsForPagination, userQueryOpts.skipDocsNum);
         const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data;
-        console.log('getMatches, potentialMatches array: ', potentialMatches);
         if (queryMatchesResults.status !== 200) {
-            return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
+            return { hasReachedPaginationEnd: true, validMatches: currentValidUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
         }
         if (potentialMatches === undefined) {
             console.log('Potential matches: ', potentialMatches);
-            return { hasReachedPaginationEnd: true, validMatches: validUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
+            return { hasReachedPaginationEnd: true, validMatches: currentValidUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
         }
         let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
         matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
         matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, usersToRetrieveNum) : [];
-        matchesToSendToClient = [...matchesToSendToClient, ...validUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
-        const _updatedSkipDocsNum = typeof updatedSkipDocsNum === 'string' ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+        matchesToSendToClient = [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+        const _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
         let getValidMatchesResult = { hasReachedPaginationEnd, validMatches: potentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum, canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers };
-        // BRAIN DUMP:
-        // get the first 50 users
-        // for the first 50 users, do the following:
-        // get the amount of users that have imgage 3 as their matching pic, those users will be unshowable
-        // the rest of the users will have their prompts deleted from the db
-        // the target users of the page will be the three users of the sixth page. For the sixth page, get the users
-        // that has the 3rd image as their matching pic
-        // get users from the seventh page, and add them to page that will be present to the user on the client side.
-        // check what is being received for the getMatches function  
-        // GOAL #1: the target users of the page is retrieved and sent to the client.
-        // GOAL #2: get the users of the sixth and seventh page 
-        // GOAL #3: get the users of the first 5 pages. These users will have their prompts delete from the db or have their matching pic url deleted from aws if their 
-        // matching pic is test-img-3.
-        console.log("getting users");
         if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
             console.log('At least one user does not have a valid matching pic url or prompts. Getting new users.');
             const _skipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
@@ -181,23 +166,23 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.log('Potential matches: ', potentialMatches);
         return response.status(500).json({ msg: "Failed to get potential matches." });
     }
-    console.log("potentialMatches.length, after getMatches function was executed: ", potentialMatches.length);
-    const usersWithTestImg3 = potentialMatches.filter(({ pics }) => {
-        const matchingPic = pics.find(({ isMatching }) => isMatching);
-        if ((matchingPic === null || matchingPic === void 0 ? void 0 : matchingPic.picFileNameOnAws) === "test-img-3.jpg") {
-            return true;
-        }
-        return false;
-    });
-    const idsOfUsersWithTestImg3 = usersWithTestImg3.map(({ _id }) => _id);
-    console.log("idsOfUsersWithTestImg3, after getMatches function was executed:  ", idsOfUsersWithTestImg3);
-    const nonTestImg3Users = potentialMatches.filter(({ _id }) => !idsOfUsersWithTestImg3.includes(_id));
-    const idsOfNonTestImg3Users = nonTestImg3Users.map(({ _id, ratingNum }) => ({ _id, ratingNum })).sort((userA, userB) => userB.ratingNum - userA.ratingNum);
-    console.log("idsOfNonTestImg3Users, after getMatches function was executed: ", idsOfNonTestImg3Users);
-    const totalUnshowableUsersNum = idsOfNonTestImg3Users.length + idsOfUsersWithTestImg3.length;
-    console.log("totalUnshowableUsersNum, after getMatches function was executed: ", totalUnshowableUsersNum);
+    // console.log("potentialMatches.length, after getMatches function was executed: ", potentialMatches.length)
+    // const usersWithTestImg3 = potentialMatches.filter(({ pics }) => {
+    //     const matchingPic = pics.find(({ isMatching }) => isMatching);
+    //     if (matchingPic?.picFileNameOnAws === "test-img-3.jpg") {
+    //         return true;
+    //     }
+    //     return false;
+    // })
+    // const idsOfUsersWithTestImg3 = usersWithTestImg3.map(({ _id }) => _id);
+    // console.log("idsOfUsersWithTestImg3, after getMatches function was executed:  ", idsOfUsersWithTestImg3)
+    // const nonTestImg3Users = potentialMatches.filter(({ _id }) => !idsOfUsersWithTestImg3.includes(_id));
+    // const idsOfNonTestImg3Users = nonTestImg3Users.map(({ _id, ratingNum }) => ({ _id, ratingNum })).sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+    // console.log("idsOfNonTestImg3Users, after getMatches function was executed: ", idsOfNonTestImg3Users)
+    // const totalUnshowableUsersNum = idsOfNonTestImg3Users.length + idsOfUsersWithTestImg3.length;
+    // console.log("totalUnshowableUsersNum, after getMatches function was executed: ", totalUnshowableUsersNum)
     let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
-    // getting a empty array for filterInUsersWithPropmts function call, THIS IS A BUG
+    console.log("matchesToSendToClient after filterInUsersWithValidMatchingPicUrl execution: ", matchesToSendToClient.length);
     matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
     let paginationMatchesObj = {
         hasReachedPaginationEnd: hasReachedPaginationEnd,
@@ -206,14 +191,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     };
     console.log("hasReachedPaginationEnd: ", hasReachedPaginationEnd);
     console.log("matchesToSendToClient.length, before getValidMatches function call: ", matchesToSendToClient.length);
-    // BRAIN DUMP:
-    // something is being recursively called.
-    // with the first 50 users, get their prompts from the db and mathcing url pic from aws 
     if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
         console.log("Some users either don't have prompts or a matching pic. Getting new users.");
-        // const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
-        // console.log("getValidMatchesResult: ", getValidMatchesResult)
-        // matchesToSendToClient = getValidMatchesResult.validMatches;
+        // this function is causing a infinite recursive call
+        const getValidMatchesResult = yield getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
+        console.log("getValidMatchesResult: ", getValidMatchesResult);
+        matchesToSendToClient = getValidMatchesResult.validMatches;
     }
     const matchesToSendToClientUpdated = matchesToSendToClient.map((user) => {
         const _user = user;
@@ -224,5 +207,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg });
     }
     paginationMatchesObj.potentialMatches = promptsAndMatchingPicForClientResult.data;
+    console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches);
     return response.status(200).json({ paginationMatches: paginationMatchesObj });
 }));

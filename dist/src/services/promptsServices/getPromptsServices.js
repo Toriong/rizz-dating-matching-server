@@ -13,7 +13,7 @@ function getPromptByUserId(userId) {
         try {
             const promptDoc = yield Prompts.findOne({ userId: userId }).lean();
             if (!promptDoc) {
-                throw new Error('Prompt doc not found.');
+                throw new Error('Prompt document not found.');
             }
             return { wasSuccessful: true, data: promptDoc.prompts };
         }
