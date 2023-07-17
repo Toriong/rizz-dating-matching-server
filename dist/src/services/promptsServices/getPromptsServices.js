@@ -62,16 +62,14 @@ function getMatchesWithPrompts(users) {
 // for each user, using their id, get their prompt from the database 
 // an array is attained with users, each user has the userBaseSchemaModal as their interface 
 function filterInUsersWithPrompts(users) {
-    var _a, _b;
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         let usersWithPrompts = [];
         console.log("getting prompts for users...");
         for (let numIteration = 0; numIteration < users.length; numIteration++) {
             const user = users[numIteration];
             const userPromptsResult = yield getPromptByUserId(user._id);
-            console.log((_a = userPromptsResult.data) === null || _a === void 0 ? void 0 : _a.length);
-            if (userPromptsResult.wasSuccessful && ((_b = userPromptsResult.data) === null || _b === void 0 ? void 0 : _b.length)) {
-                console.log("User has prompts, will push into the userWithPrompts array.");
+            if (userPromptsResult.wasSuccessful && ((_a = userPromptsResult.data) === null || _a === void 0 ? void 0 : _a.length)) {
                 usersWithPrompts.push(user);
             }
         }

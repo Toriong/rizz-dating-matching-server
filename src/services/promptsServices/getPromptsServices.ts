@@ -81,10 +81,7 @@ async function filterInUsersWithPrompts(users: UserBaseModelSchema[]): Promise<U
         const user = users[numIteration]
         const userPromptsResult = await getPromptByUserId(user._id)
 
-        console.log((userPromptsResult.data as PromptModelInterface[])?.length)
-
         if (userPromptsResult.wasSuccessful && (userPromptsResult.data as PromptModelInterface[])?.length) {
-            console.log("User has prompts, will push into the userWithPrompts array.")
             usersWithPrompts.push(user)
         }
     }

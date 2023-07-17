@@ -21,6 +21,7 @@ async function getDoesImgAwsObjExist(pathToImg: string): Promise<boolean> {
 
         const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
         const s3 = getS3Instance(AWS_S3_ACCESS_KEY as string, AWS_S3_SECRET_KEY as string);
+        console.log("pathToImg: ", pathToImg)
         await s3.headObject({ Bucket: AWS_BUCKET_NAME as string, Key: pathToImg }).promise();
 
         return true;
@@ -37,7 +38,9 @@ async function filterInUsersWithValidMatchingPicUrl(users: UserBaseModelSchema[]
     for (let numIteration = 0; numIteration < users.length; numIteration++) {
         const user = users[numIteration];
         const matchingPicObj = user.pics.find(({ isMatching }) => isMatching)
+        console.log("matchingPicObj.picFileNameOnAws: ", matchingPicObj?.picFileNameOnAws)
         const doesImgAwsObjExist = (matchingPicObj?.isMatching && matchingPicObj?.picFileNameOnAws) ? await getDoesImgAwsObjExist(matchingPicObj.picFileNameOnAws) : false;
+        console.log("doesImgAwsObjExist: ", doesImgAwsObjExist)
 
         if (doesImgAwsObjExist && matchingPicObj?.picFileNameOnAws) {
             console.log('image exist, image file name: ', matchingPicObj.picFileNameOnAws);

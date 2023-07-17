@@ -21,6 +21,7 @@ function getDoesImgAwsObjExist(pathToImg) {
             dotenv.config();
             const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
             const s3 = getS3Instance(AWS_S3_ACCESS_KEY, AWS_S3_SECRET_KEY);
+            console.log("pathToImg: ", pathToImg);
             yield s3.headObject({ Bucket: AWS_BUCKET_NAME, Key: pathToImg }).promise();
             return true;
         }
@@ -36,7 +37,9 @@ function filterInUsersWithValidMatchingPicUrl(users) {
         for (let numIteration = 0; numIteration < users.length; numIteration++) {
             const user = users[numIteration];
             const matchingPicObj = user.pics.find(({ isMatching }) => isMatching);
+            console.log("matchingPicObj.picFileNameOnAws: ", matchingPicObj === null || matchingPicObj === void 0 ? void 0 : matchingPicObj.picFileNameOnAws);
             const doesImgAwsObjExist = ((matchingPicObj === null || matchingPicObj === void 0 ? void 0 : matchingPicObj.isMatching) && (matchingPicObj === null || matchingPicObj === void 0 ? void 0 : matchingPicObj.picFileNameOnAws)) ? yield getDoesImgAwsObjExist(matchingPicObj.picFileNameOnAws) : false;
+            console.log("doesImgAwsObjExist: ", doesImgAwsObjExist);
             if (doesImgAwsObjExist && (matchingPicObj === null || matchingPicObj === void 0 ? void 0 : matchingPicObj.picFileNameOnAws)) {
                 console.log('image exist, image file name: ', matchingPicObj.picFileNameOnAws);
                 usersWithMatchingPicUrls.push(user);

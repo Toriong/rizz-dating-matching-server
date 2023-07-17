@@ -64,6 +64,10 @@ function getQueryOptionsValidationArr(queryOpts) {
     const isRadiusSetToAnywhereValidtionObj = { receivedType: typeof isRadiusSetToAnywhere, correctVal: 'boolean', fieldName: 'isRadiusSetToAnywhere', isCorrectValType: typeof Boolean(isRadiusSetToAnywhere) === 'boolean', val: isRadiusSetToAnywhere };
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj];
 }
+function getIdAndPics(user) {
+    const pic = user.pics.find(({ isMatching }) => isMatching);
+    return { pic, _id: user._id };
+}
 function getValidMatches(userQueryOpts, currentUserId, currentValidUserMatches) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
@@ -94,18 +98,60 @@ function getValidMatches(userQueryOpts, currentUserId, currentValidUserMatches) 
             console.log('Potential matches: ', potentialMatches);
             return { hasReachedPaginationEnd: true, validMatches: currentValidUserMatches, updatedSkipDocsNum: userQueryOpts.skipDocsNum, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
         }
+        //  WHAT I KNOW:
+        // -able to delete all users with test-img-3
+        // -for the page that is received from the backend, users with test image 3 is still being received
+        // THE BUG:
+        // for the page that is being received from the backend, the two users has their matching pic as testing image 3, even though that image doesn't exist
+        // WHAT I WANT: 
+        // filter out all users that don't have a valid mathcing pic url, i.e. when it doesn't exist in aws
+        // ACTIONABLE STEPS:
+        // get the name of the matching pic for each user
+        // if the image is testing-image-3, then it should throw an error
+        // BUG OCCURRING HERE? not deleting users with test-img-3
         let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
+        const userPics = matchesToSendToClient.map(user => {
+            const pic = user.pics.find(({ isMatching }) => isMatching);
+            return { pic, _id: user._id };
+        });
+        console.log("userPics after filterInUsersWithValidMatchingPicUrl was executed: ", userPics);
+        // BUG OCCURING ABOVE? not deleting users with test-img-3
         matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
+        console.log("matchesToSendToClient after filterInUsersWithPrompts execution: ", matchesToSendToClient.length);
         matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, usersToRetrieveNum) : [];
+        const userIdAndPic = currentValidUserMatches.map(getIdAndPics);
+        console.log("userIdAndPic: ", userIdAndPic);
         matchesToSendToClient = [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum);
         const _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
         let getValidMatchesResult = { hasReachedPaginationEnd, validMatches: potentialMatches, updatedSkipDocsNum: _updatedSkipDocsNum, canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers };
+        let usersUpdated = matchesToSendToClient.map(user => {
+            const pic = user.pics.find(({ isMatching }) => isMatching);
+            return { pic, _id: user._id };
+        });
+        console.log("usersUpdated, before checks: ", usersUpdated);
+        console.log("hasReachedPaginationEnd: ", hasReachedPaginationEnd);
         if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
             console.log('At least one user does not have a valid matching pic url or prompts. Getting new users.');
             const _skipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
             const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: _skipDocsNum + 5 });
-            getValidMatchesResult = (yield getValidMatches(_userQueryOpts, currentUserId, matchesToSendToClient));
+            console.log("matchesToSendToClient.length: ", matchesToSendToClient.length);
+            let usersUpdated = matchesToSendToClient.map(user => {
+                const pic = user.pics.find(({ isMatching }) => isMatching);
+                return { pic, _id: user._id };
+            });
+            console.log("usersUpdated, recursion is being executed: ", usersUpdated);
+            const getValidMatchesResultUpdated = yield getValidMatches(_userQueryOpts, currentUserId, matchesToSendToClient);
+            console.log("getValidMatchesResult, after recursion function call: ", getValidMatchesResultUpdated.validMatches.map(user => {
+                const pic = user.pics.find(({ isMatching }) => isMatching);
+                return { pic, _id: user._id };
+            }));
+            getValidMatchesResult.validMatches = getValidMatchesResultUpdated.validMatches;
         }
+        let _usersUpdated = matchesToSendToClient.map(user => {
+            const pics = user.pics.map(({ isMatching, picFileNameOnAws }) => (JSON.stringify({ isMatching, picFileNameOnAws })));
+            return { pics: pics, _id: user._id };
+        });
+        console.log("After checks, matches updated: ", _usersUpdated);
         return getValidMatchesResult;
     });
 }
@@ -194,8 +240,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
         console.log("Some users either don't have prompts or a matching pic. Getting new users.");
         // this function is causing a infinite recursive call
+        console.time("Getting matches again timing.");
         const getValidMatchesResult = yield getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
-        console.log("getValidMatchesResult: ", getValidMatchesResult);
+        console.timeEnd("Getting matches again timing.");
+        // GOAL: to check to see image pic url is valid. Should not get users with test image 3.
+        const userMatchingPics = getValidMatchesResult.validMatches.map(user => {
+            const pic = user.pics.find(({ isMatching }) => isMatching);
+            return {
+                _id: user._id,
+                pic: pic
+            };
+        });
+        console.log("userMatchingPics: ", userMatchingPics);
         matchesToSendToClient = getValidMatchesResult.validMatches;
     }
     const matchesToSendToClientUpdated = matchesToSendToClient.map((user) => {
