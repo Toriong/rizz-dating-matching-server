@@ -141,7 +141,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
-    console.time('getMatchesRoute');
+    console.time('getMatchesRoute, timing.');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
         return response.status(400).json({ msg: 'Missing query parameters.' });
@@ -168,14 +168,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: paginationPageNumUpdated, isRadiusSetToAnywhere: true });
     }
     const rejectedUsersQuery = generateGetRejectedUsersQuery([currentUserId], true);
-    // PUT THE BELOW IN A PROMISE ALL
-    const allUserChatsResult = yield getAllUserChats(currentUserId);
-    const rejectedUsersThatCurrentUserIsInResult = yield getRejectedUsers(rejectedUsersQuery);
-    // PUT THE ABOVE in a promise all
+    const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = yield Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)]);
     const rejectedUsers = ((_a = rejectedUsersThatCurrentUserIsInResult.data) === null || _a === void 0 ? void 0 : _a.length) ? rejectedUsersThatCurrentUserIsInResult.data : [];
     const allChatUsers = ((_b = allUserChatsResult.data) === null || _b === void 0 ? void 0 : _b.length) ? allUserChatsResult.data : [];
     const idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
-    const currentUser = yield getUserById(currentUserId);
     if (!currentUser) {
         console.error('Could not find current user in the db.');
         return response.status(404).json({ msg: 'Could not find current user in the db.' });
@@ -225,5 +221,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg });
     }
     paginationMatchesObj.potentialMatches = promptsAndMatchingPicForClientResult.data;
-    return response.status(200).json({ paginationMatches: paginationMatchesObj });
+    response.status(200).json({ paginationMatches: paginationMatchesObj });
+    console.timeEnd('getMatchesRoute, timing.');
 }));

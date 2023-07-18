@@ -196,7 +196,7 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
 }
 
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
-    console.time('getMatchesRoute')
+    console.time('getMatchesRoute, timing.')
     let query: unknown | ReqQueryMatchesParams = request.query
 
     if (!query || !(query as ReqQueryMatchesParams)?.query || !(query as ReqQueryMatchesParams).userId) {
@@ -235,18 +235,13 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     const rejectedUsersQuery = generateGetRejectedUsersQuery([currentUserId], true);
-    // PUT THE BELOW IN A PROMISE ALL
-    const allUserChatsResult = await getAllUserChats(currentUserId);
-    const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
-    // PUT THE ABOVE in a promise all
+    const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = await Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)])
     const rejectedUsers = (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])?.length ? (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]) : [];
     const allChatUsers = (allUserChatsResult.data as string[])?.length ? (allUserChatsResult.data as string[]) : [];
     const idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
-    const currentUser = await getUserById(currentUserId);
 
     if (!currentUser) {
         console.error('Could not find current user in the db.');
-
         return response.status(404).json({ msg: 'Could not find current user in the db.' })
     }
 
@@ -258,13 +253,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
 
     if (queryMatchesResults.status !== 200) {
-
         return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
     }
 
     if (potentialMatches === undefined) {
         console.log('Potential matches: ', potentialMatches)
-
         return response.status(500).json({ msg: "Failed to get potential matches." })
     }
 
@@ -287,14 +280,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
             return response.status(408).json({ msg: 'The server is taking longer than usual to get the matches.' })
         }
 
-        if(getValidMatchesResult.didErrorOccur){
+        if (getValidMatchesResult.didErrorOccur) {
             return response.status(500).json({ msg: 'An error has occurred in getting the matches.' })
         }
 
         matchesToSendToClient = (getValidMatchesResult.page as IMatchesPagination).validMatches ?? [];
     }
 
-    if(!matchesToSendToClient.length){
+    if (!matchesToSendToClient.length) {
         paginationMatchesObj.potentialMatches = [];
         return response.status(200).json({ paginationMatches: paginationMatchesObj })
     }
@@ -305,7 +298,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return { ..._user, firstName: _user.name.first } as IUserMatch
     })
 
-
     const promptsAndMatchingPicForClientResult = await getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
 
     if (!promptsAndMatchingPicForClientResult.wasSuccessful) {
@@ -314,5 +306,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     paginationMatchesObj.potentialMatches = promptsAndMatchingPicForClientResult.data
 
-    return response.status(200).json({ paginationMatches: paginationMatchesObj })
+    response.status(200).json({ paginationMatches: paginationMatchesObj })
+    console.timeEnd('getMatchesRoute, timing.')
 })
