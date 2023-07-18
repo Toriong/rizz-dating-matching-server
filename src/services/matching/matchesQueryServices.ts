@@ -89,7 +89,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
 }
 
-async function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUserInterface[], allRecipientsOfChats: string[]): Promise<string[]> {
+function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUserInterface[], allRecipientsOfChats: string[]): string[] {
     const allRejectedUserIds = [
         ...new Set((rejectedUsers)
             .flatMap((rejectedUserInfo: RejectedUserInterface) => {

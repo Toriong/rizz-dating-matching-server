@@ -4,13 +4,14 @@ import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces
 import { UserBaseModelSchema } from '../../models/User.js';
 import { IUserAndPrompts } from '../../types-and-interfaces/interfaces/promptsInterfaces.js';
 import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
-import { getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
+import { generateGetRejectedUsersQuery, getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
 import { RejectedUserInterface } from '../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
 import { getUserById } from '../../services/globalMongoDbServices.js';
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { IMatchingPicUser, filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 import { IUserMatch, InterfacePotentialMatchesPage } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 import GLOBAL_VALS from '../../globalVals.js';
+import { IError } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
 
 export const getMatchesRoute = Router();
 
@@ -88,14 +89,18 @@ function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidation
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj]
 }
 
-interface IGetValidMatchesReturnVal {
+interface IMatchesPagination {
     hasReachedPaginationEnd: boolean,
     validMatches: UserBaseModelSchema[] | [],
     updatedSkipDocsNum: number,
     canStillQueryCurrentPageForUsers: boolean,
     didErrorOccur?: boolean
 }
-type TResponseBodyGetMatches = Omit<IGetValidMatchesReturnVal, 'validMatches'>
+interface IGetValidMatches extends IError {
+    page?: IMatchesPagination
+    didTimeOut?: boolean
+}
+type TResponseBodyGetMatches = Omit<IMatchesPagination, 'validMatches'>
 interface IResponseBodyGetMatches extends TResponseBodyGetMatches {
     potentialMatches?: IMatchingPicUser[]
 }
@@ -106,81 +111,88 @@ function getIdAndPics(user: UserBaseModelSchema) {
     return { pic, _id: user._id };
 }
 
-async function getValidMatches(userQueryOpts: UserQueryOpts, currentUserId: string, currentValidUserMatches: UserBaseModelSchema[]): Promise<IGetValidMatchesReturnVal> {
+// move all outputs of functions that are n(1) as parameters for the getValidMatches function
+
+async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, currentValidUserMatches: UserBaseModelSchema[], idsOfUsersNotToShow: string[] = []): Promise<IGetValidMatches> {
     let validMatchesToSendToClient = [];
     let _userQueryOpts: UserQueryOpts = { ...userQueryOpts }
-    let getValidMatchesResult = {} as IGetValidMatchesReturnVal;
+    let matchesPage = {} as IMatchesPagination;
+    const usersToRetrieveNum = 5 - currentValidUserMatches.length;
 
-    while (validMatchesToSendToClient.length < 5) {
-        const usersToRetrieveNum = 5 - currentValidUserMatches.length;
-        const allUserChatsResult = await getAllUserChats(currentUserId);
-        const rejectedUsersQuery = {
-            $or: [
-                { rejectedUserId: { $in: [currentUserId] } },
-                { rejectorUserId: { $in: [currentUserId] } }
-            ]
-        }
-        const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
-        const rejectedUsers = (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])?.length ? (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]) : [];
-        const allChatUsers = (allUserChatsResult.data as string[])?.length ? (allUserChatsResult.data as string[]) : [];
-        const idsOfUsersNotToShow = await getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
-        const currentUser = await getUserById(currentUserId);
+    // if the below while loop take longer than 15 seconds, break it tell the client that the server is taking longer than usually to get the matches, the client can do the following: 
+    // wait for the matches
+    // start over their search for matches
 
-        if (!currentUser) {
-            console.error('Could not find current user in the db.');
+    try {
+        while (validMatchesToSendToClient.length < 5) {
+            const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow)
+            const queryMatchesResults = await getMatches(queryOptsForPagination, _userQueryOpts.skipDocsNum as number);
+            const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data as InterfacePotentialMatchesPage;
 
-            getValidMatchesResult = { hasReachedPaginationEnd: true, validMatches: currentValidUserMatches, updatedSkipDocsNum: _userQueryOpts.skipDocsNum as number, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
-            break;
-        }
-
-        const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow)
-        const queryMatchesResults = await getMatches(queryOptsForPagination, _userQueryOpts.skipDocsNum as number);
-        const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data as InterfacePotentialMatchesPage;
-
-
-        if (queryMatchesResults.status !== 200) {
-
-            getValidMatchesResult = { hasReachedPaginationEnd: true, validMatches: currentValidUserMatches, updatedSkipDocsNum: _userQueryOpts.skipDocsNum as number, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
-            break;
-        }
-
-        if (potentialMatches === undefined) {
-            getValidMatchesResult = { hasReachedPaginationEnd: true, validMatches: currentValidUserMatches, updatedSkipDocsNum: _userQueryOpts.skipDocsNum as number, canStillQueryCurrentPageForUsers: false, didErrorOccur: true };
-            break;
-        }
-
-        let matchesToSendToClient = await filterInUsersWithValidMatchingPicUrl(potentialMatches)
-        matchesToSendToClient = matchesToSendToClient.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
-        matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, usersToRetrieveNum) : [];
-        matchesToSendToClient = matchesToSendToClient.length ? [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
-                
-
-        if(matchesToSendToClient.length){
-            validMatchesToSendToClient.push(...matchesToSendToClient)
-        }
-
-        let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
-
-        if ((validMatchesToSendToClient.length < 5) && !hasReachedPaginationEnd) {
-            _updatedSkipDocsNum = _updatedSkipDocsNum + 5;
-            _userQueryOpts = { ..._userQueryOpts, skipDocsNum: _updatedSkipDocsNum }
-        }
-        
-        if (hasReachedPaginationEnd || (validMatchesToSendToClient.length >= 5)) {
-            getValidMatchesResult = {
-                hasReachedPaginationEnd,
-                validMatches: validMatchesToSendToClient,
-                updatedSkipDocsNum: _updatedSkipDocsNum,
-                canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers
-            }
-
-            if(hasReachedPaginationEnd){
+            if (queryMatchesResults.status !== 200) {
+                matchesPage = {
+                    hasReachedPaginationEnd: true,
+                    validMatches: currentValidUserMatches,
+                    updatedSkipDocsNum: _userQueryOpts.skipDocsNum as number,
+                    canStillQueryCurrentPageForUsers: false,
+                    didErrorOccur: true
+                };
                 break;
             }
+
+            if (potentialMatches === undefined) {
+                matchesPage = {
+                    hasReachedPaginationEnd: true,
+                    validMatches: currentValidUserMatches,
+                    updatedSkipDocsNum: _userQueryOpts.skipDocsNum as number,
+                    canStillQueryCurrentPageForUsers: false,
+                    didErrorOccur: true
+                };
+                break;
+            }
+
+            // have both async functions be executed at the same time
+            // compare the results of both async functions
+            // get the intersection of both results using the Set data structure
+            // combine the results into an array, and using the intersection in the previous step, get the values that are in the intersection set 
+            let matchesToSendToClient = await filterInUsersWithValidMatchingPicUrl(potentialMatches)
+            matchesToSendToClient = matchesToSendToClient.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
+            matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, usersToRetrieveNum) : [];
+            matchesToSendToClient = matchesToSendToClient.length ? [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
+
+
+            if (matchesToSendToClient.length) {
+                validMatchesToSendToClient.push(...matchesToSendToClient)
+            }
+
+            let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+
+            if ((validMatchesToSendToClient.length < 5) && !hasReachedPaginationEnd) {
+                _updatedSkipDocsNum = _updatedSkipDocsNum + 5;
+                _userQueryOpts = { ..._userQueryOpts, skipDocsNum: _updatedSkipDocsNum }
+            }
+
+            if (hasReachedPaginationEnd || (validMatchesToSendToClient.length >= 5)) {
+                matchesPage = {
+                    hasReachedPaginationEnd,
+                    validMatches: validMatchesToSendToClient,
+                    updatedSkipDocsNum: _updatedSkipDocsNum,
+                    canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers
+                }
+
+                if (hasReachedPaginationEnd) {
+                    break;
+                }
+            }
         }
+
+        return { page: matchesPage }
+    } catch (error) {
+        console.error('Failed to get valid matches. An error has occurred: ', error)
+
+        return { didErrorOccur: true };
     }
 
-    return getValidMatchesResult;
 }
 
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
@@ -222,17 +234,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         userQueryOpts = { ...userQueryOpts, skipDocsNum: paginationPageNumUpdated, isRadiusSetToAnywhere: true }
     }
 
+    const rejectedUsersQuery = generateGetRejectedUsersQuery([currentUserId], true);
+    // PUT THE BELOW IN A PROMISE ALL
     const allUserChatsResult = await getAllUserChats(currentUserId);
-    const rejectedUsersQuery = {
-        $or: [
-            { rejectedUserId: { $in: [currentUserId] } },
-            { rejectorUserId: { $in: [currentUserId] } }
-        ]
-    }
     const rejectedUsersThatCurrentUserIsInResult = await getRejectedUsers(rejectedUsersQuery)
+    // PUT THE ABOVE in a promise all
     const rejectedUsers = (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])?.length ? (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]) : [];
     const allChatUsers = (allUserChatsResult.data as string[])?.length ? (allUserChatsResult.data as string[]) : [];
-    const idsOfUsersNotToShow = await getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
+    const idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
     const currentUser = await getUserById(currentUserId);
 
     if (!currentUser) {
@@ -269,12 +278,25 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
 
     if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
-        // this function is causing a infinite recursive call
         console.time("Getting matches again timing.")
-        const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUserId, matchesToSendToClient);
+        const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
         console.timeEnd("Getting matches again timing.")
 
-        matchesToSendToClient = getValidMatchesResult.validMatches;
+        if (getValidMatchesResult.didTimeOut) {
+            // cache the results of the query
+            return response.status(408).json({ msg: 'The server is taking longer than usual to get the matches.' })
+        }
+
+        if(getValidMatchesResult.didErrorOccur){
+            return response.status(500).json({ msg: 'An error has occurred in getting the matches.' })
+        }
+
+        matchesToSendToClient = (getValidMatchesResult.page as IMatchesPagination).validMatches ?? [];
+    }
+
+    if(!matchesToSendToClient.length){
+        paginationMatchesObj.potentialMatches = [];
+        return response.status(200).json({ paginationMatches: paginationMatchesObj })
     }
 
     const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {

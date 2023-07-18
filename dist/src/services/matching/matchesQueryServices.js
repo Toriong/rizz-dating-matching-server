@@ -64,16 +64,14 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
     });
 }
 function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfChats) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const allRejectedUserIds = [
-            ...new Set((rejectedUsers)
-                .flatMap((rejectedUserInfo) => {
-                return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId];
-            })
-                .filter(userId => currentUserId !== userId))
-        ];
-        return [...allRejectedUserIds, ...allRecipientsOfChats];
-    });
+    const allRejectedUserIds = [
+        ...new Set((rejectedUsers)
+            .flatMap((rejectedUserInfo) => {
+            return [rejectedUserInfo.rejectedUserId, rejectedUserInfo.rejectorUserId];
+        })
+            .filter(userId => currentUserId !== userId))
+    ];
+    return [...allRejectedUserIds, ...allRecipientsOfChats];
 }
 // get the users of the sixth page
 function getMatches(queryOptsForPagination, skipDocsNum) {

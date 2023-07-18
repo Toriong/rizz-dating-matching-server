@@ -53,6 +53,29 @@ interface RejectedUsersOrQuery {
     $or: RejectedUsersQuery[]
 }
 
+function generateGetRejectedUsersQuery(userIds: string[], isBoth?: boolean, isRejectedUser?: boolean, isRejectorUser?: boolean) {
+    let rejectedUsersQuery = {} as RejectedUsersQuery | RejectedUsersOrQuery;
+
+    if (isBoth) {
+        rejectedUsersQuery = {
+            $or: [
+                { rejectedUserId: { $in: userIds } },
+                { rejectorUserId: {$in: userIds } }
+            ]
+        }
+    }
+
+    if(isRejectedUser){
+        rejectedUsersQuery = { rejectedUserId: { $in: userIds } }
+    }
+
+    if(isRejectorUser){
+        rejectedUsersQuery = { rejectorUserId: { $in: userIds } }
+    }
+
+    return rejectedUsersQuery
+}
+
 async function getRejectedUsers(queryObj: RejectedUsersQuery | RejectedUsersOrQuery): Promise<CRUDResult> {
     try {
         const rejectedUsers: RejectedUserInterface[] | [] = await RejectedUsers.find(queryObj).lean();
@@ -65,4 +88,4 @@ async function getRejectedUsers(queryObj: RejectedUsersQuery | RejectedUsersOrQu
 }
 
 
-export { insertRejectedUser, getRejectedUsers, deleteRejectedUser }
+export { insertRejectedUser, getRejectedUsers, deleteRejectedUser, generateGetRejectedUsersQuery }

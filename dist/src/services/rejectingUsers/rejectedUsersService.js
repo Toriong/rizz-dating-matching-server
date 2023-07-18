@@ -36,6 +36,24 @@ function deleteRejectedUser(queryObj) {
         }
     });
 }
+function generateGetRejectedUsersQuery(userIds, isBoth, isRejectedUser, isRejectorUser) {
+    let rejectedUsersQuery = {};
+    if (isBoth) {
+        rejectedUsersQuery = {
+            $or: [
+                { rejectedUserId: { $in: userIds } },
+                { rejectorUserId: { $in: userIds } }
+            ]
+        };
+    }
+    if (isRejectedUser) {
+        rejectedUsersQuery = { rejectedUserId: { $in: userIds } };
+    }
+    if (isRejectorUser) {
+        rejectedUsersQuery = { rejectorUserId: { $in: userIds } };
+    }
+    return rejectedUsersQuery;
+}
 function getRejectedUsers(queryObj) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -48,4 +66,4 @@ function getRejectedUsers(queryObj) {
         }
     });
 }
-export { insertRejectedUser, getRejectedUsers, deleteRejectedUser };
+export { insertRejectedUser, getRejectedUsers, deleteRejectedUser, generateGetRejectedUsersQuery };

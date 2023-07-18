@@ -10,4 +10,9 @@ interface CRUDResult {
     | RejectedUserInterface[] | string[] | PromptInterface | PromptInterface[] | PromptModelInterface[]  
 }
 
-export { CRUDResult }
+type IError = {
+    didErrorOccur?: boolean
+    msg?: boolean
+}
+
+export { CRUDResult, IError }
