@@ -97,7 +97,7 @@ const UserNames = new Schema<UserNames>({
     last: String,
     nickName: String
 }, { _id: false })
-const UserLocation = new Schema({
+const UserLocation = new Schema<UserLocation>({
     type: {
         type: String,
         enum: ['Point'],
@@ -137,4 +137,4 @@ UserSchema.plugin(mongoosePagination)
 
 const User = model('users', UserSchema);
 
-export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema, Picture, UserNames };
+export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema, Picture, UserNames, UserLocation };

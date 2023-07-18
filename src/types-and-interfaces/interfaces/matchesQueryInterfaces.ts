@@ -1,5 +1,6 @@
 import { UserBaseModelSchema, UserNames } from "../../models/User.js";
 import { IUserAndPrompts, PromptInterface, PromptModelInterface } from "./promptsInterfaces.js";
+import { UserLocation } from "./userQueryInterfaces.js";
 
 interface InterfacePotentialMatchesPage {
     updatedSkipDocsNum: string | number;
@@ -20,7 +21,7 @@ interface IFilterUserWithoutPromptsReturnVal {
 }
 
 
-type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" | "pics" >;
+type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" | "pics">;
 type LocationErrorMsgStr = "Can't get user's location." | "Unable to get user's location."
 interface IUserMatch extends TUser {
     prompts?: PromptInterface[]
@@ -29,6 +30,7 @@ interface IUserMatch extends TUser {
     name?: UserNames
     locationErrorMsg?: LocationErrorMsgStr,
     firstName?: string,
+    location?: UserLocation,
     // the first value is the latitude, the second is the longitude
     userLocationArr?: [number, number],
 }

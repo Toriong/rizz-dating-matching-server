@@ -73,11 +73,11 @@ async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 
 }
 
 type TMatchingPicUser = Pick<UserBaseModelSchema, 'pics'>;
-interface IMatchingPicUser extends TMatchingPicUser, IUserMatch {}
+interface IMatchingPicUser extends IUserMatch {}
 
 async function getMatchingPicUrlForUsers(users: IMatchingPicUser[]) {
     try {
-        let matches = [];
+        let matches = [] as IMatchingPicUser[];
 
         for (let numIteration = 0; numIteration < users.length; numIteration++) {
             const user = users[numIteration];

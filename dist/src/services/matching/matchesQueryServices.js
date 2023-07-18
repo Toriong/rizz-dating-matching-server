@@ -8,9 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { User as Users } from "../../models/User.js";
-import moment from "moment";
 import { getMatchesWithPrompts } from "../promptsServices/getPromptsServices.js";
 import { getMatchingPicUrlForUsers } from "./helper-fns/aws.js";
+import moment from "moment";
 import dotenv from 'dotenv';
 import axios from 'axios';
 function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds) {
@@ -122,6 +122,27 @@ function getReverseGeoCode(userLocation) {
         }
     });
 }
+function getLocationStrForUsers(users) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let usersUpdated = [];
+        for (let numIteration = 0; numIteration < users.length; numIteration++) {
+            let userMap = new Map(Object.entries(users[numIteration]));
+            let userLocation = userMap.get('location');
+            const userLocationStrResult = yield getReverseGeoCode(userLocation.coordinates);
+            if (userLocationStrResult.wasSuccessful) {
+                userMap.set('locationStr', userLocationStrResult.data);
+                userMap.delete('location');
+            }
+            else {
+                userMap.set('locationErrorMsg', "Unable to get user's location.");
+            }
+            userMap.delete('pics');
+            userMap.delete('name');
+            usersUpdated.push(Object.fromEntries(userMap));
+        }
+        return usersUpdated;
+    });
+}
 function getPromptsAndMatchingPicForClient(matches) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -141,15 +162,4 @@ function getPromptsAndMatchingPicForClient(matches) {
         }
     });
 }
-function getUserLocation(matches) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            return { wasSuccessful: true };
-        }
-        catch (error) {
-            console.error("An error has occurred in getting the location of the user. Error message: ", error);
-            return { wasSuccessful: false };
-        }
-    });
-}
-export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow, getPromptsAndMatchingPicForClient };
+export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow, getPromptsAndMatchingPicForClient, getLocationStrForUsers };

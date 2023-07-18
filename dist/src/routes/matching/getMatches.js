@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Router } from 'express';
-import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getMatches, getPromptsAndMatchingPicForClient } from '../../services/matching/matchesQueryServices.js';
+import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getLocationStrForUsers, getMatches, getPromptsAndMatchingPicForClient } from '../../services/matching/matchesQueryServices.js';
 import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
 import { generateGetRejectedUsersQuery, getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
 import { getUserById } from '../../services/globalMongoDbServices.js';
@@ -103,10 +103,6 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                     };
                     break;
                 }
-                // have both async functions be executed at the same time
-                // compare the results of both async functions
-                // get the intersection of both results using the Set data structure
-                // combine the results into an array, and using the intersection in the previous step, get the values that are in the intersection set 
                 let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
                 matchesToSendToClient = matchesToSendToClient.length ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
                 matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, usersToRetrieveNum) : [];
@@ -218,9 +214,13 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     });
     const promptsAndMatchingPicForClientResult = yield getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
     if (!promptsAndMatchingPicForClientResult.wasSuccessful) {
+        console.error('Something went wrong. Couldn\'t get prompts and matching pic for client.');
         return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg });
     }
-    paginationMatchesObj.potentialMatches = promptsAndMatchingPicForClientResult.data;
+    let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
+    potentialMatchesForClient = yield getLocationStrForUsers(potentialMatchesForClient);
+    console.log('potentialMatchesForClient: ', potentialMatchesForClient);
+    paginationMatchesObj.potentialMatches = potentialMatchesForClient;
     response.status(200).json({ paginationMatches: paginationMatchesObj });
     console.timeEnd('getMatchesRoute, timing.');
 }));
