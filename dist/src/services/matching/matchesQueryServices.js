@@ -11,6 +11,8 @@ import { User as Users } from "../../models/User.js";
 import moment from "moment";
 import { getMatchesWithPrompts } from "../promptsServices/getPromptsServices.js";
 import { getMatchingPicUrlForUsers } from "./helper-fns/aws.js";
+import dotenv from 'dotenv';
+import axios from 'axios';
 function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds) {
     const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
     const currentPageNum = skipDocsNum / 5;
@@ -44,7 +46,9 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
     return __awaiter(this, void 0, void 0, function* () {
         let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
         let updatedSkipDocsNum = skipDocsNum;
-        Users.createIndexes([{ location: '2dsphere' }]);
+        if (paginationQueryOpts === null || paginationQueryOpts === void 0 ? void 0 : paginationQueryOpts.location) {
+            Users.createIndexes([{ location: '2dsphere' }]);
+        }
         // THE BELOW IS FOR TESTING:
         // skip: 50, limit: 5, the users of the sixth page
         // skip: 55, limit: 5, the users of the seventh page
@@ -87,6 +91,37 @@ function getMatches(queryOptsForPagination, skipDocsNum) {
         }
     });
 }
+function getCountryName(countryCode) {
+    let regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    return regionNames.of(countryCode);
+}
+function getReverseGeoCode(userLocation) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            dotenv.config();
+            const [longitude, latitude] = userLocation;
+            const reverseGeoCodeUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.REVERSE_GEO_LOCATION_API_KEY}`;
+            const response = yield axios.get(reverseGeoCodeUrl);
+            const { status, data } = response;
+            if (status !== 200) {
+                throw new Error("Failed to get reverse geocode.");
+            }
+            ;
+            console.log('Recevied reverse geo code data: ', data === null || data === void 0 ? void 0 : data[0]);
+            const { name: city, state, country } = data[0];
+            const countryName = getCountryName(country);
+            if (!countryName) {
+                throw new Error("Failed to get country name.");
+            }
+            const userLocationStr = state ? `${city}, ${state}, ${countryName}` : `${city}, ${countryName}`;
+            return { wasSuccessful: true, data: userLocationStr };
+        }
+        catch (error) {
+            console.error("Failed to get the reverse geocode of the user's location. Error message: ", error);
+            return { wasSuccessful: false };
+        }
+    });
+}
 function getPromptsAndMatchingPicForClient(matches) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -103,6 +138,17 @@ function getPromptsAndMatchingPicForClient(matches) {
         catch (error) {
             console.error('Getting prompts and matching pic for client error: ', error);
             return { wasSuccessful: false, msg: 'Getting prompts and matching pic for client error: ' + (error === null || error === void 0 ? void 0 : error.message) };
+        }
+    });
+}
+function getUserLocation(matches) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            return { wasSuccessful: true };
+        }
+        catch (error) {
+            console.error("An error has occurred in getting the location of the user. Error message: ", error);
+            return { wasSuccessful: false };
         }
     });
 }
