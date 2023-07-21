@@ -174,24 +174,27 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
     const queryMatchesResults = yield getMatches(queryOptsForPagination, paginationPageNumUpdated);
-    // GOAL: get the ids of the first 100 users
+    // GOAL: get the ids of the users in the sixth page.
     const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
     // FOR TESTING PURPOSES, BELOW:
     let _potentialMatches = potentialMatches;
-    const potentialMatchesWithNonTestImg3 = _potentialMatches === null || _potentialMatches === void 0 ? void 0 : _potentialMatches.filter(({ pics }) => {
+    const usersOfPromptsToDelete = _potentialMatches === null || _potentialMatches === void 0 ? void 0 : _potentialMatches.filter(({ pics }) => {
         const matchingPic = pics.find(({ isMatching }) => isMatching);
-        return (matchingPic === null || matchingPic === void 0 ? void 0 : matchingPic.picFileNameOnAws) !== 'test-img-3.jpg';
+        return ((matchingPic === null || matchingPic === void 0 ? void 0 : matchingPic.picFileNameOnAws) !== 'test-img-3.jpg');
     });
-    const potentialMatchesWithNonTestImg3Ids = potentialMatchesWithNonTestImg3 === null || potentialMatchesWithNonTestImg3 === void 0 ? void 0 : potentialMatchesWithNonTestImg3.map(({ _id }) => _id);
-    const usersWithTestImg3 = potentialMatchesWithNonTestImg3.filter(({ _id }) => potentialMatchesWithNonTestImg3Ids.includes(_id));
-    const usersWithTestImg3Num = (_potentialMatches === null || _potentialMatches === void 0 ? void 0 : _potentialMatches.length) - (potentialMatchesWithNonTestImg3 === null || potentialMatchesWithNonTestImg3 === void 0 ? void 0 : potentialMatchesWithNonTestImg3.length);
-    console.log("potentialMatchesWithNonTestImg3Ids: ", potentialMatchesWithNonTestImg3Ids);
-    console.log("usersWithTestImg3 ids: ", usersWithTestImg3.map(({ _id }) => _id));
-    const totalUsersQueried = usersWithTestImg3Num + (potentialMatchesWithNonTestImg3Ids === null || potentialMatchesWithNonTestImg3Ids === void 0 ? void 0 : potentialMatchesWithNonTestImg3Ids.length);
-    console.log("totalUsersQueried: ", totalUsersQueried);
+    const potentialMatchesWithTestImg3 = _potentialMatches === null || _potentialMatches === void 0 ? void 0 : _potentialMatches.filter(({ pics }) => {
+        const matchingPic = pics.find(({ isMatching }) => isMatching);
+        return ((matchingPic === null || matchingPic === void 0 ? void 0 : matchingPic.picFileNameOnAws) === 'test-img-3.jpg');
+    });
+    const userIdsOfPromptsToDelete = usersOfPromptsToDelete.map(({ _id, ratingNum }) => ({ _id, ratingNum }));
+    const potentialMatchesWithTestImg3UserIds = potentialMatchesWithTestImg3.map(({ _id }) => _id);
+    const totalUsersQueried = userIdsOfPromptsToDelete.length + potentialMatchesWithTestImg3UserIds.length;
+    console.log('totalUsersQueried: ', totalUsersQueried);
+    console.log('userIdsOfPromptsToDelete: ', userIdsOfPromptsToDelete);
+    console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds);
     // FOR TESTING PURPOSES, ABOVE:
     const _updateSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
-    return response.status(200);
+    response.status(200).json({ msg: "Users received!" });
     // if (queryMatchesResults.status !== 200) {
     //     return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
     // }
@@ -209,7 +212,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
     //     console.time("Getting matches again timing.")
     //     const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
-    //     console.timeEnd("Getting matches again timing.")
+    //     console.timeEnd("Getting matches again timing.")    
     //     if (getValidMatchesResult.didTimeOut) {
     //         // cache the results of the query
     //         return response.status(408).json({ msg: 'The server is taking longer than usual to get the matches.' })
@@ -237,5 +240,5 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // console.log('potentialMatchesForClient: ', potentialMatchesForClient)
     // paginationMatchesObj.potentialMatches = potentialMatchesForClient
     // response.status(200).json({ paginationMatches: paginationMatchesObj })
-    // console.timeEnd('getMatchesRoute, timing.')
+    console.timeEnd('getMatchesRoute, timing.');
 }));

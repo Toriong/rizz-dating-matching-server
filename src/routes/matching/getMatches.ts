@@ -244,29 +244,36 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
     const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);
 
-    // GOAL: get the ids of the first 100 users
+    // GOAL: get the ids of the users in the sixth page.
     const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
 
     // FOR TESTING PURPOSES, BELOW:
+
     let _potentialMatches = potentialMatches as UserBaseModelSchema[];
-    const potentialMatchesWithNonTestImg3 = _potentialMatches?.filter(({ pics }) => {
+    const usersOfPromptsToDelete = _potentialMatches?.filter(({ pics }) => {
         const matchingPic = pics.find(({ isMatching }) => isMatching);
 
-        return matchingPic?.picFileNameOnAws !== 'test-img-3.jpg'
+        return (matchingPic?.picFileNameOnAws !== 'test-img-3.jpg');
     })
-    const potentialMatchesWithNonTestImg3Ids = potentialMatchesWithNonTestImg3?.map(({ _id }) => _id)
-    const usersWithTestImg3 = potentialMatchesWithNonTestImg3.filter(({ _id }) => potentialMatchesWithNonTestImg3Ids.includes(_id))
-    const usersWithTestImg3Num = _potentialMatches?.length as number - potentialMatchesWithNonTestImg3?.length as number;
-    console.log("potentialMatchesWithNonTestImg3Ids: ", potentialMatchesWithNonTestImg3Ids);
-    console.log("usersWithTestImg3 ids: ", usersWithTestImg3.map(({_id}) => _id));
-    const totalUsersQueried = usersWithTestImg3Num + potentialMatchesWithNonTestImg3Ids?.length as number;
-    console.log("totalUsersQueried: ", totalUsersQueried)
+    const potentialMatchesWithTestImg3 = _potentialMatches?.filter(({ pics }) => {
+        const matchingPic = pics.find(({ isMatching }) => isMatching);
+
+        return (matchingPic?.picFileNameOnAws === 'test-img-3.jpg');
+    })
+    const userIdsOfPromptsToDelete = usersOfPromptsToDelete.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
+    const potentialMatchesWithTestImg3UserIds = potentialMatchesWithTestImg3.map(({ _id }) => _id)
+    const totalUsersQueried = userIdsOfPromptsToDelete.length + potentialMatchesWithTestImg3UserIds.length
+
+    console.log('totalUsersQueried: ', totalUsersQueried)
+    console.log('userIdsOfPromptsToDelete: ', userIdsOfPromptsToDelete)
+    console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
+
+
     // FOR TESTING PURPOSES, ABOVE:
 
     const _updateSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
 
-    return response.status(200);
-
+    response.status(200).json({ msg: "Users received!" })
 
     // if (queryMatchesResults.status !== 200) {
     //     return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
@@ -289,7 +296,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
     //     console.time("Getting matches again timing.")
     //     const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
-    //     console.timeEnd("Getting matches again timing.")
+    //     console.timeEnd("Getting matches again timing.")    
 
     //     if (getValidMatchesResult.didTimeOut) {
     //         // cache the results of the query
@@ -325,5 +332,5 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // paginationMatchesObj.potentialMatches = potentialMatchesForClient
 
     // response.status(200).json({ paginationMatches: paginationMatchesObj })
-    // console.timeEnd('getMatchesRoute, timing.')
+    console.timeEnd('getMatchesRoute, timing.')
 })
