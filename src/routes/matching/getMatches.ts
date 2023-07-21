@@ -258,7 +258,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const usersWithTestImg3 = potentialMatchesWithNonTestImg3.filter(({ _id }) => potentialMatchesWithNonTestImg3Ids.includes(_id))
     const usersWithTestImg3Num = _potentialMatches?.length as number - potentialMatchesWithNonTestImg3?.length as number;
     console.log("potentialMatchesWithNonTestImg3Ids: ", potentialMatchesWithNonTestImg3Ids);
-    console.log("usersWithTestImg3: ", usersWithTestImg3);
+    console.log("usersWithTestImg3 ids: ", usersWithTestImg3.map(({_id}) => _id));
     const totalUsersQueried = usersWithTestImg3Num + potentialMatchesWithNonTestImg3Ids?.length as number;
     console.log("totalUsersQueried: ", totalUsersQueried)
     // FOR TESTING PURPOSES, ABOVE:

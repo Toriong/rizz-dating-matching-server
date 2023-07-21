@@ -54,7 +54,7 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
         // THE BELOW IS FOR TESTING:
         // skip: 50, limit: 5, the users of the sixth page
         // skip: 55, limit: 5, the users of the seventh page
-        skipAndLimitObj = { skip: 100, limit: 5 };
+        skipAndLimitObj = { skip: 0, limit: 100 };
         // THE ABOVE IS FOR TESTING:
         // BRAIN DUMP:
         // get the first 50 users, get all of their ids, and check for the following:

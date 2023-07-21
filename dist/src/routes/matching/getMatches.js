@@ -186,7 +186,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     const usersWithTestImg3 = potentialMatchesWithNonTestImg3.filter(({ _id }) => potentialMatchesWithNonTestImg3Ids.includes(_id));
     const usersWithTestImg3Num = (_potentialMatches === null || _potentialMatches === void 0 ? void 0 : _potentialMatches.length) - (potentialMatchesWithNonTestImg3 === null || potentialMatchesWithNonTestImg3 === void 0 ? void 0 : potentialMatchesWithNonTestImg3.length);
     console.log("potentialMatchesWithNonTestImg3Ids: ", potentialMatchesWithNonTestImg3Ids);
-    console.log("usersWithTestImg3: ", usersWithTestImg3);
+    console.log("usersWithTestImg3 ids: ", usersWithTestImg3.map(({ _id }) => _id));
     const totalUsersQueried = usersWithTestImg3Num + (potentialMatchesWithNonTestImg3Ids === null || potentialMatchesWithNonTestImg3Ids === void 0 ? void 0 : potentialMatchesWithNonTestImg3Ids.length);
     console.log("totalUsersQueried: ", totalUsersQueried);
     // FOR TESTING PURPOSES, ABOVE:
