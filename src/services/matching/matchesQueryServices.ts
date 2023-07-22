@@ -176,7 +176,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     // THE BELOW IS FOR TESTING:
     // skip: 50, limit: 5, the users of the sixth page
     // skip: 55, limit: 5, the users of the seventh page
-    skipAndLimitObj = { skip: 40, limit: 5  };
+    // skipAndLimitObj = { skip: 40, limit: 5  };
     // THE ABOVE IS FOR TESTING:
 
     // BRAIN DUMP:
