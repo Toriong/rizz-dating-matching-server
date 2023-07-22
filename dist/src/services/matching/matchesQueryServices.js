@@ -144,7 +144,7 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
         // THE BELOW IS FOR TESTING:
         // skip: 50, limit: 5, the users of the sixth page
         // skip: 55, limit: 5, the users of the seventh page
-        skipAndLimitObj = { skip: 0, limit: 40 };
+        skipAndLimitObj = { skip: 40, limit: 5 };
         // THE ABOVE IS FOR TESTING:
         // BRAIN DUMP:
         // get the first 50 users, get all of their ids, and check for the following:
@@ -191,7 +191,7 @@ function getCountryName(countryCode) {
     let regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
     return regionNames.of(countryCode);
 }
-function getReverseGeoCode(userLocation) {
+function getLocationStr(userLocation) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             dotenv.config();
@@ -224,7 +224,7 @@ function getLocationStrForUsers(users) {
         for (let numIteration = 0; numIteration < users.length; numIteration++) {
             let userMap = new Map(Object.entries(users[numIteration]));
             let userLocation = userMap.get('location');
-            const userLocationStrResult = yield getReverseGeoCode(userLocation.coordinates);
+            const userLocationStrResult = yield getLocationStr(userLocation.coordinates);
             if (userLocationStrResult.wasSuccessful) {
                 userMap.set('locationStr', userLocationStrResult.data);
                 userMap.delete('location');

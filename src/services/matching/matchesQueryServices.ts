@@ -176,7 +176,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     // THE BELOW IS FOR TESTING:
     // skip: 50, limit: 5, the users of the sixth page
     // skip: 55, limit: 5, the users of the seventh page
-    skipAndLimitObj = { skip: 0, limit: 40  };
+    skipAndLimitObj = { skip: 40, limit: 5  };
     // THE ABOVE IS FOR TESTING:
 
     // BRAIN DUMP:
@@ -233,7 +233,7 @@ function getCountryName(countryCode: string): string | undefined {
     return regionNames.of(countryCode)
 }
 
-async function getReverseGeoCode(userLocation: [number, number]): Promise<{ wasSuccessful: boolean, data?: string }> {
+async function getLocationStr(userLocation: [number, number]): Promise<{ wasSuccessful: boolean, data?: string }> {
     try {
         dotenv.config();
         const [longitude, latitude] = userLocation;
@@ -270,7 +270,7 @@ async function getLocationStrForUsers(users: IUserMatch[]): Promise<IUserMatch[]
     for (let numIteration = 0; numIteration < users.length; numIteration++) {
         let userMap = new Map(Object.entries(users[numIteration]));
         let userLocation = userMap.get('location') as unknown as UserLocation;
-        const userLocationStrResult = await getReverseGeoCode(userLocation.coordinates);
+        const userLocationStrResult = await getLocationStr(userLocation.coordinates);
 
         if (userLocationStrResult.wasSuccessful) {
             userMap.set('locationStr', userLocationStrResult.data as string)
