@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Router } from 'express';
-import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getLocationStrForUsers, getMatches, getPromptsAndMatchingPicForClient } from '../../services/matching/matchesQueryServices.js';
+import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getLocationStrForUsers, getMatches, getPromptsAndMatchingPicForClient, getValidMatches } from '../../services/matching/matchesQueryServices.js';
 import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
 import { generateGetRejectedUsersQuery, getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
 import { getUserById } from '../../services/globalMongoDbServices.js';
@@ -64,10 +64,6 @@ function getQueryOptionsValidationArr(queryOpts) {
     const isRadiusSetToAnywhereValidtionObj = { receivedType: typeof isRadiusSetToAnywhere, correctVal: 'boolean', fieldName: 'isRadiusSetToAnywhere', isCorrectValType: typeof Boolean(isRadiusSetToAnywhere) === 'boolean', val: isRadiusSetToAnywhere };
     return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj];
 }
-function getIdAndPics(user) {
-    const pic = user.pics.find(({ isMatching }) => isMatching);
-    return { pic, _id: user._id };
-}
 function generateMatchesPg(matchesPaginationObj) {
     const { canStillQueryCurrentPageForUsers, hasReachedPaginationEnd, validMatches, updatedSkipDocsNum, didErrorOccur, didTimeOutOccur } = matchesPaginationObj !== null && matchesPaginationObj !== void 0 ? matchesPaginationObj : {};
     return {
@@ -81,97 +77,11 @@ function generateMatchesPg(matchesPaginationObj) {
 }
 // BUG: 
 // WHAT IS HAPPENING: when the time out is completed, the updated skip nums value is not being updated. It is still zero when the time out has reached. 
-// updated skip docs num is not benig updated
-function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, idsOfUsersNotToShow = []) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let validMatchesToSendToClient = [];
-        let _userQueryOpts = Object.assign({}, userQueryOpts);
-        let matchesPage = {};
-        let _hasReachedPaginationEnd = false;
-        let _canStillQueryCurrentPageForUsers = false;
-        try {
-            let timeBeforeLoopMs = new Date().getTime();
-            while (validMatchesToSendToClient.length < 5) {
-                let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
-                if (loopTimeElapsed > 15000) {
-                    matchesPage = {
-                        hasReachedPaginationEnd: _hasReachedPaginationEnd,
-                        canStillQueryCurrentPageForUsers: false,
-                        updatedSkipDocsNum: _userQueryOpts === null || _userQueryOpts === void 0 ? void 0 : _userQueryOpts.skipDocsNum,
-                        validMatches: validMatchesToSendToClient,
-                        didTimeOutOccur: true
-                    };
-                    break;
-                }
-                const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow);
-                const queryMatchesResults = yield getMatches(queryOptsForPagination, _userQueryOpts.skipDocsNum);
-                const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data;
-                _hasReachedPaginationEnd = hasReachedPaginationEnd;
-                _canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;
-                if (queryMatchesResults.status !== 200) {
-                    matchesPage = {
-                        hasReachedPaginationEnd: true,
-                        validMatches: currentValidUserMatches,
-                        updatedSkipDocsNum: _userQueryOpts.skipDocsNum,
-                        canStillQueryCurrentPageForUsers: false,
-                        didErrorOccur: true
-                    };
-                    break;
-                }
-                if (potentialMatches === undefined) {
-                    matchesPage = {
-                        hasReachedPaginationEnd: true,
-                        validMatches: currentValidUserMatches,
-                        updatedSkipDocsNum: _userQueryOpts.skipDocsNum,
-                        canStillQueryCurrentPageForUsers: false,
-                        didErrorOccur: true
-                    };
-                    break;
-                }
-                let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
-                matchesToSendToClient = matchesToSendToClient.length ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
-                const endingSliceIndex = 5 - validMatchesToSendToClient.length;
-                matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceIndex) : [];
-                matchesToSendToClient = matchesToSendToClient.length ? [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
-                if (matchesToSendToClient.length) {
-                    // GOAL: validMatchesToSendToClient shouldn't be greater than 5
-                    // BRAIN DUMP:
-                    // get the length of validMatchesToSendToClient
-                    // minus the above by 5, call it A
-                    // starting from index 0, slice matchesToSendToClient from 0 to A
-                    // get the result for the above and push it into validMatchesToSendToClient
-                    validMatchesToSendToClient.push(...matchesToSendToClient);
-                }
-                let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
-                if ((validMatchesToSendToClient.length < 5) && !_hasReachedPaginationEnd) {
-                    console.log("Will get more matches to display to the user on the clientside.");
-                    _updatedSkipDocsNum = _updatedSkipDocsNum + 5;
-                    console.log('_updatedSkipDocsNum: ', _updatedSkipDocsNum);
-                    _userQueryOpts = Object.assign(Object.assign({}, _userQueryOpts), { skipDocsNum: _updatedSkipDocsNum });
-                }
-                if (_hasReachedPaginationEnd || (validMatchesToSendToClient.length >= 5)) {
-                    let validMatchesToSendToClientUpdated = validMatchesToSendToClient.length > 5 ? validMatchesToSendToClient.slice(0, 5) : validMatchesToSendToClient;
-                    matchesPage = {
-                        hasReachedPaginationEnd: _hasReachedPaginationEnd,
-                        validMatches: validMatchesToSendToClientUpdated,
-                        updatedSkipDocsNum: _updatedSkipDocsNum,
-                        canStillQueryCurrentPageForUsers: !!_canStillQueryCurrentPageForUsers
-                    };
-                    if (_hasReachedPaginationEnd) {
-                        break;
-                    }
-                }
-            }
-            console.log("Finished getting matches to display to the user on the clientside: ", matchesPage);
-            console.log("validMatchesToSendToClient: ", validMatchesToSendToClient.length);
-            return { page: matchesPage };
-        }
-        catch (error) {
-            console.error('Failed to get valid matches. An error has occurred: ', error);
-            return { didErrorOccur: true };
-        }
-    });
-}
+// updated skip docs num is not being updated
+// brain dump:
+// for silver and bronze:
+// for bronze: the user can only have 15 matches in a span 48 hour period
+// for silver: the user can only have 25 matches in a span 48 hour period
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     console.time('getMatchesRoute, timing.');

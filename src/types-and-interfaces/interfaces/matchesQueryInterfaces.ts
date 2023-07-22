@@ -1,4 +1,5 @@
 import { UserBaseModelSchema, UserNames } from "../../models/User.js";
+import { IError } from "./globalInterfaces.js";
 import { IUserAndPrompts, PromptInterface, PromptModelInterface } from "./promptsInterfaces.js";
 import { UserLocation } from "./userQueryInterfaces.js";
 
@@ -19,8 +20,6 @@ interface IFilterUserWithoutPromptsReturnVal {
     prompts: PromptModelInterface[];
     errorMsg?: string
 }
-
-
 type TUser = Pick<UserBaseModelSchema, "_id" | "ratingNum" | "pics">;
 type LocationErrorMsgStr = "Can't get user's location." | "Unable to get user's location."
 interface IUserMatch extends TUser {
@@ -34,5 +33,16 @@ interface IUserMatch extends TUser {
     // the first value is the latitude, the second is the longitude
     userLocationArr?: [number, number],
 }
+interface IMatchesPagination {
+    hasReachedPaginationEnd: boolean,
+    validMatches: UserBaseModelSchema[] | [],
+    updatedSkipDocsNum: number,
+    canStillQueryCurrentPageForUsers: boolean,
+    didErrorOccur?: boolean,
+    didTimeOutOccur?: boolean
+}
+interface IGetValidMatches extends IError {
+    page?: IMatchesPagination
+}
 
-export { IUserMatch, InterfacePotentialMatchesPage, PotentialMatchesPaginationForClient, IFilterUserWithoutPromptsReturnVal, MatchesQueryPage, PotentialMatchesPageMap }
+export { IUserMatch, IGetValidMatches, InterfacePotentialMatchesPage, PotentialMatchesPaginationForClient, IFilterUserWithoutPromptsReturnVal, MatchesQueryPage, PotentialMatchesPageMap, IMatchesPagination }
