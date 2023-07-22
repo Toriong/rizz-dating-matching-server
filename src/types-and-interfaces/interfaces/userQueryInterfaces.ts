@@ -8,12 +8,12 @@ interface UserQueryOpts {
     // first number: latitude, second number: longitude
     userLocation: [number | string, number | string],
     // first number: min distance, second number: max distance
-    minAndMaxDistanceArr: [number| string, number | string],
+    minAndMaxDistanceArr: [number | string, number | string],
     desiredAgeRange: [string, string],
     skipDocsNum: number | string
     isRadiusSetToAnywhere?: boolean | string
 }
-interface ReqQueryMatchesParams{
+interface ReqQueryMatchesParams {
     query: UserQueryOpts,
     userId: string
 }

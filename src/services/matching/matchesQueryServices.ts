@@ -62,7 +62,7 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
 
 async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPagination, skipDocsNum: number): Promise<InterfacePotentialMatchesPage> {
     let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
-    let updatedSkipDocsNum = skipDocsNum;
+    let updatedSkipDocsNum = skipDocsNum + 5;
 
     if (paginationQueryOpts?.location) {
         (Users as any).createIndexes([{ location: '2dsphere' }])
@@ -90,7 +90,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
 
 
     if (hasReachedPaginationEnd) {
-        return { potentialMatches: potentialMatches, updatedSkipDocsNum: updatedSkipDocsNum, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true }
+        return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true }
     }
 
     return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }

@@ -94,11 +94,11 @@ interface IMatchesPagination {
     validMatches: UserBaseModelSchema[] | [],
     updatedSkipDocsNum: number,
     canStillQueryCurrentPageForUsers: boolean,
-    didErrorOccur?: boolean
+    didErrorOccur?: boolean,
+    didTimeOutOccur?: boolean
 }
 interface IGetValidMatches extends IError {
     page?: IMatchesPagination
-    didTimeOut?: boolean
 }
 type TResponseBodyGetMatches = Omit<IMatchesPagination, 'validMatches'>
 interface IResponseBodyGetMatches extends TResponseBodyGetMatches {
@@ -111,23 +111,52 @@ function getIdAndPics(user: UserBaseModelSchema) {
     return { pic, _id: user._id };
 }
 
-// move all outputs of functions that are n(1) as parameters for the getValidMatches function
+function generateMatchesPg(matchesPaginationObj: IMatchesPagination): IMatchesPagination {
+    const { canStillQueryCurrentPageForUsers, hasReachedPaginationEnd, validMatches, updatedSkipDocsNum, didErrorOccur, didTimeOutOccur } = matchesPaginationObj ?? {};
+    return {
+        hasReachedPaginationEnd: !!hasReachedPaginationEnd,
+        validMatches: validMatches,
+        updatedSkipDocsNum: updatedSkipDocsNum,
+        canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
+        didErrorOccur: !!didErrorOccur,
+        didTimeOutOccur: !!didTimeOutOccur
+    };
+}
+
+
+// BUG: 
+// WHAT IS HAPPENING: when the time out is completed, the updated skip nums value is not being updated. It is still zero when the time out has reached. 
+// updated skip docs num is not benig updated
 
 async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, currentValidUserMatches: UserBaseModelSchema[], idsOfUsersNotToShow: string[] = []): Promise<IGetValidMatches> {
-    let validMatchesToSendToClient = [];
+    let validMatchesToSendToClient: UserBaseModelSchema[] = [];
     let _userQueryOpts: UserQueryOpts = { ...userQueryOpts }
     let matchesPage = {} as IMatchesPagination;
-    const usersToRetrieveNum = 5 - currentValidUserMatches.length;
-
-    // if the below while loop take longer than 15 seconds, break it tell the client that the server is taking longer than usually to get the matches, the client can do the following: 
-    // wait for the matches
-    // start over their search for matches
+    let _hasReachedPaginationEnd = false;
+    let _canStillQueryCurrentPageForUsers = false;
 
     try {
+        let timeBeforeLoopMs = new Date().getTime();
+
         while (validMatchesToSendToClient.length < 5) {
+            let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
+
+            if (loopTimeElapsed > 15_000) {
+                matchesPage = {
+                    hasReachedPaginationEnd: _hasReachedPaginationEnd,
+                    canStillQueryCurrentPageForUsers: false,
+                    updatedSkipDocsNum: _userQueryOpts?.skipDocsNum as number,
+                    validMatches: validMatchesToSendToClient,
+                    didTimeOutOccur: true
+                }
+                break;
+            }
+
             const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow)
             const queryMatchesResults = await getMatches(queryOptsForPagination, _userQueryOpts.skipDocsNum as number);
             const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data as InterfacePotentialMatchesPage;
+            _hasReachedPaginationEnd = hasReachedPaginationEnd;
+            _canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;
 
             if (queryMatchesResults.status !== 200) {
                 matchesPage = {
@@ -153,34 +182,47 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
 
             let matchesToSendToClient = await filterInUsersWithValidMatchingPicUrl(potentialMatches)
             matchesToSendToClient = matchesToSendToClient.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
-            matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, usersToRetrieveNum) : [];
+            const endingSliceIndex = 5 - validMatchesToSendToClient.length;
+            matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceIndex) : [];
             matchesToSendToClient = matchesToSendToClient.length ? [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
 
-
             if (matchesToSendToClient.length) {
-                validMatchesToSendToClient.push(...matchesToSendToClient)
+                // GOAL: validMatchesToSendToClient shouldn't be greater than 5
+                // BRAIN DUMP:
+                // get the length of validMatchesToSendToClient
+                // minus the above by 5, call it A
+                // starting from index 0, slice matchesToSendToClient from 0 to A
+                // get the result for the above and push it into validMatchesToSendToClient
+                validMatchesToSendToClient.push(...matchesToSendToClient);
             }
 
             let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
 
-            if ((validMatchesToSendToClient.length < 5) && !hasReachedPaginationEnd) {
+            if ((validMatchesToSendToClient.length < 5) && !_hasReachedPaginationEnd) {
+                console.log("Will get more matches to display to the user on the clientside.")
                 _updatedSkipDocsNum = _updatedSkipDocsNum + 5;
+                console.log('_updatedSkipDocsNum: ', _updatedSkipDocsNum)
                 _userQueryOpts = { ..._userQueryOpts, skipDocsNum: _updatedSkipDocsNum }
             }
 
-            if (hasReachedPaginationEnd || (validMatchesToSendToClient.length >= 5)) {
+            if (_hasReachedPaginationEnd || (validMatchesToSendToClient.length >= 5)) {
+                let validMatchesToSendToClientUpdated = validMatchesToSendToClient.length > 5 ? validMatchesToSendToClient.slice(0, 5) : validMatchesToSendToClient;
                 matchesPage = {
-                    hasReachedPaginationEnd,
-                    validMatches: validMatchesToSendToClient,
+                    hasReachedPaginationEnd: _hasReachedPaginationEnd,
+                    validMatches: validMatchesToSendToClientUpdated,
                     updatedSkipDocsNum: _updatedSkipDocsNum,
-                    canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers
+                    canStillQueryCurrentPageForUsers: !!_canStillQueryCurrentPageForUsers
                 }
 
-                if (hasReachedPaginationEnd) {
+                if (_hasReachedPaginationEnd) {
                     break;
                 }
             }
         }
+
+        console.log("Finished getting matches to display to the user on the clientside: ", matchesPage)
+
+        console.log("validMatchesToSendToClient: ", validMatchesToSendToClient.length)
 
         return { page: matchesPage }
     } catch (error) {
@@ -266,11 +308,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // console.log('userIdsOfPromptsToDelete: ', userIdsOfPromptsToDelete)
     // console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
 
-    
+
     // response.status(200).json({ msg: "Users received!" })
-    
+
     // FOR TESTING PURPOSES, ABOVE:
-    
+
     const _updateSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
 
     if (queryMatchesResults.status !== 200) {
@@ -284,6 +326,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     let matchesToSendToClient: UserBaseModelSchema[] | IUserAndPrompts[] = await filterInUsersWithValidMatchingPicUrl(potentialMatches) as UserBaseModelSchema[];
     matchesToSendToClient = matchesToSendToClient?.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
+    console.log("_updateSkipDocsNum: ", _updateSkipDocsNum)
     let paginationMatchesObj: IResponseBodyGetMatches = {
         hasReachedPaginationEnd: hasReachedPaginationEnd,
         updatedSkipDocsNum: _updateSkipDocsNum,
@@ -294,18 +337,17 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     if (!hasReachedPaginationEnd && (matchesToSendToClient.length < 5)) {
         console.time("Getting matches again timing.")
         const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
-        console.timeEnd("Getting matches again timing.")    
-
-        if (getValidMatchesResult.didTimeOut) {
-            // cache the results of the query
-            return response.status(408).json({ msg: 'The server is taking longer than usual to get the matches.' })
-        }
+        console.timeEnd("Getting matches again timing.")
+        const { didTimeOutOccur, updatedSkipDocsNum, validMatches } = (getValidMatchesResult.page as IMatchesPagination) ?? {};
+        console.log("validMatches: ", validMatches)
+        paginationMatchesObj.didTimeOutOccur = didTimeOutOccur ?? false;
+        paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
 
         if (getValidMatchesResult.didErrorOccur) {
             return response.status(500).json({ msg: 'An error has occurred in getting the matches.' })
         }
 
-        matchesToSendToClient = (getValidMatchesResult.page as IMatchesPagination).validMatches ?? [];
+        matchesToSendToClient = validMatches ?? [];
     }
 
     if (!matchesToSendToClient.length) {
@@ -328,6 +370,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
     potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
     console.log('potentialMatchesForClient: ', potentialMatchesForClient)
+    console.log('potentialMatchesForClient length: ', potentialMatchesForClient.length)
     paginationMatchesObj.potentialMatches = potentialMatchesForClient
 
     response.status(200).json({ paginationMatches: paginationMatchesObj })

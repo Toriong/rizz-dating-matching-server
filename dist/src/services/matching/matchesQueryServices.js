@@ -47,7 +47,7 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
 function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
     return __awaiter(this, void 0, void 0, function* () {
         let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
-        let updatedSkipDocsNum = skipDocsNum;
+        let updatedSkipDocsNum = skipDocsNum + 5;
         if (paginationQueryOpts === null || paginationQueryOpts === void 0 ? void 0 : paginationQueryOpts.location) {
             Users.createIndexes([{ location: '2dsphere' }]);
         }
@@ -68,7 +68,7 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
             return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
         }
         if (hasReachedPaginationEnd) {
-            return { potentialMatches: potentialMatches, updatedSkipDocsNum: updatedSkipDocsNum, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
+            return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
         }
         return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
