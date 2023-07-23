@@ -65,19 +65,11 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceIndex) : [];
                 matchesToSendToClient = matchesToSendToClient.length ? [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
                 if (matchesToSendToClient.length) {
-                    // GOAL: validMatchesToSendToClient shouldn't be greater than 5
-                    // BRAIN DUMP:
-                    // get the length of validMatchesToSendToClient
-                    // minus the above by 5, call it A
-                    // starting from index 0, slice matchesToSendToClient from 0 to A
-                    // get the result for the above and push it into validMatchesToSendToClient
                     validMatchesToSendToClient.push(...matchesToSendToClient);
                 }
                 let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
                 if ((validMatchesToSendToClient.length < 5) && !_hasReachedPaginationEnd) {
-                    console.log("Will get more matches to display to the user on the clientside.");
                     _updatedSkipDocsNum = _updatedSkipDocsNum + 5;
-                    console.log('_updatedSkipDocsNum: ', _updatedSkipDocsNum);
                     _userQueryOpts = Object.assign(Object.assign({}, _userQueryOpts), { skipDocsNum: _updatedSkipDocsNum });
                 }
                 if (_hasReachedPaginationEnd || (validMatchesToSendToClient.length >= 5)) {
