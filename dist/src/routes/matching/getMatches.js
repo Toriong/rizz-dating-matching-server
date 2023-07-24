@@ -11,10 +11,11 @@ import { Router } from 'express';
 import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getLocationStrForUsers, getMatches, getPromptsAndMatchingPicForClient, getValidMatches } from '../../services/matching/matchesQueryServices.js';
 import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
 import { generateGetRejectedUsersQuery, getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
-import { getUserById } from '../../services/globalMongoDbServices.js';
+import { getUserById, getUsersByIds } from '../../services/globalMongoDbServices.js';
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 import GLOBAL_VALS from '../../globalVals.js';
+import { cache } from '../../utils/cache.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -83,7 +84,7 @@ function generateMatchesPg(matchesPaginationObj) {
 // for bronze: the user can only have 15 matches in a span 48 hour period
 // for silver: the user can only have 25 matches in a span 48 hour period
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     console.time('getMatchesRoute, timing.');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
@@ -129,10 +130,24 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // GOAL #2:
     // for get matches, get the rest of the users
     // BRAIN DUMP:
-    // for the limitNum parameter for getMatches, it will be the sum of the following: 5 minus the array length of the users from the cache that were successfully queried  
-    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
+    // for the limitNum parameter for getMatches, it will be the difference of the following: 5 minus the array length of the users from the cache that were successfully queried
+    const userIdsOfMatchesForNextQuery = cache.get("userIdsToShowForNextQuery");
+    let savedUserIdsOfMatches = (_d = (_c = userIdsOfMatchesForNextQuery === null || userIdsOfMatchesForNextQuery === void 0 ? void 0 : userIdsOfMatchesForNextQuery.userIdsToShowForNextQuery) === null || _c === void 0 ? void 0 : _c[currentUserId]) !== null && _d !== void 0 ? _d : [];
+    savedUserIdsOfMatches = (savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : [];
+    let startingMatches = null;
+    let limitNum = 5;
+    if (savedUserIdsOfMatches.length) {
+        const savedUsersInCache = yield getUsersByIds(savedUserIdsOfMatches);
+        startingMatches = (savedUsersInCache === null || savedUsersInCache === void 0 ? void 0 : savedUsersInCache.length) ? savedUsersInCache : [];
+        limitNum = limitNum - savedUserIdsOfMatches.length;
+        cache.set("userIdsToShowForNextQuery", { [currentUserId]: [] });
+    }
+    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow, limitNum);
     const queryMatchesResults = yield getMatches(queryOptsForPagination, paginationPageNumUpdated);
-    const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
+    let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
+    if ((potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length) && (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length)) {
+        potentialMatches = [...startingMatches, ...potentialMatches];
+    }
     // FOR TESTING PURPOSES, BELOW:
     // let _potentialMatches = potentialMatches as UserBaseModelSchema[];
     // const usersOfPromptsToDelete = _potentialMatches?.filter(({ pics }) => {
@@ -173,7 +188,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.time("Getting matches again timing.");
         const getValidMatchesResult = yield getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
         console.timeEnd("Getting matches again timing.");
-        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers, hasReachedPaginationEnd } = (_c = getValidMatchesResult.page) !== null && _c !== void 0 ? _c : {};
+        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers, hasReachedPaginationEnd } = (_e = getValidMatchesResult.page) !== null && _e !== void 0 ? _e : {};
         paginationMatchesObj.didTimeOutOccur = didTimeOutOccur !== null && didTimeOutOccur !== void 0 ? didTimeOutOccur : false;
         paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
         paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;

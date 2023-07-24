@@ -222,7 +222,7 @@ async function getMatches(queryOptsForPagination: IQueryOptsForPagination, skipD
 
 function getCountryName(countryCode: string): string | undefined {
     let regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
-
+    
     return regionNames.of(countryCode)
 }
 

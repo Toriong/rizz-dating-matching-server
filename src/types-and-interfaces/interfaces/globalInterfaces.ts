@@ -6,13 +6,13 @@ interface CRUDResult {
     status?: number,
     wasSuccessful: boolean,
     msg?: String,
-    data?: RejectedUserInterface | ChatInterface | UserChatIdsInterface | unknown 
-    | RejectedUserInterface[] | string[] | PromptInterface | PromptInterface[] | PromptModelInterface[]  
+    data?: RejectedUserInterface | ChatInterface | UserChatIdsInterface | unknown
+    | RejectedUserInterface[] | string[] | PromptInterface | PromptInterface[] | PromptModelInterface[]
 }
-
+type DynamicKeyVal<TData> = { [key: string | symbol]: TData }
 type IError = {
     didErrorOccur?: boolean
     msg?: boolean
 }
 
-export { CRUDResult, IError }
+export { CRUDResult, IError, DynamicKeyVal }

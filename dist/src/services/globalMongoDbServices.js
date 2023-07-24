@@ -15,7 +15,13 @@ function getUserById(userId) {
 }
 function getUsersByIds(userIds) {
     return __awaiter(this, void 0, void 0, function* () {
-        return Users.find({ _id: { $in: userIds } });
+        try {
+            return Users.find({ _id: { $in: userIds } }).lean();
+        }
+        catch (error) {
+            console.error('An error has occurred in getUsersByIds: ', error);
+            return [];
+        }
     });
 }
 function getUsersByDynamicField(queryObj) {

@@ -6,13 +6,14 @@ import { IUserAndPrompts } from '../../types-and-interfaces/interfaces/promptsIn
 import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
 import { generateGetRejectedUsersQuery, getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
 import { RejectedUserInterface } from '../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
-import { getUserById } from '../../services/globalMongoDbServices.js';
+import { getUserById, getUsersByIds } from '../../services/globalMongoDbServices.js';
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { IMatchingPicUser, filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 import { IMatchesPagination, IUserMatch, InterfacePotentialMatchesPage } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
 import GLOBAL_VALS from '../../globalVals.js';
 import { IError } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
 import { IResponseBodyGetMatches } from '../../types-and-interfaces/interfaces/responses/getMatches.js';
+import { ICacheKeyVals, cache } from '../../utils/cache.js';
 
 export const getMatchesRoute = Router();
 
@@ -177,11 +178,28 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // for get matches, get the rest of the users
 
     // BRAIN DUMP:
-    // for the limitNum parameter for getMatches, it will be the sum of the following: 5 minus the array length of the users from the cache that were successfully queried  
+    // for the limitNum parameter for getMatches, it will be the difference of the following: 5 minus the array length of the users from the cache that were successfully queried
 
-    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
+    const userIdsOfMatchesForNextQuery = cache.get("userIdsToShowForNextQuery") as Pick<ICacheKeyVals, "userIdsToShowForNextQuery">
+    let savedUserIdsOfMatches = userIdsOfMatchesForNextQuery?.userIdsToShowForNextQuery?.[currentUserId] ?? [];
+    savedUserIdsOfMatches = savedUserIdsOfMatches?.length ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : []
+    let startingMatches: UserBaseModelSchema[] | null = null;
+    let limitNum = 5;
+
+    if (savedUserIdsOfMatches.length) {
+        const savedUsersInCache = await getUsersByIds(savedUserIdsOfMatches);
+        startingMatches = savedUsersInCache?.length ? savedUsersInCache : [];
+        limitNum = limitNum - savedUserIdsOfMatches.length;
+        cache.set("userIdsToShowForNextQuery", { [currentUserId]: [] })
+    }
+
+    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow, limitNum)
     const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);
-    const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
+    let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
+    
+    if(potentialMatches?.length && startingMatches?.length) {
+        potentialMatches = [...startingMatches, ...potentialMatches]
+    }
 
     // FOR TESTING PURPOSES, BELOW:
 
