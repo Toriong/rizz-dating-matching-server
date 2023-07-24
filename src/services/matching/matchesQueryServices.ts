@@ -111,12 +111,12 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
 
                     console.log("potentialMatches.length: ", potentialMatches.length)
 
-                    const matchesToShowForNextQuery = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
+                    const userIdsOfMatchesToShowForMatchesPg = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
                     matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
-                    const result = cache.set("matchesToShowForNextQuery", { [currentUser._id]: matchesToShowForNextQuery }, 864_000)
+                    const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToShowForMatchesPg }, 864_000)
 
                     console.log('were queried users stored in cache: ', result)
-                    const _matchesToShowForNextQuery = cache.get("matchesToShowForNextQuery");
+                    const _matchesToShowForNextQuery = cache.get("userIdsOfMatchesToShowForMatchesPg");
                     console.log("_matchesToShowForNextQuery: ", _matchesToShowForNextQuery)
                 }
 

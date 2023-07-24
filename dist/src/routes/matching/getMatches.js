@@ -84,7 +84,7 @@ function generateMatchesPg(matchesPaginationObj) {
 // for bronze: the user can only have 15 matches in a span 48 hour period
 // for silver: the user can only have 25 matches in a span 48 hour period
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d;
     console.time('getMatchesRoute, timing.');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
@@ -129,13 +129,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // they queried from the database
     // GOAL #2:
     // for get matches, get the rest of the users
-    // BRAIN DUMP:
-    // for the limitNum parameter for getMatches, it will be the difference of the following: 5 minus the array length of the users from the cache that were successfully queried
     // put the below into a function 
-    const userIdsOfMatchesForNextQuery = cache.get("userIdsToShowForNextQuery");
-    console.log("userIdsOfMatchesForNextQuery: ", userIdsOfMatchesForNextQuery);
-    console.log("userIdsOfMatchesForNextQuery?.userIdsToShowForNextQuery?.[currentUserId] ", (_c = userIdsOfMatchesForNextQuery === null || userIdsOfMatchesForNextQuery === void 0 ? void 0 : userIdsOfMatchesForNextQuery.userIdsToShowForNextQuery) === null || _c === void 0 ? void 0 : _c[currentUserId]);
-    let savedUserIdsOfMatches = (_e = (_d = userIdsOfMatchesForNextQuery === null || userIdsOfMatchesForNextQuery === void 0 ? void 0 : userIdsOfMatchesForNextQuery.userIdsToShowForNextQuery) === null || _d === void 0 ? void 0 : _d[currentUserId]) !== null && _e !== void 0 ? _e : [];
+    const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg");
+    console.log("userIdsOfMatchesToShowForMatchesPg?.[currentUserId]: ", userIdsOfMatchesToShowForMatchesPg === null || userIdsOfMatchesToShowForMatchesPg === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPg[currentUserId]);
+    let savedUserIdsOfMatches = (_c = userIdsOfMatchesToShowForMatchesPg === null || userIdsOfMatchesToShowForMatchesPg === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPg[currentUserId]) !== null && _c !== void 0 ? _c : [];
     savedUserIdsOfMatches = (savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : [];
     let startingMatches = null;
     let limitNum = 5;
@@ -145,7 +142,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.log("savedUsersInCache: ", savedUsersInCache);
         startingMatches = (savedUsersInCache === null || savedUsersInCache === void 0 ? void 0 : savedUsersInCache.length) ? savedUsersInCache : [];
         limitNum = limitNum - savedUserIdsOfMatches.length;
-        cache.set("userIdsToShowForNextQuery", { [currentUserId]: [] });
+        cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: [] });
     }
     // put the above into a function
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow, limitNum);
@@ -194,7 +191,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.time("Getting matches again timing.");
         const getValidMatchesResult = yield getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
         console.timeEnd("Getting matches again timing.");
-        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers, hasReachedPaginationEnd } = (_f = getValidMatchesResult.page) !== null && _f !== void 0 ? _f : {};
+        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers, hasReachedPaginationEnd } = (_d = getValidMatchesResult.page) !== null && _d !== void 0 ? _d : {};
         paginationMatchesObj.didTimeOutOccur = didTimeOutOccur !== null && didTimeOutOccur !== void 0 ? didTimeOutOccur : false;
         paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
         paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;

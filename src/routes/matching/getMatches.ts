@@ -162,14 +162,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // GOAL #2:
     // for get matches, get the rest of the users
 
-    // BRAIN DUMP:
-    // for the limitNum parameter for getMatches, it will be the difference of the following: 5 minus the array length of the users from the cache that were successfully queried
-
     // put the below into a function 
-    const userIdsOfMatchesForNextQuery = cache.get("userIdsToShowForNextQuery") as Pick<ICacheKeyVals, "userIdsToShowForNextQuery">;
-    console.log("userIdsOfMatchesForNextQuery: ", userIdsOfMatchesForNextQuery)
-    console.log("userIdsOfMatchesForNextQuery?.userIdsToShowForNextQuery?.[currentUserId] ", userIdsOfMatchesForNextQuery?.userIdsToShowForNextQuery?.[currentUserId])
-    let savedUserIdsOfMatches = userIdsOfMatchesForNextQuery?.userIdsToShowForNextQuery?.[currentUserId] ?? [];
+    const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg") as ICacheKeyVals;
+    console.log("userIdsOfMatchesToShowForMatchesPg?.[currentUserId]: ", userIdsOfMatchesToShowForMatchesPg?.[currentUserId])
+    let savedUserIdsOfMatches = userIdsOfMatchesToShowForMatchesPg?.[currentUserId] ?? [];
     savedUserIdsOfMatches = savedUserIdsOfMatches?.length ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : []
     let startingMatches: UserBaseModelSchema[] | null = null;
     let limitNum = 5;
@@ -180,7 +176,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         console.log("savedUsersInCache: ", savedUsersInCache)
         startingMatches = savedUsersInCache?.length ? savedUsersInCache : [];
         limitNum = limitNum - savedUserIdsOfMatches.length;
-        cache.set("userIdsToShowForNextQuery", { [currentUserId]: [] })
+        cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: [] })
     }
     // put the above into a function
 

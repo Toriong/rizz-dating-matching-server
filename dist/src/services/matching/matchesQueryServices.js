@@ -86,11 +86,11 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                     if (!_hasReachedPaginationEnd) {
                         console.log("usersToAddNum: ", usersToAddNum);
                         console.log("potentialMatches.length: ", potentialMatches.length);
-                        const matchesToShowForNextQuery = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
+                        const userIdsOfMatchesToShowForMatchesPg = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
                         matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
-                        const result = cache.set("matchesToShowForNextQuery", { [currentUser._id]: matchesToShowForNextQuery }, 864000);
+                        const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToShowForMatchesPg }, 864000);
                         console.log('were queried users stored in cache: ', result);
-                        const _matchesToShowForNextQuery = cache.get("matchesToShowForNextQuery");
+                        const _matchesToShowForNextQuery = cache.get("userIdsOfMatchesToShowForMatchesPg");
                         console.log("_matchesToShowForNextQuery: ", _matchesToShowForNextQuery);
                     }
                     if (_hasReachedPaginationEnd) {

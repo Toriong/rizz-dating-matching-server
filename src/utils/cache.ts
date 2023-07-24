@@ -1,3 +1,9 @@
-import NodeCache from 'node-cache';
+import NodeCache from "node-cache";
 
-export default new NodeCache();
+const cache = (() => {
+    console.log('creating cache')
+    const _cache = new NodeCache();
+    return _cache;
+})();
+
+export default cache;
