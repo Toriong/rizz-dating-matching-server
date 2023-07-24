@@ -221,12 +221,13 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         console.time("Getting matches again timing.")
         const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
         console.timeEnd("Getting matches again timing.")
-        const { didTimeOutOccur, updatedSkipDocsNum, validMatches } = (getValidMatchesResult.page as IMatchesPagination) ?? {};
-        console.log("validMatches: ", validMatches)
+        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers, hasReachedPaginationEnd } = (getValidMatchesResult.page as IMatchesPagination) ?? {};
         paginationMatchesObj.didTimeOutOccur = didTimeOutOccur ?? false;
         paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
+        paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;
+        paginationMatchesObj.hasReachedPaginationEnd = hasReachedPaginationEnd;
 
-        if (getValidMatchesResult.didErrorOccur) {
+        if (didErrorOccur) {
             return response.status(500).json({ msg: 'An error has occurred in getting the matches.' })
         }
 

@@ -162,11 +162,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.time("Getting matches again timing.");
         const getValidMatchesResult = yield getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
         console.timeEnd("Getting matches again timing.");
-        const { didTimeOutOccur, updatedSkipDocsNum, validMatches } = (_c = getValidMatchesResult.page) !== null && _c !== void 0 ? _c : {};
-        console.log("validMatches: ", validMatches);
+        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers, hasReachedPaginationEnd } = (_c = getValidMatchesResult.page) !== null && _c !== void 0 ? _c : {};
         paginationMatchesObj.didTimeOutOccur = didTimeOutOccur !== null && didTimeOutOccur !== void 0 ? didTimeOutOccur : false;
         paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
-        if (getValidMatchesResult.didErrorOccur) {
+        paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;
+        paginationMatchesObj.hasReachedPaginationEnd = hasReachedPaginationEnd;
+        if (didErrorOccur) {
             return response.status(500).json({ msg: 'An error has occurred in getting the matches.' });
         }
         matchesToSendToClient = validMatches !== null && validMatches !== void 0 ? validMatches : [];
