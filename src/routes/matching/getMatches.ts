@@ -165,6 +165,20 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(404).json({ msg: 'Could not find current user in the db.' })
     }
 
+    // GOAL #1:
+    // get the cache here 
+    // check if the current user who made request, check if there are users that can be queried first by their ids 
+    // there are ids of the users that needs to be queried first stored in the cache
+    // these users are not part of the idsOfUsersNotToShow
+    // all of the above are true 
+    // they queried from the database
+
+    // GOAL #2:
+    // for get matches, get the rest of the users
+
+    // BRAIN DUMP:
+    // for the limitNum parameter for getMatches, it will be the sum of the following: 5 minus the array length of the users from the cache that were successfully queried  
+
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
     const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);
     const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
@@ -241,12 +255,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(200).json({ paginationMatches: paginationMatchesObj })
     }
 
-    // BRAIN DUMP: 
-    // get the users who are not part of the query results anymore
-    // if canStillGetUsersForCurrentPage is true, then from the client side, the client side user must send the ids of the users that were 
-    // no for the above because either the previously recieved users were rejected or the current user has sent a match request to them
-    // just use the current skip docs num and see what you get in the response from query the database
-
     const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
         const _user = (user as UserBaseModelSchema);
 
@@ -260,8 +268,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
-    console.log("potentialMatchesForClient: ", potentialMatchesForClient)
-    console.log("potentialMatchesForClient length: ", potentialMatchesForClient?.length)
     potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
 

@@ -13,6 +13,7 @@ import { filterInUsersWithValidMatchingPicUrl, getMatchingPicUrlForUsers } from 
 import moment from "moment";
 import dotenv from 'dotenv';
 import axios from 'axios';
+import { cache } from "../../utils/cache.js";
 function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, idsOfUsersNotToShow = []) {
     return __awaiter(this, void 0, void 0, function* () {
         let validMatchesToSendToClient = currentValidUserMatches;
@@ -64,14 +65,9 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 let usersToAddNum = 0;
                 matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
                 if (matchesToSendToClient.length && (validMatchesToSendToClient.length !== 5)) {
-                    console.log("validMatchesToSendToClient.length: ");
-                    console.log(validMatchesToSendToClient.length);
-                    console.log("matchesToSendToClient.length: ");
-                    console.log(matchesToSendToClient.length);
                     usersToAddNum = 5 - validMatchesToSendToClient.length;
                     matchesToSendToClient = matchesToSendToClient.slice(0, usersToAddNum);
                     validMatchesToSendToClient.push(...matchesToSendToClient);
-                    console.log("validMatchesToSendToClient: ", validMatchesToSendToClient);
                 }
                 let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
                 if ((validMatchesToSendToClient.length < 5) && !_hasReachedPaginationEnd) {
@@ -90,11 +86,9 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                     if (!_hasReachedPaginationEnd) {
                         console.log("usersToAddNum: ", usersToAddNum);
                         console.log("potentialMatches.length: ", potentialMatches.length);
-                        const unshowableUserIds = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
-                        // put the users below into the cache, if necessary
-                        console.log("unshowableUserIds: ", unshowableUserIds);
+                        const matchesToShowForNextQuery = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
                         matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
-                        console.log("matchesPage['canStillQueryCurrentPageForUsers']: ", matchesPage['canStillQueryCurrentPageForUsers']);
+                        cache.set("matchesToShowForNextQuery", { [currentUser._id]: matchesToShowForNextQuery }, 864000);
                     }
                     if (_hasReachedPaginationEnd) {
                         break;
@@ -111,7 +105,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
         }
     });
 }
-function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds) {
+function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds, limitNum = 5) {
     const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
     const currentPageNum = skipDocsNum / 5;
     const METERS_IN_A_MILE = 1609.34;
@@ -136,7 +130,7 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
             }
         };
     }
-    const skipAndLimitObj = { skip: skipDocsNum, limit: 5 };
+    const skipAndLimitObj = { skip: skipDocsNum, limit: limitNum };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
     return returnVal;
 }

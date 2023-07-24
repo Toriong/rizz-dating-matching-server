@@ -119,6 +119,17 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.error('Could not find current user in the db.');
         return response.status(404).json({ msg: 'Could not find current user in the db.' });
     }
+    // GOAL #1:
+    // get the cache here 
+    // check if the current user who made request, check if there are users that can be queried first by their ids 
+    // there are ids of the users that needs to be queried first stored in the cache
+    // these users are not part of the idsOfUsersNotToShow
+    // all of the above are true 
+    // they queried from the database
+    // GOAL #2:
+    // for get matches, get the rest of the users
+    // BRAIN DUMP:
+    // for the limitNum parameter for getMatches, it will be the sum of the following: 5 minus the array length of the users from the cache that were successfully queried  
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
     const queryMatchesResults = yield getMatches(queryOptsForPagination, paginationPageNumUpdated);
     const { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
@@ -177,11 +188,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         paginationMatchesObj.potentialMatches = [];
         return response.status(200).json({ paginationMatches: paginationMatchesObj });
     }
-    // BRAIN DUMP: 
-    // get the users who are not part of the query results anymore
-    // if canStillGetUsersForCurrentPage is true, then from the client side, the client side user must send the ids of the users that were 
-    // no for the above because either the previously recieved users were rejected or the current user has sent a match request to them
-    // just use the current skip docs num and see what you get in the response from query the database
     const matchesToSendToClientUpdated = matchesToSendToClient.map((user) => {
         const _user = user;
         return Object.assign(Object.assign({}, _user), { firstName: _user.name.first });
@@ -192,8 +198,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg });
     }
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
-    console.log("potentialMatchesForClient: ", potentialMatchesForClient);
-    console.log("potentialMatchesForClient length: ", potentialMatchesForClient === null || potentialMatchesForClient === void 0 ? void 0 : potentialMatchesForClient.length);
     potentialMatchesForClient = yield getLocationStrForUsers(potentialMatchesForClient);
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
     response.status(200).json({ paginationMatches: paginationMatchesObj });
