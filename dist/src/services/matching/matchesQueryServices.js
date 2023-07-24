@@ -15,7 +15,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, idsOfUsersNotToShow = []) {
     return __awaiter(this, void 0, void 0, function* () {
-        let validMatchesToSendToClient = [];
+        let validMatchesToSendToClient = currentValidUserMatches;
         let _userQueryOpts = Object.assign({}, userQueryOpts);
         let matchesPage = {};
         let _hasReachedPaginationEnd = false;
@@ -59,17 +59,19 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 }
                 // GOAL: don't get six users in the total of users to be returned from this function
                 let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
+                console.log("matchesToSendToClient.length after filter: ", matchesToSendToClient.length);
                 matchesToSendToClient = matchesToSendToClient.length ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
-                const endingSliceIndex = 5 - validMatchesToSendToClient.length;
-                // after the slice, if the inverse of the slice is 0, then the current page can still be queried for users
-                matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceIndex) : [];
-                matchesToSendToClient = matchesToSendToClient.length ? [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
-                if (matchesToSendToClient.length) {
+                let usersToAddNum = 0;
+                matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
+                if (matchesToSendToClient.length && (validMatchesToSendToClient.length !== 5)) {
                     console.log("validMatchesToSendToClient.length: ");
                     console.log(validMatchesToSendToClient.length);
                     console.log("matchesToSendToClient.length: ");
                     console.log(matchesToSendToClient.length);
+                    usersToAddNum = 5 - validMatchesToSendToClient.length;
+                    matchesToSendToClient = matchesToSendToClient.slice(0, usersToAddNum);
                     validMatchesToSendToClient.push(...matchesToSendToClient);
+                    console.log("validMatchesToSendToClient: ", validMatchesToSendToClient);
                 }
                 let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
                 if ((validMatchesToSendToClient.length < 5) && !_hasReachedPaginationEnd) {
@@ -83,15 +85,15 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                         validMatches: validMatchesToSendToClientUpdated,
                         updatedSkipDocsNum: _updatedSkipDocsNum,
                     };
-                    // if the endingSliceIndex does not equal to 5, then the user can still query the current page for more users
-                    // or if the endingSliceIndex does not equal the length of potentialMatches array minus one, then the current user can still query the current page for more users
+                    // if the usersToAddNum does not equal to 5, then the user can still query the current page for more users
+                    // or if the usersToAddNum does not equal the length of potentialMatches array minus one, then the current user can still query the current page for more users
                     if (!_hasReachedPaginationEnd) {
-                        console.log("endingSliceIndex: ", endingSliceIndex);
+                        console.log("usersToAddNum: ", usersToAddNum);
                         console.log("potentialMatches.length: ", potentialMatches.length);
-                        const unshowableUserIds = potentialMatches.slice(endingSliceIndex, potentialMatches.length).map(({ _id }) => _id);
+                        const unshowableUserIds = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
                         // put the users below into the cache, if necessary
                         console.log("unshowableUserIds: ", unshowableUserIds);
-                        matchesPage['canStillQueryCurrentPageForUsers'] = (endingSliceIndex !== (potentialMatches.length - 1));
+                        matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
                         console.log("matchesPage['canStillQueryCurrentPageForUsers']: ", matchesPage['canStillQueryCurrentPageForUsers']);
                     }
                     if (_hasReachedPaginationEnd) {
