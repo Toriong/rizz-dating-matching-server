@@ -37,7 +37,7 @@ interface IMatchesPagination {
     hasReachedPaginationEnd: boolean,
     validMatches: UserBaseModelSchema[] | [],
     updatedSkipDocsNum: number,
-    canStillQueryCurrentPageForUsers: boolean,
+    canStillQueryCurrentPageForUsers?: boolean,
     didErrorOccur?: boolean,
     didTimeOutOccur?: boolean
 }

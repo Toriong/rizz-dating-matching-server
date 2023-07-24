@@ -186,6 +186,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg });
     }
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
+    console.log("potentialMatchesForClient: ", potentialMatchesForClient);
     potentialMatchesForClient = yield getLocationStrForUsers(potentialMatchesForClient);
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
     response.status(200).json({ paginationMatches: paginationMatchesObj });

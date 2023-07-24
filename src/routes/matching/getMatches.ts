@@ -252,6 +252,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
+    console.log("potentialMatchesForClient: ", potentialMatchesForClient)
     potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
 

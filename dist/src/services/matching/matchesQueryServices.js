@@ -19,7 +19,6 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
         let _userQueryOpts = Object.assign({}, userQueryOpts);
         let matchesPage = {};
         let _hasReachedPaginationEnd = false;
-        let _canStillQueryCurrentPageForUsers = false;
         try {
             let timeBeforeLoopMs = new Date().getTime();
             while (validMatchesToSendToClient.length < 5) {
@@ -36,9 +35,8 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 }
                 const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow);
                 const queryMatchesResults = yield getMatches(queryOptsForPagination, _userQueryOpts.skipDocsNum);
-                const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers } = queryMatchesResults.data;
+                const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
                 _hasReachedPaginationEnd = hasReachedPaginationEnd;
-                _canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;
                 if (queryMatchesResults.status !== 200) {
                     matchesPage = {
                         hasReachedPaginationEnd: true,
@@ -62,6 +60,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
                 matchesToSendToClient = matchesToSendToClient.length ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
                 const endingSliceIndex = 5 - validMatchesToSendToClient.length;
+                // after the slice, if the inverse of the slice is 0, then the current page can still be queried for users
                 matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum).slice(0, endingSliceIndex) : [];
                 matchesToSendToClient = matchesToSendToClient.length ? [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
                 if (matchesToSendToClient.length) {
@@ -78,8 +77,15 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                         hasReachedPaginationEnd: _hasReachedPaginationEnd,
                         validMatches: validMatchesToSendToClientUpdated,
                         updatedSkipDocsNum: _updatedSkipDocsNum,
-                        canStillQueryCurrentPageForUsers: !!_canStillQueryCurrentPageForUsers
                     };
+                    // if the endingSliceIndex does not equal to 5, then the user can still query the current page for more users
+                    // or if the endingSliceIndex does not equal the length of potentialMatches array minus one, then the current user can still query the current page for more users
+                    if (!_hasReachedPaginationEnd) {
+                        console.log("endingSliceIndex: ", endingSliceIndex);
+                        console.log("potentialMatches.length: ", potentialMatches.length);
+                        matchesPage['canStillQueryCurrentPageForUsers'] = (endingSliceIndex !== (potentialMatches.length - 1));
+                        console.log("matchesPage['canStillQueryCurrentPageForUsers']: ", matchesPage['canStillQueryCurrentPageForUsers']);
+                    }
                     if (_hasReachedPaginationEnd) {
                         break;
                     }
@@ -136,10 +142,10 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
         let [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
         if (totalUsersForQuery === 0) {
-            return { potentialMatches: [], updatedSkipDocsNum: 0, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
+            return { potentialMatches: [], updatedSkipDocsNum: 0, hasReachedPaginationEnd: true };
         }
         if (hasReachedPaginationEnd) {
-            return { potentialMatches: potentialMatches, updatedSkipDocsNum, canStillQueryCurrentPageForUsers: false, hasReachedPaginationEnd: true };
+            return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: true };
         }
         return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
