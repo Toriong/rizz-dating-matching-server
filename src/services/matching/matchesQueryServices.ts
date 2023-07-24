@@ -148,9 +148,6 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
         }
     }
 
-    // brain dump:
-    // have the limit be 30, in order to perform faster queries
-
     const skipAndLimitObj = { skip: skipDocsNum as number, limit: 5 };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
 
@@ -164,17 +161,6 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     if (paginationQueryOpts?.location) {
         (Users as any).createIndexes([{ location: '2dsphere' }])
     }
-
-    // THE BELOW IS FOR TESTING:
-    // skip: 50, limit: 5, the users of the sixth page
-    // skip: 55, limit: 5, the users of the seventh page
-    // skipAndLimitObj = { skip: 40, limit: 5  };
-    // THE ABOVE IS FOR TESTING:
-
-    // BRAIN DUMP:
-    // get the first 50 users, get all of their ids, and check for the following:
-    // if they have valid prompts
-    // and matching pic url
 
     const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
     const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean()
