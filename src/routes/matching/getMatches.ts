@@ -237,8 +237,15 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     if (!matchesToSendToClient.length) {
         console.log('No matches to send to client.')
         paginationMatchesObj.potentialMatches = [];
+
         return response.status(200).json({ paginationMatches: paginationMatchesObj })
     }
+
+    // BRAIN DUMP: 
+    // get the users who are not part of the query results anymore
+    // if canStillGetUsersForCurrentPage is true, then from the client side, the client side user must send the ids of the users that were 
+    // no for the above because either the previously recieved users were rejected or the current user has sent a match request to them
+    // just use the current skip docs num and see what you get in the response from query the database
 
     const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
         const _user = (user as UserBaseModelSchema);
@@ -254,6 +261,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
     console.log("potentialMatchesForClient: ", potentialMatchesForClient)
+    console.log("potentialMatchesForClient length: ", potentialMatchesForClient?.length)
     potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
 

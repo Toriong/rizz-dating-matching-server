@@ -73,6 +73,8 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
                 break;
             }
 
+            // GOAL: don't get six users in the total of users to be returned from this function
+
             let matchesToSendToClient = await filterInUsersWithValidMatchingPicUrl(potentialMatches)
             matchesToSendToClient = matchesToSendToClient.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
             const endingSliceIndex = 5 - validMatchesToSendToClient.length;
@@ -81,6 +83,12 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
             matchesToSendToClient = matchesToSendToClient.length ? [...matchesToSendToClient, ...currentValidUserMatches].sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
 
             if (matchesToSendToClient.length) {
+                console.log("validMatchesToSendToClient.length: ")
+                console.log(validMatchesToSendToClient.length)
+
+                console.log("matchesToSendToClient.length: ")
+                console.log(matchesToSendToClient.length)
+                
                 validMatchesToSendToClient.push(...matchesToSendToClient);
             }
 
@@ -91,8 +99,8 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
                 _userQueryOpts = { ..._userQueryOpts, skipDocsNum: _updatedSkipDocsNum }
             }
 
-            if (_hasReachedPaginationEnd || (validMatchesToSendToClient.length >= 5)) {
-                let validMatchesToSendToClientUpdated = validMatchesToSendToClient.length > 5 ? validMatchesToSendToClient.slice(0, 5) : validMatchesToSendToClient;
+            if (_hasReachedPaginationEnd || (validMatchesToSendToClient?.length >= 5)) {
+                let validMatchesToSendToClientUpdated = (validMatchesToSendToClient?.length > 5) ? validMatchesToSendToClient.slice(0, 5) : validMatchesToSendToClient;
                 matchesPage = {
                     hasReachedPaginationEnd: _hasReachedPaginationEnd,
                     validMatches: validMatchesToSendToClientUpdated,
@@ -101,13 +109,19 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
 
                 // if the endingSliceIndex does not equal to 5, then the user can still query the current page for more users
                 // or if the endingSliceIndex does not equal the length of potentialMatches array minus one, then the current user can still query the current page for more users
-                if(!_hasReachedPaginationEnd){   
+                if (!_hasReachedPaginationEnd) {
+                    
                     console.log("endingSliceIndex: ", endingSliceIndex)
-                    
+
                     console.log("potentialMatches.length: ", potentialMatches.length)
-                    
+
+                    const unshowableUserIds = potentialMatches.slice(endingSliceIndex, potentialMatches.length).map(({ _id }) => _id);
+
+                    // put the users below into the cache, if necessary
+                    console.log("unshowableUserIds: ", unshowableUserIds)
+
                     matchesPage['canStillQueryCurrentPageForUsers'] = (endingSliceIndex !== (potentialMatches.length - 1));
-                    
+
                     console.log("matchesPage['canStillQueryCurrentPageForUsers']: ", matchesPage['canStillQueryCurrentPageForUsers'])
                 }
 

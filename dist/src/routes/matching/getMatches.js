@@ -177,6 +177,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         paginationMatchesObj.potentialMatches = [];
         return response.status(200).json({ paginationMatches: paginationMatchesObj });
     }
+    // BRAIN DUMP: 
+    // get the users who are not part of the query results anymore
+    // if canStillGetUsersForCurrentPage is true, then from the client side, the client side user must send the ids of the users that were 
+    // no for the above because either the previously recieved users were rejected or the current user has sent a match request to them
+    // just use the current skip docs num and see what you get in the response from query the database
     const matchesToSendToClientUpdated = matchesToSendToClient.map((user) => {
         const _user = user;
         return Object.assign(Object.assign({}, _user), { firstName: _user.name.first });
@@ -188,6 +193,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
     console.log("potentialMatchesForClient: ", potentialMatchesForClient);
+    console.log("potentialMatchesForClient length: ", potentialMatchesForClient === null || potentialMatchesForClient === void 0 ? void 0 : potentialMatchesForClient.length);
     potentialMatchesForClient = yield getLocationStrForUsers(potentialMatchesForClient);
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
     response.status(200).json({ paginationMatches: paginationMatchesObj });
