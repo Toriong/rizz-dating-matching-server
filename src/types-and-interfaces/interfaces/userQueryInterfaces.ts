@@ -18,4 +18,14 @@ interface ReqQueryMatchesParams {
     userId: string
 }
 
-export { UserQueryOpts, UserLocation, ReqQueryMatchesParams }
+interface QueryValidationInterface {
+    correctVal: string | string[],
+    isCorrectValType: boolean,
+    fieldName: string,
+    val: unknown,
+    receivedType: string,
+    receivedTypeInArr?: string[],
+    recievedTypeOfValsInArr?: ({ fieldName: string, receivedType: string } | string)[]
+}
+
+export { UserQueryOpts, UserLocation, ReqQueryMatchesParams, QueryValidationInterface }

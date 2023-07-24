@@ -15,7 +15,7 @@ import { getUserById, getUsersByIds } from '../../services/globalMongoDbServices
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 import GLOBAL_VALS from '../../globalVals.js';
-import { cache } from '../../utils/cache.js';
+import cache from '../../utils/cache.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -140,7 +140,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     let startingMatches = null;
     let limitNum = 5;
     if (savedUserIdsOfMatches.length) {
+        console.log('Getting users from db based on users saved in the cache.');
         const savedUsersInCache = yield getUsersByIds(savedUserIdsOfMatches);
+        console.log("savedUsersInCache: ", savedUsersInCache);
         startingMatches = (savedUsersInCache === null || savedUsersInCache === void 0 ? void 0 : savedUsersInCache.length) ? savedUsersInCache : [];
         limitNum = limitNum - savedUserIdsOfMatches.length;
         cache.set("userIdsToShowForNextQuery", { [currentUserId]: [] });

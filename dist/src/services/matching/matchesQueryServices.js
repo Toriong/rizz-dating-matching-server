@@ -13,7 +13,7 @@ import { filterInUsersWithValidMatchingPicUrl, getMatchingPicUrlForUsers } from 
 import moment from "moment";
 import dotenv from 'dotenv';
 import axios from 'axios';
-import { cache } from "../../utils/cache.js";
+import cache from "../../utils/cache.js";
 function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, idsOfUsersNotToShow = []) {
     return __awaiter(this, void 0, void 0, function* () {
         let validMatchesToSendToClient = currentValidUserMatches;
@@ -89,7 +89,9 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                         const matchesToShowForNextQuery = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
                         matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
                         const result = cache.set("matchesToShowForNextQuery", { [currentUser._id]: matchesToShowForNextQuery }, 864000);
-                        console.log('were stored in cache: ', result);
+                        console.log('were queried users stored in cache: ', result);
+                        const _matchesToShowForNextQuery = cache.get("matchesToShowForNextQuery");
+                        console.log("_matchesToShowForNextQuery: ", _matchesToShowForNextQuery);
                     }
                     if (_hasReachedPaginationEnd) {
                         break;

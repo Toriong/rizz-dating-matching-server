@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getLocationStrForUsers, getMatches, getPromptsAndMatchingPicForClient, getValidMatches } from '../../services/matching/matchesQueryServices.js';
-import { ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
+import { QueryValidationInterface, ReqQueryMatchesParams, UserQueryOpts } from '../../types-and-interfaces/interfaces/userQueryInterfaces.js';
 import { UserBaseModelSchema } from '../../models/User.js';
 import { IUserAndPrompts } from '../../types-and-interfaces/interfaces/promptsInterfaces.js';
 import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
@@ -13,26 +13,11 @@ import { IMatchesPagination, IUserMatch, InterfacePotentialMatchesPage } from '.
 import GLOBAL_VALS from '../../globalVals.js';
 import { IError } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
 import { IResponseBodyGetMatches } from '../../types-and-interfaces/interfaces/responses/getMatches.js';
-import { ICacheKeyVals, cache } from '../../utils/cache.js';
+import { ICacheKeyVals } from '../../types-and-interfaces/interfaces/cacheInterfaces.js';
+import cache from '../../utils/cache.js';
+import { RequestQuery } from '../../types-and-interfaces/interfaces/requests/getMatchesReqQuery.js';
 
 export const getMatchesRoute = Router();
-
-interface QueryValidationInterface {
-    correctVal: string | string[],
-    isCorrectValType: boolean,
-    fieldName: string,
-    val: unknown,
-    receivedType: string,
-    receivedTypeInArr?: string[],
-    recievedTypeOfValsInArr?: ({ fieldName: string, receivedType: string } | string)[]
-}
-
-interface RequestQuery extends Omit<UserQueryOpts, 'userLocation' | 'radiusInMilesInt' | 'skipDocsNum'> {
-    userLocation: { latitude: string, longitude: string }
-    radiusInMilesInt: string
-    skipDocsNum: string
-}
-
 
 function validateFormOfObj(key: string, obj: any): { fieldName: string, receivedType: string } {
     const receivedType = typeof obj[key];
@@ -190,7 +175,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     let limitNum = 5;
 
     if (savedUserIdsOfMatches.length) {
+        console.log('Getting users from db based on users saved in the cache.')
         const savedUsersInCache = await getUsersByIds(savedUserIdsOfMatches);
+        console.log("savedUsersInCache: ", savedUsersInCache)
         startingMatches = savedUsersInCache?.length ? savedUsersInCache : [];
         limitNum = limitNum - savedUserIdsOfMatches.length;
         cache.set("userIdsToShowForNextQuery", { [currentUserId]: [] })
