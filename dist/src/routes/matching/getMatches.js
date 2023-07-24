@@ -136,6 +136,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     savedUserIdsOfMatches = (savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : [];
     let startingMatches = null;
     let limitNum = 5;
+    console.log("savedUserIdsOfMatches.length: ", savedUserIdsOfMatches.length);
     if (savedUserIdsOfMatches.length) {
         console.log('Getting users from db based on users saved in the cache.');
         const savedUsersInCache = yield getUsersByIds(savedUserIdsOfMatches);
@@ -151,6 +152,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if ((potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length) && (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length)) {
         potentialMatches = [...startingMatches, ...potentialMatches];
     }
+    console.log("potentialMatches: ", potentialMatches);
     // FOR TESTING PURPOSES, BELOW:
     // let _potentialMatches = potentialMatches as UserBaseModelSchema[];
     // const usersOfPromptsToDelete = _potentialMatches?.filter(({ pics }) => {
@@ -188,13 +190,15 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
     };
     if (!hasReachedPaginationEnd && ((matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) < 5)) {
+        const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : _updateSkipDocsNum + 5;
+        const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: _skipDocsNum });
         console.time("Getting matches again timing.");
-        const getValidMatchesResult = yield getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
+        const getValidMatchesResult = yield getValidMatches(_userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
         console.timeEnd("Getting matches again timing.");
-        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers, hasReachedPaginationEnd } = (_d = getValidMatchesResult.page) !== null && _d !== void 0 ? _d : {};
+        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers: canStillQueryCurrentPageForUsersValidMatches, hasReachedPaginationEnd } = (_d = getValidMatchesResult.page) !== null && _d !== void 0 ? _d : {};
         paginationMatchesObj.didTimeOutOccur = didTimeOutOccur !== null && didTimeOutOccur !== void 0 ? didTimeOutOccur : false;
         paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
-        paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;
+        paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsersValidMatches;
         paginationMatchesObj.hasReachedPaginationEnd = hasReachedPaginationEnd;
         if (didErrorOccur) {
             return response.status(500).json({ msg: 'An error has occurred in getting the matches.' });

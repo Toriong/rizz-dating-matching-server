@@ -170,6 +170,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     let startingMatches: UserBaseModelSchema[] | null = null;
     let limitNum = 5;
 
+    console.log("savedUserIdsOfMatches.length: ", savedUserIdsOfMatches.length)
+
     if (savedUserIdsOfMatches.length) {
         console.log('Getting users from db based on users saved in the cache.')
         const savedUsersInCache = await getUsersByIds(savedUserIdsOfMatches);
@@ -183,10 +185,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow, limitNum)
     const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);
     let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
-    
-    if(potentialMatches?.length && startingMatches?.length) {
+
+    if (potentialMatches?.length && startingMatches?.length) {
         potentialMatches = [...startingMatches, ...potentialMatches]
     }
+
+    console.log("potentialMatches: ", potentialMatches)
 
     // FOR TESTING PURPOSES, BELOW:
 
@@ -237,13 +241,15 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     if (!hasReachedPaginationEnd && (matchesToSendToClient?.length < 5)) {
+        const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : _updateSkipDocsNum + 5;
+        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: _skipDocsNum } as UserQueryOpts;
         console.time("Getting matches again timing.")
-        const getValidMatchesResult = await getValidMatches(userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
+        const getValidMatchesResult = await getValidMatches(_userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
         console.timeEnd("Getting matches again timing.")
-        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers, hasReachedPaginationEnd } = (getValidMatchesResult.page as IMatchesPagination) ?? {};
+        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers: canStillQueryCurrentPageForUsersValidMatches, hasReachedPaginationEnd } = (getValidMatchesResult.page as IMatchesPagination) ?? {};
         paginationMatchesObj.didTimeOutOccur = didTimeOutOccur ?? false;
         paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
-        paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsers;
+        paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsersValidMatches;
         paginationMatchesObj.hasReachedPaginationEnd = hasReachedPaginationEnd;
 
         if (didErrorOccur) {

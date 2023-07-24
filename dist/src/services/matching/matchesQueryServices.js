@@ -37,6 +37,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow);
                 const queryMatchesResults = yield getMatches(queryOptsForPagination, _userQueryOpts.skipDocsNum);
                 const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
+                console.log("updatedSkipDocsNum: ", updatedSkipDocsNum);
                 _hasReachedPaginationEnd = hasReachedPaginationEnd;
                 if (queryMatchesResults.status !== 200) {
                     matchesPage = {
@@ -59,34 +60,46 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                     break;
                 }
                 // GOAL: don't get six users in the total of users to be returned from this function
-                let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
+                // let currentValidMatchesIds = currentValidUserMatches?.length ? currentValidUserMatches.map(({ _id }) => _id) : [];
+                // let matchesToSendToClient = (potentialMatches?.length && currentValidMatchesIds.length) ? potentialMatches.filter(({ _id }) => !currentValidMatchesIds.includes(_id)) : potentialMatches;
+                let matchesToSendToClient = (potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length) ? yield filterInUsersWithValidMatchingPicUrl(potentialMatches) : [];
                 console.log("matchesToSendToClient.length after filter: ", matchesToSendToClient.length);
                 matchesToSendToClient = matchesToSendToClient.length ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
                 let usersToAddNum = 0;
-                matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
+                const matchesToSendToClientCopy = matchesToSendToClient.length ? structuredClone(matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum)) : [];
+                matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClientCopy : [];
+                // 5
+                // 2
+                // 10
+                // 5
                 if (matchesToSendToClient.length && (validMatchesToSendToClient.length !== 5)) {
                     usersToAddNum = 5 - validMatchesToSendToClient.length;
                     matchesToSendToClient = matchesToSendToClient.slice(0, usersToAddNum);
                     validMatchesToSendToClient.push(...matchesToSendToClient);
                 }
+                console.log("_userQueryOpts: ", _userQueryOpts.skipDocsNum);
+                console.log('validMatchestoSendToClient: ', validMatchesToSendToClient);
+                console.log("validMatchesToSendToClient.length: ", validMatchesToSendToClient.length);
                 let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
                 if ((validMatchesToSendToClient.length < 5) && !_hasReachedPaginationEnd) {
+                    console.log("will increaing skip docs num var: ", _updatedSkipDocsNum);
                     _updatedSkipDocsNum = _updatedSkipDocsNum + 5;
                     _userQueryOpts = Object.assign(Object.assign({}, _userQueryOpts), { skipDocsNum: _updatedSkipDocsNum });
                 }
+                // getting 15 skip docs num on the client side, NEEDS TO BE 10
                 if (_hasReachedPaginationEnd || ((validMatchesToSendToClient === null || validMatchesToSendToClient === void 0 ? void 0 : validMatchesToSendToClient.length) >= 5)) {
                     let validMatchesToSendToClientUpdated = ((validMatchesToSendToClient === null || validMatchesToSendToClient === void 0 ? void 0 : validMatchesToSendToClient.length) > 5) ? validMatchesToSendToClient.slice(0, 5) : validMatchesToSendToClient;
                     matchesPage = {
                         hasReachedPaginationEnd: _hasReachedPaginationEnd,
                         validMatches: validMatchesToSendToClientUpdated,
-                        updatedSkipDocsNum: _updatedSkipDocsNum,
+                        updatedSkipDocsNum: _updatedSkipDocsNum
                     };
                     // if the usersToAddNum does not equal to 5, then the user can still query the current page for more users
                     // or if the usersToAddNum does not equal the length of potentialMatches array minus one, then the current user can still query the current page for more users
                     if (!_hasReachedPaginationEnd) {
                         console.log("usersToAddNum: ", usersToAddNum);
                         console.log("potentialMatches.length: ", potentialMatches.length);
-                        const userIdsOfMatchesToShowForMatchesPg = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
+                        const userIdsOfMatchesToShowForMatchesPg = matchesToSendToClientCopy.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
                         matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
                         const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToShowForMatchesPg }, 864000);
                         console.log('were queried users stored in cache: ', result);
