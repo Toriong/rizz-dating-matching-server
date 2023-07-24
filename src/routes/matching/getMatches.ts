@@ -180,7 +180,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // BRAIN DUMP:
     // for the limitNum parameter for getMatches, it will be the difference of the following: 5 minus the array length of the users from the cache that were successfully queried
 
-    const userIdsOfMatchesForNextQuery = cache.get("userIdsToShowForNextQuery") as Pick<ICacheKeyVals, "userIdsToShowForNextQuery">
+    // put the below into a function 
+    const userIdsOfMatchesForNextQuery = cache.get("userIdsToShowForNextQuery") as Pick<ICacheKeyVals, "userIdsToShowForNextQuery">;
+    console.log("userIdsOfMatchesForNextQuery: ", userIdsOfMatchesForNextQuery)
+    console.log("userIdsOfMatchesForNextQuery?.userIdsToShowForNextQuery?.[currentUserId] ", userIdsOfMatchesForNextQuery?.userIdsToShowForNextQuery?.[currentUserId])
     let savedUserIdsOfMatches = userIdsOfMatchesForNextQuery?.userIdsToShowForNextQuery?.[currentUserId] ?? [];
     savedUserIdsOfMatches = savedUserIdsOfMatches?.length ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : []
     let startingMatches: UserBaseModelSchema[] | null = null;
@@ -192,6 +195,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         limitNum = limitNum - savedUserIdsOfMatches.length;
         cache.set("userIdsToShowForNextQuery", { [currentUserId]: [] })
     }
+    // put the above into a function
 
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow, limitNum)
     const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);

@@ -88,7 +88,8 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                         console.log("potentialMatches.length: ", potentialMatches.length);
                         const matchesToShowForNextQuery = potentialMatches.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
                         matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
-                        cache.set("matchesToShowForNextQuery", { [currentUser._id]: matchesToShowForNextQuery }, 864000);
+                        const result = cache.set("matchesToShowForNextQuery", { [currentUser._id]: matchesToShowForNextQuery }, 864000);
+                        console.log('were stored in cache: ', result);
                     }
                     if (_hasReachedPaginationEnd) {
                         break;
