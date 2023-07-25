@@ -14,8 +14,8 @@ import { generateGetRejectedUsersQuery, getRejectedUsers } from '../../services/
 import { getUserById, getUsersByIds } from '../../services/globalMongoDbServices.js';
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
-import GLOBAL_VALS from '../../globalVals.js';
 import cache from '../../utils/cache.js';
+import GLOBAL_VALS from '../../globalVals.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -135,9 +135,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     let savedUserIdsOfMatches = (_c = userIdsOfMatchesToShowForMatchesPg === null || userIdsOfMatchesToShowForMatchesPg === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPg[currentUserId]) !== null && _c !== void 0 ? _c : [];
     savedUserIdsOfMatches = (savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : [];
     let startingMatches = null;
-    let limitNum = 5;
+    let limitNum;
     console.log("savedUserIdsOfMatches.length: ", savedUserIdsOfMatches.length);
     if (savedUserIdsOfMatches.length) {
+        limitNum = 5;
         console.log('Getting users from db based on users saved in the cache.');
         const savedUsersInCache = yield getUsersByIds(savedUserIdsOfMatches);
         console.log("savedUsersInCache: ", savedUsersInCache);
@@ -146,9 +147,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: [] });
     }
     // put the above into a function
-    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow, limitNum);
-    const queryMatchesResults = yield getMatches(queryOptsForPagination, paginationPageNumUpdated);
-    let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
+    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
+    const queryMatchesResults = yield getMatches(queryOptsForPagination, limitNum);
+    let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data;
     if ((potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length) && (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length)) {
         potentialMatches = [...startingMatches, ...potentialMatches];
     }
@@ -173,7 +174,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
     // response.status(200).json({ msg: "Users received!" })
     // FOR TESTING PURPOSES, ABOVE:
-    const _updateSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+    const _updateSkipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
     if (queryMatchesResults.status !== 200) {
         return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg });
     }

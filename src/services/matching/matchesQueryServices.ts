@@ -27,6 +27,7 @@ interface IQueryOptsForPagination {
 async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, currentValidUserMatches: UserBaseModelSchema[], idsOfUsersNotToShow: string[] = []): Promise<IGetValidMatches> {
     let validMatchesToSendToClient: UserBaseModelSchema[] = currentValidUserMatches;
     let _userQueryOpts: UserQueryOpts = { ...userQueryOpts }
+    console.log("_userQueryOpts: ", _userQueryOpts)
     let matchesPage = {} as IMatchesPagination;
     let _hasReachedPaginationEnd = false;
 
@@ -48,9 +49,8 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
             }
 
             const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow)
-            const queryMatchesResults = await getMatches(queryOptsForPagination, _userQueryOpts.skipDocsNum as number);
-            const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
-            console.log("updatedSkipDocsNum: ", updatedSkipDocsNum)
+            const queryMatchesResults = await getMatches(queryOptsForPagination);
+            const { hasReachedPaginationEnd, potentialMatches } = queryMatchesResults.data as InterfacePotentialMatchesPage;
             _hasReachedPaginationEnd = hasReachedPaginationEnd;
 
             if (queryMatchesResults.status !== 200) {
@@ -98,12 +98,10 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
             console.log('validMatchestoSendToClient: ', validMatchesToSendToClient)
             console.log("validMatchesToSendToClient.length: ", validMatchesToSendToClient.length)
 
-            let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+            const _updatedSkipDocsNum = (typeof _userQueryOpts.skipDocsNum === 'string') ? parseInt(_userQueryOpts.skipDocsNum) : _userQueryOpts.skipDocsNum
 
             if ((validMatchesToSendToClient.length < 5) && !_hasReachedPaginationEnd) {
-                console.log("will increaing skip docs num var: ", _updatedSkipDocsNum)
-                _updatedSkipDocsNum = _updatedSkipDocsNum + 5;
-                _userQueryOpts = { ..._userQueryOpts, skipDocsNum: _updatedSkipDocsNum }
+                _userQueryOpts = { ..._userQueryOpts, skipDocsNum: _updatedSkipDocsNum + 5 }
             }
 
             // getting 15 skip docs num on the client side, NEEDS TO BE 10
@@ -125,7 +123,12 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
                     console.log("potentialMatches.length: ", potentialMatches.length)
 
                     const userIdsOfMatchesToShowForMatchesPg = matchesToSendToClientCopy.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
-                    matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
+                    matchesPage.canStillQueryCurrentPageForUsers = (usersToAddNum !== (potentialMatches.length - 1));
+
+                    if (!matchesPage.canStillQueryCurrentPageForUsers) {
+                        matchesPage.updatedSkipDocsNum = (_updatedSkipDocsNum as number) + 5;
+                    }
+
                     const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToShowForMatchesPg }, 864_000)
 
                     console.log('were queried users stored in cache: ', result)
@@ -152,7 +155,7 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
 
 }
 
-function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[], limitNum: number = 5): IQueryOptsForPagination {
+function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, allUnshowableUserIds: string[]): IQueryOptsForPagination {
     const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
     const currentPageNum = (skipDocsNum as number) / 5;
     const METERS_IN_A_MILE = 1609.34;
@@ -180,15 +183,14 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
         }
     }
 
-    const skipAndLimitObj = { skip: skipDocsNum as number, limit: limitNum };
+    const skipAndLimitObj = { skip: skipDocsNum as number, limit: 5 };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
 
     return returnVal;
 }
 
-async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPagination, skipDocsNum: number): Promise<InterfacePotentialMatchesPage> {
+async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<InterfacePotentialMatchesPage> {
     let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
-    let updatedSkipDocsNum = skipDocsNum + 5;
 
     if (paginationQueryOpts?.location) {
         (Users as any).createIndexes([{ location: '2dsphere' }])
@@ -200,15 +202,15 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
 
     if (totalUsersForQuery === 0) {
-        return { potentialMatches: [], updatedSkipDocsNum: 0, hasReachedPaginationEnd: true }
+        return { potentialMatches: [], hasReachedPaginationEnd: true }
     }
 
 
     if (hasReachedPaginationEnd) {
-        return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: true }
+        return { potentialMatches: potentialMatches, hasReachedPaginationEnd: true }
     }
 
-    return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
+    return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
 }
 
 function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUserInterface[], allRecipientsOfChats: string[]): string[] {
@@ -224,11 +226,25 @@ function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUs
 }
 
 // get the users of the sixth page
-async function getMatches(queryOptsForPagination: IQueryOptsForPagination, skipDocsNum: number): Promise<GetMatchesResult> {
+async function getMatches(queryOptsForPagination: IQueryOptsForPagination, sliceEndingIndexNum?: number): Promise<GetMatchesResult> {
     try {
-        const potentialMatchesPaginationObj = await queryForPotentialMatches(queryOptsForPagination, skipDocsNum);
+        const potentialMatchesPaginationObj = await queryForPotentialMatches(queryOptsForPagination);
+        let _potentialMatches = potentialMatchesPaginationObj.potentialMatches;
+        let userMatchIdsToSaveIntoCache = [] as string[];
 
-        return { status: 200, data: { ...potentialMatchesPaginationObj } }
+        if (potentialMatchesPaginationObj.potentialMatches?.length && Number.isInteger(sliceEndingIndexNum)) {
+            _potentialMatches = potentialMatchesPaginationObj.potentialMatches.slice(0, sliceEndingIndexNum);
+            userMatchIdsToSaveIntoCache = potentialMatchesPaginationObj.potentialMatches.slice(sliceEndingIndexNum).map(({ _id }) => _id);
+        }
+
+        return {
+            status: 200,
+            data: {
+                ...potentialMatchesPaginationObj,
+                potentialMatches: _potentialMatches,
+                userMatchIdsToSaveIntoCache: userMatchIdsToSaveIntoCache
+            }
+        }
     } catch (error) {
         console.error('An error has occurred in getting matches: ', error)
         const errMsg = `An error has occurred in getting matches for user: ${error}`

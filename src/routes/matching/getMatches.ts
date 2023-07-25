@@ -10,12 +10,11 @@ import { getUserById, getUsersByIds } from '../../services/globalMongoDbServices
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { IMatchingPicUser, filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 import { IMatchesPagination, IUserMatch, InterfacePotentialMatchesPage } from '../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
-import GLOBAL_VALS from '../../globalVals.js';
-import { IError } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
 import { IResponseBodyGetMatches } from '../../types-and-interfaces/interfaces/responses/getMatches.js';
 import { ICacheKeyVals } from '../../types-and-interfaces/interfaces/cacheInterfaces.js';
-import cache from '../../utils/cache.js';
 import { RequestQuery } from '../../types-and-interfaces/interfaces/requests/getMatchesReqQuery.js';
+import cache from '../../utils/cache.js';
+import GLOBAL_VALS from '../../globalVals.js';
 
 export const getMatchesRoute = Router();
 
@@ -168,11 +167,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     let savedUserIdsOfMatches = userIdsOfMatchesToShowForMatchesPg?.[currentUserId] ?? [];
     savedUserIdsOfMatches = savedUserIdsOfMatches?.length ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : []
     let startingMatches: UserBaseModelSchema[] | null = null;
-    let limitNum = 5;
+    let limitNum;
 
     console.log("savedUserIdsOfMatches.length: ", savedUserIdsOfMatches.length)
 
     if (savedUserIdsOfMatches.length) {
+        limitNum = 5;
         console.log('Getting users from db based on users saved in the cache.')
         const savedUsersInCache = await getUsersByIds(savedUserIdsOfMatches);
         console.log("savedUsersInCache: ", savedUsersInCache)
@@ -182,9 +182,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
     // put the above into a function
 
-    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow, limitNum)
-    const queryMatchesResults = await getMatches(queryOptsForPagination, paginationPageNumUpdated);
-    let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data as InterfacePotentialMatchesPage;
+    const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
+    const queryMatchesResults = await getMatches(queryOptsForPagination, limitNum);
+    let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data as InterfacePotentialMatchesPage;
 
     if (potentialMatches?.length && startingMatches?.length) {
         potentialMatches = [...startingMatches, ...potentialMatches]
@@ -220,7 +220,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     // FOR TESTING PURPOSES, ABOVE:
 
-    const _updateSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+    const _updateSkipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
 
     if (queryMatchesResults.status !== 200) {
         return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
@@ -241,7 +241,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     if (!hasReachedPaginationEnd && (matchesToSendToClient?.length < 5)) {
-        const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : _updateSkipDocsNum + 5;
+        const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : (_updateSkipDocsNum as number) + 5;
         const _userQueryOpts = { ...userQueryOpts, skipDocsNum: _skipDocsNum } as UserQueryOpts;
         console.time("Getting matches again timing.")
         const getValidMatchesResult = await getValidMatches(_userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);

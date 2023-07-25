@@ -18,6 +18,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
     return __awaiter(this, void 0, void 0, function* () {
         let validMatchesToSendToClient = currentValidUserMatches;
         let _userQueryOpts = Object.assign({}, userQueryOpts);
+        console.log("_userQueryOpts: ", _userQueryOpts);
         let matchesPage = {};
         let _hasReachedPaginationEnd = false;
         try {
@@ -35,9 +36,8 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                     break;
                 }
                 const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow);
-                const queryMatchesResults = yield getMatches(queryOptsForPagination, _userQueryOpts.skipDocsNum);
-                const { hasReachedPaginationEnd, potentialMatches, updatedSkipDocsNum } = queryMatchesResults.data;
-                console.log("updatedSkipDocsNum: ", updatedSkipDocsNum);
+                const queryMatchesResults = yield getMatches(queryOptsForPagination);
+                const { hasReachedPaginationEnd, potentialMatches } = queryMatchesResults.data;
                 _hasReachedPaginationEnd = hasReachedPaginationEnd;
                 if (queryMatchesResults.status !== 200) {
                     matchesPage = {
@@ -80,11 +80,9 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 console.log("_userQueryOpts: ", _userQueryOpts.skipDocsNum);
                 console.log('validMatchestoSendToClient: ', validMatchesToSendToClient);
                 console.log("validMatchesToSendToClient.length: ", validMatchesToSendToClient.length);
-                let _updatedSkipDocsNum = (typeof updatedSkipDocsNum === 'string') ? parseInt(updatedSkipDocsNum) : updatedSkipDocsNum;
+                const _updatedSkipDocsNum = (typeof _userQueryOpts.skipDocsNum === 'string') ? parseInt(_userQueryOpts.skipDocsNum) : _userQueryOpts.skipDocsNum;
                 if ((validMatchesToSendToClient.length < 5) && !_hasReachedPaginationEnd) {
-                    console.log("will increaing skip docs num var: ", _updatedSkipDocsNum);
-                    _updatedSkipDocsNum = _updatedSkipDocsNum + 5;
-                    _userQueryOpts = Object.assign(Object.assign({}, _userQueryOpts), { skipDocsNum: _updatedSkipDocsNum });
+                    _userQueryOpts = Object.assign(Object.assign({}, _userQueryOpts), { skipDocsNum: _updatedSkipDocsNum + 5 });
                 }
                 // getting 15 skip docs num on the client side, NEEDS TO BE 10
                 if (_hasReachedPaginationEnd || ((validMatchesToSendToClient === null || validMatchesToSendToClient === void 0 ? void 0 : validMatchesToSendToClient.length) >= 5)) {
@@ -100,7 +98,10 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                         console.log("usersToAddNum: ", usersToAddNum);
                         console.log("potentialMatches.length: ", potentialMatches.length);
                         const userIdsOfMatchesToShowForMatchesPg = matchesToSendToClientCopy.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
-                        matchesPage['canStillQueryCurrentPageForUsers'] = (usersToAddNum !== (potentialMatches.length - 1));
+                        matchesPage.canStillQueryCurrentPageForUsers = (usersToAddNum !== (potentialMatches.length - 1));
+                        if (!matchesPage.canStillQueryCurrentPageForUsers) {
+                            matchesPage.updatedSkipDocsNum = _updatedSkipDocsNum + 5;
+                        }
                         const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToShowForMatchesPg }, 864000);
                         console.log('were queried users stored in cache: ', result);
                         const _matchesToShowForNextQuery = cache.get("userIdsOfMatchesToShowForMatchesPg");
@@ -121,7 +122,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
         }
     });
 }
-function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds, limitNum = 5) {
+function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableUserIds) {
     const { userLocation, minAndMaxDistanceArr, desiredAgeRange, skipDocsNum, isRadiusSetToAnywhere } = userQueryOpts;
     const currentPageNum = skipDocsNum / 5;
     const METERS_IN_A_MILE = 1609.34;
@@ -146,14 +147,13 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
             }
         };
     }
-    const skipAndLimitObj = { skip: skipDocsNum, limit: limitNum };
+    const skipAndLimitObj = { skip: skipDocsNum, limit: 5 };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
     return returnVal;
 }
-function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
+function queryForPotentialMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
-        let updatedSkipDocsNum = skipDocsNum + 5;
         if (paginationQueryOpts === null || paginationQueryOpts === void 0 ? void 0 : paginationQueryOpts.location) {
             Users.createIndexes([{ location: '2dsphere' }]);
         }
@@ -162,12 +162,12 @@ function queryForPotentialMatches(queryOptsForPagination, skipDocsNum) {
         let [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
         if (totalUsersForQuery === 0) {
-            return { potentialMatches: [], updatedSkipDocsNum: 0, hasReachedPaginationEnd: true };
+            return { potentialMatches: [], hasReachedPaginationEnd: true };
         }
         if (hasReachedPaginationEnd) {
-            return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: true };
+            return { potentialMatches: potentialMatches, hasReachedPaginationEnd: true };
         }
-        return { potentialMatches: potentialMatches, updatedSkipDocsNum, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
+        return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
     });
 }
 function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfChats) {
@@ -181,11 +181,21 @@ function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfCha
     return [...allRejectedUserIds, ...allRecipientsOfChats];
 }
 // get the users of the sixth page
-function getMatches(queryOptsForPagination, skipDocsNum) {
+function getMatches(queryOptsForPagination, sliceEndingIndexNum) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const potentialMatchesPaginationObj = yield queryForPotentialMatches(queryOptsForPagination, skipDocsNum);
-            return { status: 200, data: Object.assign({}, potentialMatchesPaginationObj) };
+            const potentialMatchesPaginationObj = yield queryForPotentialMatches(queryOptsForPagination);
+            let _potentialMatches = potentialMatchesPaginationObj.potentialMatches;
+            let userMatchIdsToSaveIntoCache = [];
+            if (((_a = potentialMatchesPaginationObj.potentialMatches) === null || _a === void 0 ? void 0 : _a.length) && Number.isInteger(sliceEndingIndexNum)) {
+                _potentialMatches = potentialMatchesPaginationObj.potentialMatches.slice(0, sliceEndingIndexNum);
+                userMatchIdsToSaveIntoCache = potentialMatchesPaginationObj.potentialMatches.slice(sliceEndingIndexNum).map(({ _id }) => _id);
+            }
+            return {
+                status: 200,
+                data: Object.assign(Object.assign({}, potentialMatchesPaginationObj), { potentialMatches: _potentialMatches, userMatchIdsToSaveIntoCache: userMatchIdsToSaveIntoCache })
+            };
         }
         catch (error) {
             console.error('An error has occurred in getting matches: ', error);

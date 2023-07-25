@@ -4,10 +4,10 @@ import { IUserAndPrompts, PromptInterface, PromptModelInterface } from "./prompt
 import { UserLocation } from "./userQueryInterfaces.js";
 
 interface InterfacePotentialMatchesPage {
-    updatedSkipDocsNum: string | number;
     hasReachedPaginationEnd: boolean;
     canStillQueryCurrentPageForUsers?: boolean;
     potentialMatches?: UserBaseModelSchema[];
+    userMatchIdsToSaveIntoCache?: string[]
 }
 interface PotentialMatchesPaginationForClient extends Omit<InterfacePotentialMatchesPage, "potentialMatches"> {
     potentialMatches: IUserAndPrompts[]
@@ -36,7 +36,7 @@ interface IUserMatch extends TUser {
 interface IMatchesPagination {
     hasReachedPaginationEnd: boolean,
     validMatches: UserBaseModelSchema[] | [],
-    updatedSkipDocsNum: number,
+    updatedSkipDocsNum?: number,
     canStillQueryCurrentPageForUsers?: boolean,
     didErrorOccur?: boolean,
     didTimeOutOccur?: boolean

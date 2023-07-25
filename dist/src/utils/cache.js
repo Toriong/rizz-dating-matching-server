@@ -1,7 +1,7 @@
 import NodeCache from "node-cache";
 const cache = (() => {
-    console.log('creating cache');
     const _cache = new NodeCache();
+    console.log('Cache initialized.');
     return _cache;
 })();
 export default cache;
