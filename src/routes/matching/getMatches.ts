@@ -27,7 +27,8 @@ function validateFormOfObj(key: string, obj: any): { fieldName: string, received
 
 function getQueryOptionsValidationArr(queryOpts: UserQueryOpts): QueryValidationInterface[] {
     const { userLocation, desiredAgeRange, skipDocsNum, minAndMaxDistanceArr, isRadiusSetToAnywhere } = queryOpts ?? {}
-    const [latitude, longitude] = userLocation ?? [];
+    console.log('userLocation: ', userLocation)
+    const [latitude, longitude] = Array.isArray(userLocation) ? userLocation : [];
     let areValsInMinAndMaxQueryDistanceArrValid = false
     let minAndMaxDistanceQueryArrValidationObj: QueryValidationInterface | null = null
     let areValsInDesiredAgeRangeArrValid = false;
@@ -163,6 +164,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         console.error('Could not find current user in the db.');
         return response.status(404).json({ msg: 'Could not find current user in the db.' })
     }
+    
+    // check what users are being stored in the cache after querying the database
 
     // create a function that will query that cache, have the return type be unknown
 
@@ -259,9 +262,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // after the validations of the users that were attained from the cache and database has been executed, get only five of the highest rated users
     // for the rest, save them into the cache
 
-    const areSavedUsersInCacheValid = (savedUserIdsOfMatches?.length && matchesToSendToClient?.length) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
+    const areCachedUsersValid = (savedUserIdsOfMatches?.length && matchesToSendToClient?.length) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
 
-    if (areSavedUsersInCacheValid && (matchesToSendToClient.length > 5)) {
+    if (areCachedUsersValid && (matchesToSendToClient.length > 5)) {
         console.log('Adding users who were saved in the cache first to the array that will be sent to the client.')
         let usersToSendToClientUpdated = matchesToSendToClient.filter(({ _id }) => savedUserIdsOfMatches.includes(_id));
         console.log('usersToSendToClientUpdated: ', usersToSendToClientUpdated)
@@ -269,7 +272,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         console.log('usersNotSavedInCache: ', usersNotSavedInCache)
         let userIdsToSaveIntoCache: string[] = [];
 
-        if (usersNotSavedInCache.length !== 0) {
+        if (usersNotSavedInCache.length > 0) {
             for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
                 if (usersToSendToClientUpdated.length === 5) {
                     userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
@@ -290,9 +293,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
 
         if (userIdsToSaveIntoCache?.length) {
+            console.log('Saving users into the cache.')
+
             const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg");
             let matchesUserIdsForCurrentUsers = (userIdsOfMatchesToShowForMatchesPg as DynamicKeyVal<string[]>)?.[currentUserId] ?? [];
             matchesUserIdsForCurrentUsers = [...matchesUserIdsForCurrentUsers, ...userIdsToSaveIntoCache]
+
+            console.log("matchesUserIdsForCurrentUsers: ", matchesUserIdsForCurrentUsers)
+
             cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: matchesUserIdsForCurrentUsers }, EXPIRATION_TIME_CACHED_MATCHES)
         }
     }
@@ -302,8 +310,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         updatedSkipDocsNum: _updateSkipDocsNum,
         canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
     }
-
-    // CASE: at least one of the user don't have a valid matching pic url or prompts and there is at least one user saved in the cache
 
     if (!hasReachedPaginationEnd && (matchesToSendToClient?.length < 5)) {
         const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : (_updateSkipDocsNum as number) + 5;

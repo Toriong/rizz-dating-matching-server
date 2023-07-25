@@ -77,28 +77,23 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
                 break;
             }
 
-            // GOAL: don't get six users in the total of users to be returned from this function
-            // let currentValidMatchesIds = currentValidUserMatches?.length ? currentValidUserMatches.map(({ _id }) => _id) : [];
-            // let matchesToSendToClient = (potentialMatches?.length && currentValidMatchesIds.length) ? potentialMatches.filter(({ _id }) => !currentValidMatchesIds.includes(_id)) : potentialMatches;
             let matchesToSendToClient = potentialMatches?.length ? await filterInUsersWithValidMatchingPicUrl(potentialMatches) : [];
             console.log("matchesToSendToClient.length after filter: ", matchesToSendToClient.length)
             matchesToSendToClient = matchesToSendToClient.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
             let usersToAddNum = 0;
             const matchesToSendToClientCopy = matchesToSendToClient.length ? structuredClone(matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum)) : []
-            matchesToSendToClient = matchesToSendToClient.length ? matchesToSendToClientCopy : [];
+            matchesToSendToClient = matchesToSendToClientCopy.length ? matchesToSendToClientCopy : [];
 
-            // 5
-            // 2
-            // 10
-            // 5
             if (matchesToSendToClient.length && (validMatchesToSendToClient.length !== 5)) {
                 usersToAddNum = 5 - validMatchesToSendToClient.length
                 matchesToSendToClient = matchesToSendToClient.slice(0, usersToAddNum);
                 validMatchesToSendToClient.push(...matchesToSendToClient);
             }
+
             console.log("_userQueryOpts: ", _userQueryOpts.skipDocsNum)
             console.log('validMatchestoSendToClient: ', validMatchesToSendToClient)
             console.log("validMatchesToSendToClient.length: ", validMatchesToSendToClient.length)
+            console.log('_hasReachedPaginationEnd: ', _hasReachedPaginationEnd);
 
             const _updatedSkipDocsNum = (typeof _userQueryOpts.skipDocsNum === 'string') ? parseInt(_userQueryOpts.skipDocsNum) : _userQueryOpts.skipDocsNum
 
@@ -124,22 +119,22 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
 
                     console.log("potentialMatches.length: ", potentialMatches.length)
 
-                    const userIdsOfMatchesToShowForMatchesPg = matchesToSendToClientCopy.slice(usersToAddNum, potentialMatches.length).map(({ _id }) => _id);
+                    const userIdsOfMatchesToCacheSliced = matchesToSendToClientCopy.slice(usersToAddNum, potentialMatches.length);
+                    let userIdsOfMatchesToCache = userIdsOfMatchesToCacheSliced?.length ? userIdsOfMatchesToCacheSliced.map(({ _id }) => _id) : [];
                     matchesPage.canStillQueryCurrentPageForUsers = (usersToAddNum !== (potentialMatches.length - 1));
 
                     if (!matchesPage.canStillQueryCurrentPageForUsers) {
                         matchesPage.updatedSkipDocsNum = (_updatedSkipDocsNum as number) + 5;
                     }
 
-                    let currentCachedMatchesUserIds: string[] = userIdsOfMatchesToShowForMatchesPg
                     const userIdsOfMatchesToShowForMatchesPgCache = cache.get("userIdsOfMatchesToShowForMatchesPg");
 
                     if ((userIdsOfMatchesToShowForMatchesPgCache as DynamicKeyVal<string[]>)?.[currentUser._id]?.length) {
                         const cachedUserIdsForCurrentUser = (userIdsOfMatchesToShowForMatchesPgCache as DynamicKeyVal<string[]>)[currentUser._id];
-                        currentCachedMatchesUserIds = [...currentCachedMatchesUserIds, ...cachedUserIdsForCurrentUser]
+                        userIdsOfMatchesToCache = userIdsOfMatchesToCache?.length ? [...userIdsOfMatchesToCache, ...cachedUserIdsForCurrentUser] :cachedUserIdsForCurrentUser;
                     }
 
-                    const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: currentCachedMatchesUserIds }, EXPIRATION_TIME_CACHED_MATCHES)
+                    const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToCache }, EXPIRATION_TIME_CACHED_MATCHES)
 
                     console.log('were queried users stored in cache: ', result)
                     const _matchesToShowForNextQuery = cache.get("userIdsOfMatchesToShowForMatchesPg");
