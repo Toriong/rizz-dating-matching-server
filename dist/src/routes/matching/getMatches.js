@@ -152,6 +152,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // not getting the correct users from the cache,
     // check what user ids are being received from the cache and then queried to the database 
     console.log("potentialMatches: ", potentialMatches);
+    console.log('potentialMatches.length: ', potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length);
     // FOR TESTING PURPOSES, BELOW:
     // let _potentialMatches = potentialMatches as UserBaseModelSchema[];
     // const usersOfPromptsToDelete = _potentialMatches?.filter(({ pics }) => {
@@ -172,7 +173,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
     // response.status(200).json({ msg: "Users received!" })
     // FOR TESTING PURPOSES, ABOVE:
-    const _updateSkipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
+    const _updateSkipDocsNum = (typeof (userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.skipDocsNum) === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
     if (queryMatchesResults.status !== 200) {
         return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg });
     }

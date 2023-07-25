@@ -190,6 +190,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // check what user ids are being received from the cache and then queried to the database 
 
     console.log("potentialMatches: ", potentialMatches)
+    console.log('potentialMatches.length: ', potentialMatches?.length)
 
     // FOR TESTING PURPOSES, BELOW:
 
@@ -219,7 +220,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     // FOR TESTING PURPOSES, ABOVE:
 
-    const _updateSkipDocsNum = (typeof userQueryOpts.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
+    const _updateSkipDocsNum = (typeof userQueryOpts?.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
 
     if (queryMatchesResults.status !== 200) {
         return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
@@ -261,7 +262,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
         console.log("userIdsToSaveIntoCache: ", userIdsToSaveIntoCache)
 
-        if(userIdsToSaveIntoCache?.length){
+        if (userIdsToSaveIntoCache?.length) {
             cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: userIdsToSaveIntoCache })
         }
     }
