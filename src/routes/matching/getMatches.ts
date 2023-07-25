@@ -150,16 +150,14 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(404).json({ msg: 'Could not find current user in the db.' })
     }
 
-    // GOAL #1:
-    // get the cache here 
-    // check if the current user who made request, check if there are users that can be queried first by their ids 
-    // there are ids of the users that needs to be queried first stored in the cache
-    // these users are not part of the idsOfUsersNotToShow
-    // all of the above are true 
-    // they queried from the database
+    // create a function that will query that cache, have the return type be unknown
 
-    // GOAL #2:
-    // for get matches, get the rest of the users
+    // function getItemFromCache(key: string): unknown {
+    //     return cache.get(key)
+    // }
+
+    // create a function called getMatchesFromCache
+    // END GOAL STEP: the id of the matches were received from the cache, and then returned from the function
 
     // put the below into a function 
     const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg") as ICacheKeyVals;
@@ -189,6 +187,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     if (potentialMatches?.length && startingMatches?.length) {
         potentialMatches = [...startingMatches, ...potentialMatches]
     }
+
+    // BRAIN DUMP NOTES:
+    // not getting the correct users from the cache,
+    // check what user ids are being received from the cache and then queried to the database 
 
     console.log("potentialMatches: ", potentialMatches)
 
@@ -281,6 +283,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
     potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
+
+    console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches)
 
     response.status(200).json({ paginationMatches: paginationMatchesObj })
     console.timeEnd('getMatchesRoute, timing.')

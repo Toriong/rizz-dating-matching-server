@@ -225,7 +225,10 @@ function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUs
     return [...allRejectedUserIds, ...allRecipientsOfChats]
 }
 
-// get the users of the sixth page
+// CASE: don't need to get all of the users from the database for a specific query.
+// brain dump:
+// still get the users from the database in order to perform validations on the user's info, checking for correct matching pic url or correct prompts
+
 async function getMatches(queryOptsForPagination: IQueryOptsForPagination, sliceEndingIndexNum?: number): Promise<GetMatchesResult> {
     try {
         const potentialMatchesPaginationObj = await queryForPotentialMatches(queryOptsForPagination);

@@ -120,15 +120,12 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.error('Could not find current user in the db.');
         return response.status(404).json({ msg: 'Could not find current user in the db.' });
     }
-    // GOAL #1:
-    // get the cache here 
-    // check if the current user who made request, check if there are users that can be queried first by their ids 
-    // there are ids of the users that needs to be queried first stored in the cache
-    // these users are not part of the idsOfUsersNotToShow
-    // all of the above are true 
-    // they queried from the database
-    // GOAL #2:
-    // for get matches, get the rest of the users
+    // create a function that will query that cache, have the return type be unknown
+    // function getItemFromCache(key: string): unknown {
+    //     return cache.get(key)
+    // }
+    // create a function called getMatchesFromCache
+    // END GOAL STEP: the id of the matches were received from the cache, and then returned from the function
     // put the below into a function 
     const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg");
     console.log("userIdsOfMatchesToShowForMatchesPg?.[currentUserId]: ", userIdsOfMatchesToShowForMatchesPg === null || userIdsOfMatchesToShowForMatchesPg === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPg[currentUserId]);
@@ -153,6 +150,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if ((potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length) && (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length)) {
         potentialMatches = [...startingMatches, ...potentialMatches];
     }
+    // BRAIN DUMP NOTES:
+    // not getting the correct users from the cache,
+    // check what user ids are being received from the cache and then queried to the database 
     console.log("potentialMatches: ", potentialMatches);
     // FOR TESTING PURPOSES, BELOW:
     // let _potentialMatches = potentialMatches as UserBaseModelSchema[];
@@ -223,6 +223,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
     potentialMatchesForClient = yield getLocationStrForUsers(potentialMatchesForClient);
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
+    console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches);
     response.status(200).json({ paginationMatches: paginationMatchesObj });
     console.timeEnd('getMatchesRoute, timing.');
 }));
