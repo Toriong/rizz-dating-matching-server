@@ -198,6 +198,8 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
     return returnVal;
 }
 
+// GOAL: get the users based on the current page number that the user received on the client side. 
+
 async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<InterfacePotentialMatchesPage> {
     let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
 
@@ -219,7 +221,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
         return { potentialMatches: potentialMatches, hasReachedPaginationEnd: true }
     }
 
-    return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery }
+    return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery, totalUsersForQuery: totalUsersForQuery }
 }
 
 function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUserInterface[], allRecipientsOfChats: string[]): string[] {
@@ -241,14 +243,12 @@ function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUs
 async function getMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<GetMatchesResult> {
     try {
         const potentialMatchesPaginationObj = await queryForPotentialMatches(queryOptsForPagination);
-        let _potentialMatches = potentialMatchesPaginationObj.potentialMatches;
+        console.log("potentialMatchesPaginationObj.totalUsersForQuery: ", potentialMatchesPaginationObj.totalUsersForQuery);
 
         return {
             status: 200,
-            data: {
-                ...potentialMatchesPaginationObj,
-                potentialMatches: _potentialMatches,
-            }
+            data: potentialMatchesPaginationObj
+
         }
     } catch (error) {
         console.error('An error has occurred in getting matches: ', error)

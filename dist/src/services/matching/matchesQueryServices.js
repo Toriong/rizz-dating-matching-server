@@ -158,6 +158,7 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
     return returnVal;
 }
+// GOAL: get the users based on the current page number that the user received on the client side. 
 function queryForPotentialMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
@@ -174,7 +175,7 @@ function queryForPotentialMatches(queryOptsForPagination) {
         if (hasReachedPaginationEnd) {
             return { potentialMatches: potentialMatches, hasReachedPaginationEnd: true };
         }
-        return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery };
+        return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery, totalUsersForQuery: totalUsersForQuery };
     });
 }
 function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfChats) {
@@ -194,10 +195,10 @@ function getMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const potentialMatchesPaginationObj = yield queryForPotentialMatches(queryOptsForPagination);
-            let _potentialMatches = potentialMatchesPaginationObj.potentialMatches;
+            console.log("potentialMatchesPaginationObj.totalUsersForQuery: ", potentialMatchesPaginationObj.totalUsersForQuery);
             return {
                 status: 200,
-                data: Object.assign(Object.assign({}, potentialMatchesPaginationObj), { potentialMatches: _potentialMatches })
+                data: potentialMatchesPaginationObj
             };
         }
         catch (error) {
