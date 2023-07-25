@@ -8,6 +8,7 @@ import moment from "moment";
 import dotenv from 'dotenv';
 import axios from 'axios'
 import cache from "../../utils/cache.js";
+import { DynamicKeyVal } from "../../types-and-interfaces/interfaces/globalInterfaces.js";
 
 interface GetMatchesResult {
     status: number,
@@ -129,7 +130,15 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
                         matchesPage.updatedSkipDocsNum = (_updatedSkipDocsNum as number) + 5;
                     }
 
-                    const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToShowForMatchesPg }, 864_000)
+                    let currentCachedMatchesUserIds: string[] = userIdsOfMatchesToShowForMatchesPg
+                    const userIdsOfMatchesToShowForMatchesPgCache = cache.get("userIdsOfMatchesToShowForMatchesPg");
+
+                    if ((userIdsOfMatchesToShowForMatchesPgCache as DynamicKeyVal<string[]>)?.[currentUser._id]?.length) {
+                        const cachedUserIdsForCurrentUser = (userIdsOfMatchesToShowForMatchesPgCache as DynamicKeyVal<string[]>)[currentUser._id];
+                        currentCachedMatchesUserIds = [...currentCachedMatchesUserIds, ...cachedUserIdsForCurrentUser]
+                    }
+
+                    const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: currentCachedMatchesUserIds }, 864_000)
 
                     console.log('were queried users stored in cache: ', result)
                     const _matchesToShowForNextQuery = cache.get("userIdsOfMatchesToShowForMatchesPg");
@@ -229,23 +238,16 @@ function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUs
 // brain dump:
 // still get the users from the database in order to perform validations on the user's info, checking for correct matching pic url or correct prompts
 
-async function getMatches(queryOptsForPagination: IQueryOptsForPagination, sliceEndingIndexNum?: number): Promise<GetMatchesResult> {
+async function getMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<GetMatchesResult> {
     try {
         const potentialMatchesPaginationObj = await queryForPotentialMatches(queryOptsForPagination);
         let _potentialMatches = potentialMatchesPaginationObj.potentialMatches;
-        let userMatchIdsToSaveIntoCache = [] as string[];
-
-        if (potentialMatchesPaginationObj.potentialMatches?.length && Number.isInteger(sliceEndingIndexNum)) {
-            _potentialMatches = potentialMatchesPaginationObj.potentialMatches.slice(0, sliceEndingIndexNum);
-            userMatchIdsToSaveIntoCache = potentialMatchesPaginationObj.potentialMatches.slice(sliceEndingIndexNum).map(({ _id }) => _id);
-        }
 
         return {
             status: 200,
             data: {
                 ...potentialMatchesPaginationObj,
                 potentialMatches: _potentialMatches,
-                userMatchIdsToSaveIntoCache: userMatchIdsToSaveIntoCache
             }
         }
     } catch (error) {

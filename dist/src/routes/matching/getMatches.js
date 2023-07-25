@@ -132,20 +132,18 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     let savedUserIdsOfMatches = (_c = userIdsOfMatchesToShowForMatchesPg === null || userIdsOfMatchesToShowForMatchesPg === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPg[currentUserId]) !== null && _c !== void 0 ? _c : [];
     savedUserIdsOfMatches = (savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : [];
     let startingMatches = null;
-    let limitNum;
     console.log("savedUserIdsOfMatches.length: ", savedUserIdsOfMatches.length);
+    // the id of the user that was received from the last test run: 01H2S38E7NMK4RAGQPTCYJSE1S
     if (savedUserIdsOfMatches.length) {
-        limitNum = 5;
         console.log('Getting users from db based on users saved in the cache.');
         const savedUsersInCache = yield getUsersByIds(savedUserIdsOfMatches);
         console.log("savedUsersInCache: ", savedUsersInCache);
         startingMatches = (savedUsersInCache === null || savedUsersInCache === void 0 ? void 0 : savedUsersInCache.length) ? savedUsersInCache : [];
-        limitNum = limitNum - savedUserIdsOfMatches.length;
         cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: [] });
     }
     // put the above into a function
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
-    const queryMatchesResults = yield getMatches(queryOptsForPagination, limitNum);
+    const queryMatchesResults = yield getMatches(queryOptsForPagination);
     let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data;
     if ((potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length) && (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length)) {
         potentialMatches = [...startingMatches, ...potentialMatches];
@@ -184,12 +182,37 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
     matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
-    console.log("_updateSkipDocsNum: ", _updateSkipDocsNum);
+    matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
+    // after the validations of the users that were attained from the cache and database has been executed, get only five of the highest rated users
+    // for the rest, save them into the cache
+    const areSavedUsersInCacheValid = ((savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) && (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length)) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
+    console.log("areSavedUsersInCacheValid: ", areSavedUsersInCacheValid);
+    console.log('(matchesToSendToClient.length > 5): ', (matchesToSendToClient.length > 5));
+    if (areSavedUsersInCacheValid && (matchesToSendToClient.length > 5)) {
+        console.log('Adding users who were saved in the cache first to the array that will be sent to the client.');
+        let usersToSendToClientUpdated = matchesToSendToClient.filter(({ _id }) => savedUserIdsOfMatches.includes(_id));
+        console.log('usersToSendToClientUpdated: ', usersToSendToClientUpdated);
+        let usersNotSavedInCache = matchesToSendToClient.filter(({ _id }) => !savedUserIdsOfMatches.includes(_id));
+        console.log('usersNotSavedInCache: ', usersNotSavedInCache);
+        let userIdsToSaveIntoCache = [];
+        for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
+            if (usersToSendToClientUpdated.length === 5) {
+                userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
+                break;
+            }
+            usersToSendToClientUpdated.push(usersNotSavedInCache[numIteration]);
+        }
+        console.log("userIdsToSaveIntoCache: ", userIdsToSaveIntoCache);
+        if (userIdsToSaveIntoCache === null || userIdsToSaveIntoCache === void 0 ? void 0 : userIdsToSaveIntoCache.length) {
+            cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: userIdsToSaveIntoCache });
+        }
+    }
     let paginationMatchesObj = {
         hasReachedPaginationEnd: hasReachedPaginationEnd,
         updatedSkipDocsNum: _updateSkipDocsNum,
         canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
     };
+    // CASE: at least one of the user don't have a valid matching pic url or prompts and there is at least one user saved in the cache
     if (!hasReachedPaginationEnd && ((matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) < 5)) {
         const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : _updateSkipDocsNum + 5;
         const _userQueryOpts = Object.assign(Object.assign({}, userQueryOpts), { skipDocsNum: _skipDocsNum });
@@ -223,6 +246,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
     potentialMatchesForClient = yield getLocationStrForUsers(potentialMatchesForClient);
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
+    console.log('paginationMatchesObj: ', paginationMatchesObj);
     console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches);
     response.status(200).json({ paginationMatches: paginationMatchesObj });
     console.timeEnd('getMatchesRoute, timing.');

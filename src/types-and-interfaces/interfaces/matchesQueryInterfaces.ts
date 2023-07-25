@@ -7,7 +7,7 @@ interface InterfacePotentialMatchesPage {
     hasReachedPaginationEnd: boolean;
     canStillQueryCurrentPageForUsers?: boolean;
     potentialMatches?: UserBaseModelSchema[];
-    userMatchIdsToSaveIntoCache?: string[]
+    // userMatchIdsToSaveIntoCache?: string[]
 }
 interface PotentialMatchesPaginationForClient extends Omit<InterfacePotentialMatchesPage, "potentialMatches"> {
     potentialMatches: IUserAndPrompts[]

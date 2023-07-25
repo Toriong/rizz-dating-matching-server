@@ -165,29 +165,26 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     let savedUserIdsOfMatches = userIdsOfMatchesToShowForMatchesPg?.[currentUserId] ?? [];
     savedUserIdsOfMatches = savedUserIdsOfMatches?.length ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : []
     let startingMatches: UserBaseModelSchema[] | null = null;
-    let limitNum;
 
     console.log("savedUserIdsOfMatches.length: ", savedUserIdsOfMatches.length)
 
+    // the id of the user that was received from the last test run: 01H2S38E7NMK4RAGQPTCYJSE1S
     if (savedUserIdsOfMatches.length) {
-        limitNum = 5;
         console.log('Getting users from db based on users saved in the cache.')
         const savedUsersInCache = await getUsersByIds(savedUserIdsOfMatches);
         console.log("savedUsersInCache: ", savedUsersInCache)
         startingMatches = savedUsersInCache?.length ? savedUsersInCache : [];
-        limitNum = limitNum - savedUserIdsOfMatches.length;
         cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: [] })
     }
     // put the above into a function
 
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
-    const queryMatchesResults = await getMatches(queryOptsForPagination, limitNum);
+    const queryMatchesResults = await getMatches(queryOptsForPagination);
     let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data as InterfacePotentialMatchesPage;
 
     if (potentialMatches?.length && startingMatches?.length) {
         potentialMatches = [...startingMatches, ...potentialMatches]
     }
-
     // BRAIN DUMP NOTES:
     // not getting the correct users from the cache,
     // check what user ids are being received from the cache and then queried to the database 
@@ -235,12 +232,47 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     let matchesToSendToClient: UserBaseModelSchema[] | IUserAndPrompts[] = await filterInUsersWithValidMatchingPicUrl(potentialMatches) as UserBaseModelSchema[];
     matchesToSendToClient = matchesToSendToClient?.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
-    console.log("_updateSkipDocsNum: ", _updateSkipDocsNum)
+    matchesToSendToClient = matchesToSendToClient?.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
+
+    // after the validations of the users that were attained from the cache and database has been executed, get only five of the highest rated users
+    // for the rest, save them into the cache
+
+    const areSavedUsersInCacheValid = (savedUserIdsOfMatches?.length && matchesToSendToClient?.length) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
+    console.log("areSavedUsersInCacheValid: ", areSavedUsersInCacheValid)
+    console.log('(matchesToSendToClient.length > 5): ', (matchesToSendToClient.length > 5))
+
+
+    if (areSavedUsersInCacheValid && (matchesToSendToClient.length > 5)) {
+        console.log('Adding users who were saved in the cache first to the array that will be sent to the client.')
+        let usersToSendToClientUpdated = matchesToSendToClient.filter(({ _id }) => savedUserIdsOfMatches.includes(_id));
+        console.log('usersToSendToClientUpdated: ', usersToSendToClientUpdated)
+        let usersNotSavedInCache = matchesToSendToClient.filter(({ _id }) => !savedUserIdsOfMatches.includes(_id));
+        console.log('usersNotSavedInCache: ', usersNotSavedInCache)
+        let userIdsToSaveIntoCache: string[] = [];
+
+        for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
+            if (usersToSendToClientUpdated.length === 5) {
+                userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
+                break;
+            }
+
+            usersToSendToClientUpdated.push(usersNotSavedInCache[numIteration]);
+        }
+
+        console.log("userIdsToSaveIntoCache: ", userIdsToSaveIntoCache)
+
+        if(userIdsToSaveIntoCache?.length){
+            cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: userIdsToSaveIntoCache })
+        }
+    }
+
     let paginationMatchesObj: IResponseBodyGetMatches = {
         hasReachedPaginationEnd: hasReachedPaginationEnd,
         updatedSkipDocsNum: _updateSkipDocsNum,
         canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
     }
+
+    // CASE: at least one of the user don't have a valid matching pic url or prompts and there is at least one user saved in the cache
 
     if (!hasReachedPaginationEnd && (matchesToSendToClient?.length < 5)) {
         const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : (_updateSkipDocsNum as number) + 5;
@@ -284,6 +316,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
 
+    console.log('paginationMatchesObj: ', paginationMatchesObj)
     console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches)
 
     response.status(200).json({ paginationMatches: paginationMatchesObj })

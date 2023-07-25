@@ -15,6 +15,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import cache from "../../utils/cache.js";
 function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, idsOfUsersNotToShow = []) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         let validMatchesToSendToClient = currentValidUserMatches;
         let _userQueryOpts = Object.assign({}, userQueryOpts);
@@ -102,7 +103,13 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                         if (!matchesPage.canStillQueryCurrentPageForUsers) {
                             matchesPage.updatedSkipDocsNum = _updatedSkipDocsNum + 5;
                         }
-                        const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToShowForMatchesPg }, 864000);
+                        let currentCachedMatchesUserIds = userIdsOfMatchesToShowForMatchesPg;
+                        const userIdsOfMatchesToShowForMatchesPgCache = cache.get("userIdsOfMatchesToShowForMatchesPg");
+                        if ((_a = userIdsOfMatchesToShowForMatchesPgCache === null || userIdsOfMatchesToShowForMatchesPgCache === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPgCache[currentUser._id]) === null || _a === void 0 ? void 0 : _a.length) {
+                            const cachedUserIdsForCurrentUser = userIdsOfMatchesToShowForMatchesPgCache[currentUser._id];
+                            currentCachedMatchesUserIds = [...currentCachedMatchesUserIds, ...cachedUserIdsForCurrentUser];
+                        }
+                        const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: currentCachedMatchesUserIds }, 864000);
                         console.log('were queried users stored in cache: ', result);
                         const _matchesToShowForNextQuery = cache.get("userIdsOfMatchesToShowForMatchesPg");
                         console.log("_matchesToShowForNextQuery: ", _matchesToShowForNextQuery);
@@ -183,20 +190,14 @@ function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfCha
 // CASE: don't need to get all of the users from the database for a specific query.
 // brain dump:
 // still get the users from the database in order to perform validations on the user's info, checking for correct matching pic url or correct prompts
-function getMatches(queryOptsForPagination, sliceEndingIndexNum) {
-    var _a;
+function getMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const potentialMatchesPaginationObj = yield queryForPotentialMatches(queryOptsForPagination);
             let _potentialMatches = potentialMatchesPaginationObj.potentialMatches;
-            let userMatchIdsToSaveIntoCache = [];
-            if (((_a = potentialMatchesPaginationObj.potentialMatches) === null || _a === void 0 ? void 0 : _a.length) && Number.isInteger(sliceEndingIndexNum)) {
-                _potentialMatches = potentialMatchesPaginationObj.potentialMatches.slice(0, sliceEndingIndexNum);
-                userMatchIdsToSaveIntoCache = potentialMatchesPaginationObj.potentialMatches.slice(sliceEndingIndexNum).map(({ _id }) => _id);
-            }
             return {
                 status: 200,
-                data: Object.assign(Object.assign({}, potentialMatchesPaginationObj), { potentialMatches: _potentialMatches, userMatchIdsToSaveIntoCache: userMatchIdsToSaveIntoCache })
+                data: Object.assign(Object.assign({}, potentialMatchesPaginationObj), { potentialMatches: _potentialMatches })
             };
         }
         catch (error) {
