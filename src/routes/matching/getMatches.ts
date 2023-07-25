@@ -209,153 +209,151 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     if (potentialMatches?.length && startingMatches?.length) {
         potentialMatches = [...startingMatches, ...potentialMatches]
     }
-    // BRAIN DUMP NOTES:
-    // not getting the correct users from the cache,
-    // check what user ids are being received from the cache and then queried to the database 
 
     console.log("potentialMatches: ", potentialMatches)
     console.log('potentialMatches.length: ', potentialMatches?.length)
 
     // FOR TESTING PURPOSES, BELOW:
 
-    // let _potentialMatches = potentialMatches as UserBaseModelSchema[];
-    // const usersOfPromptsToDelete = _potentialMatches?.filter(({ pics }) => {
-    //     const matchingPic = pics.find(({ isMatching }) => isMatching);
+    let _potentialMatches = potentialMatches as UserBaseModelSchema[];
+    const usersOfPromptsToDelete = _potentialMatches?.filter(({ pics }) => {
+        const matchingPic = pics.find(({ isMatching }) => isMatching);
 
-    //     return (matchingPic?.picFileNameOnAws !== 'test-img-3.jpg');
-    // })
-    // const potentialMatchesWithTestImg3 = _potentialMatches?.filter(({ pics }) => {
-    //     const matchingPic = pics.find(({ isMatching }) => isMatching);
+        return (matchingPic?.picFileNameOnAws !== 'test-img-3.jpg');
+    })
+    const potentialMatchesWithTestImg3 = _potentialMatches?.filter(({ pics }) => {
+        const matchingPic = pics.find(({ isMatching }) => isMatching);
 
-    //     return (matchingPic?.picFileNameOnAws === 'test-img-3.jpg');
-    // })
-    // const userIdsOfPromptsToDelete = usersOfPromptsToDelete.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
-    // const potentialMatchesWithTestImg3UserIds = potentialMatchesWithTestImg3.map(({ _id }) => _id)
-    // const totalUsersQueried = userIdsOfPromptsToDelete.length + potentialMatchesWithTestImg3UserIds.length
+        return (matchingPic?.picFileNameOnAws === 'test-img-3.jpg');
+    })
+    const userIdsOfPromptsToDelete = usersOfPromptsToDelete.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
+    const userIds = usersOfPromptsToDelete.map(({ _id }) => _id);
+    const potentialMatchesWithTestImg3UserIds = potentialMatchesWithTestImg3.map(({ _id }) => _id)
+    const totalUsersQueried = userIdsOfPromptsToDelete.length + potentialMatchesWithTestImg3UserIds.length
 
-    // const userIdsAndRatingNum = _potentialMatches.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
-    // console.log('userIdsAndRatingNum: ', userIdsAndRatingNum)
-    // console.log('totalUsersQueried: ', totalUsersQueried)
-    // console.log('userIdsOfPromptsToDelete: ', userIdsOfPromptsToDelete)
-    // console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
+    const userIdsAndRatingNum = _potentialMatches.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
+    console.log('userIdsAndRatingNum: ', userIdsAndRatingNum)
+    console.log('totalUsersQueried: ', totalUsersQueried)
+    console.log('userIdsOfPromptsToDelete: ', userIdsOfPromptsToDelete)
+    console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
 
 
-    // response.status(200).json({ msg: "Users received!" })
+    response.status(200).json({ msg: "Users received!", userIds: userIds })
 
     // FOR TESTING PURPOSES, ABOVE:
 
-    const _updateSkipDocsNum = (typeof userQueryOpts?.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
+    // const _updateSkipDocsNum = (typeof userQueryOpts?.skipDocsNum === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
 
-    if (queryMatchesResults.status !== 200) {
-        return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
-    }
+    // if (queryMatchesResults.status !== 200) {
+    //     return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg })
+    // }
 
-    if (potentialMatches === undefined) {
-        console.log('Potential matches: ', potentialMatches)
-        return response.status(500).json({ msg: "Failed to get potential matches." })
-    }
+    // if (potentialMatches === undefined) {
+    //     console.log('Potential matches: ', potentialMatches)
+    //     return response.status(500).json({ msg: "Failed to get potential matches." })
+    // }
 
-    let matchesToSendToClient: UserBaseModelSchema[] | IUserAndPrompts[] = await filterInUsersWithValidMatchingPicUrl(potentialMatches) as UserBaseModelSchema[];
-    matchesToSendToClient = matchesToSendToClient?.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
-    matchesToSendToClient = matchesToSendToClient?.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
+    // let matchesToSendToClient: UserBaseModelSchema[] | IUserAndPrompts[] = await filterInUsersWithValidMatchingPicUrl(potentialMatches) as UserBaseModelSchema[];
+    // matchesToSendToClient = matchesToSendToClient?.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
+    // matchesToSendToClient = matchesToSendToClient?.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
 
-    // after the validations of the users that were attained from the cache and database has been executed, get only five of the highest rated users
-    // for the rest, save them into the cache
+    // // after the validations of the users that were attained from the cache and database has been executed, get only five of the highest rated users
+    // // for the rest, save them into the cache
 
-    const areCachedUsersValid = (savedUserIdsOfMatches?.length && matchesToSendToClient?.length) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
+    // const areCachedUsersValid = (savedUserIdsOfMatches?.length && matchesToSendToClient?.length) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
 
-    if (areCachedUsersValid && (matchesToSendToClient.length > 5)) {
-        console.log('Adding users who were saved in the cache first to the array that will be sent to the client.')
-        let usersToSendToClientUpdated = matchesToSendToClient.filter(({ _id }) => savedUserIdsOfMatches.includes(_id));
-        console.log('usersToSendToClientUpdated: ', usersToSendToClientUpdated)
-        let usersNotSavedInCache = matchesToSendToClient.filter(({ _id }) => !savedUserIdsOfMatches.includes(_id));
-        console.log('usersNotSavedInCache: ', usersNotSavedInCache)
-        let userIdsToSaveIntoCache: string[] = [];
+    // if (areCachedUsersValid && (matchesToSendToClient.length > 5)) {
+    //     console.log('Adding users who were saved in the cache first to the array that will be sent to the client.')
+    //     let usersToSendToClientUpdated = matchesToSendToClient.filter(({ _id }) => savedUserIdsOfMatches.includes(_id));
+    //     console.log('usersToSendToClientUpdated: ', usersToSendToClientUpdated)
+    //     let usersNotSavedInCache = matchesToSendToClient.filter(({ _id }) => !savedUserIdsOfMatches.includes(_id));
+    //     console.log('usersNotSavedInCache: ', usersNotSavedInCache)
+    //     let userIdsToSaveIntoCache: string[] = [];
 
-        if (usersNotSavedInCache.length > 0) {
-            for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
-                if (usersToSendToClientUpdated.length === 5) {
-                    userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
-                    break;
-                }
+    //     if (usersNotSavedInCache.length > 0) {
+    //         for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
+    //             if (usersToSendToClientUpdated.length === 5) {
+    //                 userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
+    //                 break;
+    //             }
 
-                usersToSendToClientUpdated.push(usersNotSavedInCache[numIteration]);
-            }
-        }
+    //             usersToSendToClientUpdated.push(usersNotSavedInCache[numIteration]);
+    //         }
+    //     }
 
-        matchesToSendToClient = usersToSendToClientUpdated
+    //     matchesToSendToClient = usersToSendToClientUpdated
 
-        if (matchesToSendToClient?.length > 5) {
-            const matchesUserIdsToCache = matchesToSendToClient.slice(5).map(({ _id }) => _id);
-            userIdsToSaveIntoCache = userIdsToSaveIntoCache?.length ? [...userIdsToSaveIntoCache, ...matchesUserIdsToCache] : matchesUserIdsToCache;
-            matchesToSendToClient = matchesToSendToClient.slice(0, 5);
-        }
+    //     if (matchesToSendToClient?.length > 5) {
+    //         const matchesUserIdsToCache = matchesToSendToClient.slice(5).map(({ _id }) => _id);
+    //         userIdsToSaveIntoCache = userIdsToSaveIntoCache?.length ? [...userIdsToSaveIntoCache, ...matchesUserIdsToCache] : matchesUserIdsToCache;
+    //         matchesToSendToClient = matchesToSendToClient.slice(0, 5);
+    //     }
 
 
-        if (userIdsToSaveIntoCache?.length) {
-            console.log('Saving users into the cache.')
+    //     if (userIdsToSaveIntoCache?.length) {
+    //         console.log('Saving users into the cache.')
 
-            const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg");
-            let matchesUserIdsForCurrentUsers = (userIdsOfMatchesToShowForMatchesPg as DynamicKeyVal<string[]>)?.[currentUserId] ?? [];
-            matchesUserIdsForCurrentUsers = [...matchesUserIdsForCurrentUsers, ...userIdsToSaveIntoCache]
+    //         const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg");
+    //         let matchesUserIdsForCurrentUsers = (userIdsOfMatchesToShowForMatchesPg as DynamicKeyVal<string[]>)?.[currentUserId] ?? [];
+    //         matchesUserIdsForCurrentUsers = [...matchesUserIdsForCurrentUsers, ...userIdsToSaveIntoCache]
 
-            console.log("matchesUserIdsForCurrentUsers: ", matchesUserIdsForCurrentUsers)
+    //         console.log("matchesUserIdsForCurrentUsers: ", matchesUserIdsForCurrentUsers)
 
-            cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: matchesUserIdsForCurrentUsers }, EXPIRATION_TIME_CACHED_MATCHES)
-        }
-    }
+    //         cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: matchesUserIdsForCurrentUsers }, EXPIRATION_TIME_CACHED_MATCHES)
+    //     }
+    // }
 
-    let paginationMatchesObj: IResponseBodyGetMatches = {
-        hasReachedPaginationEnd: hasReachedPaginationEnd,
-        updatedSkipDocsNum: _updateSkipDocsNum,
-        canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
-    }
+    // let paginationMatchesObj: IResponseBodyGetMatches = {
+    //     hasReachedPaginationEnd: hasReachedPaginationEnd,
+    //     updatedSkipDocsNum: _updateSkipDocsNum,
+    //     canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
+    // }
 
-    if (!hasReachedPaginationEnd && (matchesToSendToClient?.length < 5)) {
-        const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : (_updateSkipDocsNum as number) + 5;
-        const _userQueryOpts = { ...userQueryOpts, skipDocsNum: _skipDocsNum } as UserQueryOpts;
-        console.time("Getting matches again timing.")
-        const getValidMatchesResult = await getValidMatches(_userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
-        console.timeEnd("Getting matches again timing.")
-        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers: canStillQueryCurrentPageForUsersValidMatches, hasReachedPaginationEnd } = (getValidMatchesResult.page as IMatchesPagination) ?? {};
-        paginationMatchesObj.didTimeOutOccur = didTimeOutOccur ?? false;
-        paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
-        paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsersValidMatches;
-        paginationMatchesObj.hasReachedPaginationEnd = hasReachedPaginationEnd;
+    // if (!hasReachedPaginationEnd && (matchesToSendToClient?.length < 5)) {
+    //     const _skipDocsNum = !!canStillQueryCurrentPageForUsers ? _updateSkipDocsNum : (_updateSkipDocsNum as number) + 5;
+    //     const _userQueryOpts = { ...userQueryOpts, skipDocsNum: _skipDocsNum } as UserQueryOpts;
+    //     console.time("Getting matches again timing.")
+    //     const getValidMatchesResult = await getValidMatches(_userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
+    //     console.timeEnd("Getting matches again timing.")
+    //     const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers: canStillQueryCurrentPageForUsersValidMatches, hasReachedPaginationEnd } = (getValidMatchesResult.page as IMatchesPagination) ?? {};
+    //     paginationMatchesObj.didTimeOutOccur = didTimeOutOccur ?? false;
+    //     paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
+    //     paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsersValidMatches;
+    //     paginationMatchesObj.hasReachedPaginationEnd = hasReachedPaginationEnd;
 
-        if (didErrorOccur) {
-            return response.status(500).json({ msg: 'An error has occurred in getting the matches.' })
-        }
+    //     if (didErrorOccur) {
+    //         return response.status(500).json({ msg: 'An error has occurred in getting the matches.' })
+    //     }
 
-        matchesToSendToClient = validMatches ?? [];
-    }
+    //     matchesToSendToClient = validMatches ?? [];
+    // }
 
-    if (!matchesToSendToClient.length) {
-        console.log('No matches to send to client.')
-        paginationMatchesObj.potentialMatches = [];
+    // if (!matchesToSendToClient.length) {
+    //     console.log('No matches to send to client.')
+    //     paginationMatchesObj.potentialMatches = [];
 
-        return response.status(200).json({ paginationMatches: paginationMatchesObj })
-    }
+    //     return response.status(200).json({ paginationMatches: paginationMatchesObj })
+    // }
 
-    const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
-        const _user = (user as UserBaseModelSchema);
+    // const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
+    //     const _user = (user as UserBaseModelSchema);
 
-        return { ..._user, firstName: _user.name.first } as unknown as IUserMatch;
-    })
-    const promptsAndMatchingPicForClientResult = await getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
+    //     return { ..._user, firstName: _user.name.first } as unknown as IUserMatch;
+    // })
+    // const promptsAndMatchingPicForClientResult = await getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
 
-    if (!promptsAndMatchingPicForClientResult.wasSuccessful) {
-        console.error('Something went wrong. Couldn\'t get prompts and matching pic for client.')
-        return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg })
-    }
+    // if (!promptsAndMatchingPicForClientResult.wasSuccessful) {
+    //     console.error('Something went wrong. Couldn\'t get prompts and matching pic for client.')
+    //     return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg })
+    // }
 
-    let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
-    potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
-    paginationMatchesObj.potentialMatches = potentialMatchesForClient;
+    // let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
+    // potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
+    // paginationMatchesObj.potentialMatches = potentialMatchesForClient;
 
-    console.log('paginationMatchesObj: ', paginationMatchesObj)
-    console.log("paginationMatchesObj.potentialMatches ids: ", paginationMatchesObj.potentialMatches.map(({ _id }) => _id))
+    // console.log('paginationMatchesObj: ', paginationMatchesObj)
+    // console.log("paginationMatchesObj.potentialMatches ids: ", paginationMatchesObj.potentialMatches.map(({ _id }) => _id))
 
-    response.status(200).json({ paginationMatches: paginationMatchesObj })
+    // response.status(200).json({ paginationMatches: paginationMatchesObj })
     console.timeEnd('getMatchesRoute, timing.')
 })

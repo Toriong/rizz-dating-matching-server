@@ -102,8 +102,6 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
                 _userQueryOpts = { ..._userQueryOpts, skipDocsNum: _updatedSkipDocsNum + 5 }
             }
 
-            // getting 15 skip docs num on the client side, NEEDS TO BE 10
-
             if (_hasReachedPaginationEnd || (validMatchesToSendToClient?.length >= 5)) {
                 let validMatchesToSendToClientUpdated = (validMatchesToSendToClient?.length > 5) ? validMatchesToSendToClient.slice(0, 5) : validMatchesToSendToClient;
                 matchesPage = {
@@ -189,7 +187,12 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
         }
     }
 
-    const skipAndLimitObj = { skip: skipDocsNum as number, limit: 5 };
+    // for testing:
+    let skipAndLimitObj = { skip: 0, limit: 150 };
+    // the above is for testing: 
+
+
+    // let skipAndLimitObj = { skip: skipDocsNum as number, limit: 5 };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
 
     return returnVal;
