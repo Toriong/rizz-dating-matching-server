@@ -14,6 +14,7 @@ import moment from "moment";
 import dotenv from 'dotenv';
 import axios from 'axios';
 import cache from "../../utils/cache.js";
+import { EXPIRATION_TIME_CACHED_MATCHES } from "../../globalVals.js";
 function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, idsOfUsersNotToShow = []) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
@@ -109,7 +110,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                             const cachedUserIdsForCurrentUser = userIdsOfMatchesToShowForMatchesPgCache[currentUser._id];
                             currentCachedMatchesUserIds = [...currentCachedMatchesUserIds, ...cachedUserIdsForCurrentUser];
                         }
-                        const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: currentCachedMatchesUserIds }, 864000);
+                        const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: currentCachedMatchesUserIds }, EXPIRATION_TIME_CACHED_MATCHES);
                         console.log('were queried users stored in cache: ', result);
                         const _matchesToShowForNextQuery = cache.get("userIdsOfMatchesToShowForMatchesPg");
                         console.log("_matchesToShowForNextQuery: ", _matchesToShowForNextQuery);

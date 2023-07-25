@@ -14,7 +14,8 @@ import { IResponseBodyGetMatches } from '../../types-and-interfaces/interfaces/r
 import { ICacheKeyVals } from '../../types-and-interfaces/interfaces/cacheInterfaces.js';
 import { RequestQuery } from '../../types-and-interfaces/interfaces/requests/getMatchesReqQuery.js';
 import cache from '../../utils/cache.js';
-import GLOBAL_VALS from '../../globalVals.js';
+import { GLOBAL_VALS, EXPIRATION_TIME_CACHED_MATCHES } from '../../globalVals.js';
+import { DynamicKeyVal } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
 
 export const getMatchesRoute = Router();
 
@@ -239,9 +240,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // for the rest, save them into the cache
 
     const areSavedUsersInCacheValid = (savedUserIdsOfMatches?.length && matchesToSendToClient?.length) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
-    console.log("areSavedUsersInCacheValid: ", areSavedUsersInCacheValid)
-    console.log('(matchesToSendToClient.length > 5): ', (matchesToSendToClient.length > 5))
-
 
     if (areSavedUsersInCacheValid && (matchesToSendToClient.length > 5)) {
         console.log('Adding users who were saved in the cache first to the array that will be sent to the client.')
@@ -251,19 +249,31 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         console.log('usersNotSavedInCache: ', usersNotSavedInCache)
         let userIdsToSaveIntoCache: string[] = [];
 
-        for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
-            if (usersToSendToClientUpdated.length === 5) {
-                userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
-                break;
-            }
+        if (usersNotSavedInCache.length !== 0) {
+            for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
+                if (usersToSendToClientUpdated.length === 5) {
+                    userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
+                    break;
+                }
 
-            usersToSendToClientUpdated.push(usersNotSavedInCache[numIteration]);
+                usersToSendToClientUpdated.push(usersNotSavedInCache[numIteration]);
+            }
         }
 
-        console.log("userIdsToSaveIntoCache: ", userIdsToSaveIntoCache)
+        matchesToSendToClient = usersToSendToClientUpdated
+
+        if (matchesToSendToClient?.length > 5) {
+            const matchesUserIdsToCache = matchesToSendToClient.slice(5).map(({ _id }) => _id);
+            userIdsToSaveIntoCache = userIdsToSaveIntoCache?.length ? [...userIdsToSaveIntoCache, ...matchesUserIdsToCache] : matchesUserIdsToCache;
+            matchesToSendToClient = matchesToSendToClient.slice(0, 5);
+        }
+
 
         if (userIdsToSaveIntoCache?.length) {
-            cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: userIdsToSaveIntoCache })
+            const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg");
+            let matchesUserIdsForCurrentUsers = (userIdsOfMatchesToShowForMatchesPg as DynamicKeyVal<string[]>)?.[currentUserId] ?? [];
+            matchesUserIdsForCurrentUsers = [...matchesUserIdsForCurrentUsers, ...userIdsToSaveIntoCache]
+            cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: matchesUserIdsForCurrentUsers }, EXPIRATION_TIME_CACHED_MATCHES)
         }
     }
 
@@ -318,7 +328,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
 
     console.log('paginationMatchesObj: ', paginationMatchesObj)
-    console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches)
+    console.log("paginationMatchesObj.potentialMatches ids: ", paginationMatchesObj.potentialMatches.map(({ _id }) => _id))
 
     response.status(200).json({ paginationMatches: paginationMatchesObj })
     console.timeEnd('getMatchesRoute, timing.')

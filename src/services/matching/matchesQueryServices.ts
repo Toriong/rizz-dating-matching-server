@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import axios from 'axios'
 import cache from "../../utils/cache.js";
 import { DynamicKeyVal } from "../../types-and-interfaces/interfaces/globalInterfaces.js";
+import { EXPIRATION_TIME_CACHED_MATCHES } from "../../globalVals.js";
 
 interface GetMatchesResult {
     status: number,
@@ -138,7 +139,7 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
                         currentCachedMatchesUserIds = [...currentCachedMatchesUserIds, ...cachedUserIdsForCurrentUser]
                     }
 
-                    const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: currentCachedMatchesUserIds }, 864_000)
+                    const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: currentCachedMatchesUserIds }, EXPIRATION_TIME_CACHED_MATCHES)
 
                     console.log('were queried users stored in cache: ', result)
                     const _matchesToShowForNextQuery = cache.get("userIdsOfMatchesToShowForMatchesPg");

@@ -3,4 +3,6 @@ const GLOBAL_VALS = {
     matchesRootPath: 'matches'
 } as const;
 
-export default GLOBAL_VALS;
+const EXPIRATION_TIME_CACHED_MATCHES = 864_000 // 24 hours in seconds
+
+export { GLOBAL_VALS, EXPIRATION_TIME_CACHED_MATCHES };

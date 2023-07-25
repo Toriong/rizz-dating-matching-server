@@ -15,7 +15,7 @@ import { getUserById, getUsersByIds } from '../../services/globalMongoDbServices
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 import cache from '../../utils/cache.js';
-import GLOBAL_VALS from '../../globalVals.js';
+import { GLOBAL_VALS, EXPIRATION_TIME_CACHED_MATCHES } from '../../globalVals.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -84,7 +84,7 @@ function generateMatchesPg(matchesPaginationObj) {
 // for bronze: the user can only have 15 matches in a span 48 hour period
 // for silver: the user can only have 25 matches in a span 48 hour period
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     console.time('getMatchesRoute, timing.');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
@@ -187,8 +187,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // after the validations of the users that were attained from the cache and database has been executed, get only five of the highest rated users
     // for the rest, save them into the cache
     const areSavedUsersInCacheValid = ((savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) && (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length)) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
-    console.log("areSavedUsersInCacheValid: ", areSavedUsersInCacheValid);
-    console.log('(matchesToSendToClient.length > 5): ', (matchesToSendToClient.length > 5));
     if (areSavedUsersInCacheValid && (matchesToSendToClient.length > 5)) {
         console.log('Adding users who were saved in the cache first to the array that will be sent to the client.');
         let usersToSendToClientUpdated = matchesToSendToClient.filter(({ _id }) => savedUserIdsOfMatches.includes(_id));
@@ -196,16 +194,26 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         let usersNotSavedInCache = matchesToSendToClient.filter(({ _id }) => !savedUserIdsOfMatches.includes(_id));
         console.log('usersNotSavedInCache: ', usersNotSavedInCache);
         let userIdsToSaveIntoCache = [];
-        for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
-            if (usersToSendToClientUpdated.length === 5) {
-                userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
-                break;
+        if (usersNotSavedInCache.length !== 0) {
+            for (let numIteration = 0; usersNotSavedInCache.length < 5; numIteration++) {
+                if (usersToSendToClientUpdated.length === 5) {
+                    userIdsToSaveIntoCache = usersNotSavedInCache.slice(numIteration).map(({ _id }) => _id);
+                    break;
+                }
+                usersToSendToClientUpdated.push(usersNotSavedInCache[numIteration]);
             }
-            usersToSendToClientUpdated.push(usersNotSavedInCache[numIteration]);
         }
-        console.log("userIdsToSaveIntoCache: ", userIdsToSaveIntoCache);
+        matchesToSendToClient = usersToSendToClientUpdated;
+        if ((matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) > 5) {
+            const matchesUserIdsToCache = matchesToSendToClient.slice(5).map(({ _id }) => _id);
+            userIdsToSaveIntoCache = (userIdsToSaveIntoCache === null || userIdsToSaveIntoCache === void 0 ? void 0 : userIdsToSaveIntoCache.length) ? [...userIdsToSaveIntoCache, ...matchesUserIdsToCache] : matchesUserIdsToCache;
+            matchesToSendToClient = matchesToSendToClient.slice(0, 5);
+        }
         if (userIdsToSaveIntoCache === null || userIdsToSaveIntoCache === void 0 ? void 0 : userIdsToSaveIntoCache.length) {
-            cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: userIdsToSaveIntoCache });
+            const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg");
+            let matchesUserIdsForCurrentUsers = (_d = userIdsOfMatchesToShowForMatchesPg === null || userIdsOfMatchesToShowForMatchesPg === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPg[currentUserId]) !== null && _d !== void 0 ? _d : [];
+            matchesUserIdsForCurrentUsers = [...matchesUserIdsForCurrentUsers, ...userIdsToSaveIntoCache];
+            cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: matchesUserIdsForCurrentUsers }, EXPIRATION_TIME_CACHED_MATCHES);
         }
     }
     let paginationMatchesObj = {
@@ -220,7 +228,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         console.time("Getting matches again timing.");
         const getValidMatchesResult = yield getValidMatches(_userQueryOpts, currentUser, matchesToSendToClient, idsOfUsersNotToShow);
         console.timeEnd("Getting matches again timing.");
-        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers: canStillQueryCurrentPageForUsersValidMatches, hasReachedPaginationEnd } = (_d = getValidMatchesResult.page) !== null && _d !== void 0 ? _d : {};
+        const { didTimeOutOccur, didErrorOccur, updatedSkipDocsNum, validMatches, canStillQueryCurrentPageForUsers: canStillQueryCurrentPageForUsersValidMatches, hasReachedPaginationEnd } = (_e = getValidMatchesResult.page) !== null && _e !== void 0 ? _e : {};
         paginationMatchesObj.didTimeOutOccur = didTimeOutOccur !== null && didTimeOutOccur !== void 0 ? didTimeOutOccur : false;
         paginationMatchesObj.updatedSkipDocsNum = updatedSkipDocsNum;
         paginationMatchesObj.canStillQueryCurrentPageForUsers = !!canStillQueryCurrentPageForUsersValidMatches;
@@ -248,7 +256,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     potentialMatchesForClient = yield getLocationStrForUsers(potentialMatchesForClient);
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
     console.log('paginationMatchesObj: ', paginationMatchesObj);
-    console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches);
+    console.log("paginationMatchesObj.potentialMatches ids: ", paginationMatchesObj.potentialMatches.map(({ _id }) => _id));
     response.status(200).json({ paginationMatches: paginationMatchesObj });
     console.timeEnd('getMatchesRoute, timing.');
 }));
