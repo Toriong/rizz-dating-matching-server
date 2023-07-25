@@ -14,7 +14,7 @@ import { generateGetRejectedUsersQuery, getRejectedUsers } from '../../services/
 import { getUserById, getUsersByIds } from '../../services/globalMongoDbServices.js';
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
-import cache from '../../utils/cache.js';
+import { cache } from '../../utils/cache.js';
 import { GLOBAL_VALS, EXPIRATION_TIME_CACHED_MATCHES } from '../../globalVals.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {

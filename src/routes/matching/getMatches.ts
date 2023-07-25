@@ -13,7 +13,7 @@ import { IMatchesPagination, IUserMatch, InterfacePotentialMatchesPage } from '.
 import { IResponseBodyGetMatches } from '../../types-and-interfaces/interfaces/responses/getMatches.js';
 import { ICacheKeyVals } from '../../types-and-interfaces/interfaces/cacheInterfaces.js';
 import { RequestQuery } from '../../types-and-interfaces/interfaces/requests/getMatchesReqQuery.js';
-import cache from '../../utils/cache.js';
+import { cache } from '../../utils/cache.js';
 import { GLOBAL_VALS, EXPIRATION_TIME_CACHED_MATCHES } from '../../globalVals.js';
 import { DynamicKeyVal } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
 
@@ -164,7 +164,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         console.error('Could not find current user in the db.');
         return response.status(404).json({ msg: 'Could not find current user in the db.' })
     }
-    
+
     // check what users are being stored in the cache after querying the database
 
     // create a function that will query that cache, have the return type be unknown
@@ -201,7 +201,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
     // put the above into a function
 
-    idsOfUsersNotToShow = startingMatches?.length ? [...startingMatches.map(({ _id }) => _id), ...idsOfUsersNotToShow] : idsOfUsersNotToShow; 
+    idsOfUsersNotToShow = startingMatches?.length ? [...startingMatches.map(({ _id }) => _id), ...idsOfUsersNotToShow] : idsOfUsersNotToShow;
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
     const queryMatchesResults = await getMatches(queryOptsForPagination);
     let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data as InterfacePotentialMatchesPage;

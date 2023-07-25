@@ -18,21 +18,21 @@ class Cache {
         this.cache = cache;
     }
 
-    updateCache(key: string, value: any): void {
+    update(key: string, value: any): void {
         this.cache.set(key, value)
     }
 
-    getCacheVal(key: string): unknown {
+    get(key: string): unknown {
         return this.cache.get(key);
     }
 
-    deleteCacheVal(key: string): void {
+    delete(key: string): void {
         this.cache.del(key);
     }
 
-    resetCacheVal(key: string, valForReset: [] | unknown): void {
+    reset(key: string, valForReset: [] | unknown): void {
         this.cache.set(key, valForReset);
     }
 }
 
-export default cache;
+export { cache, Cache };

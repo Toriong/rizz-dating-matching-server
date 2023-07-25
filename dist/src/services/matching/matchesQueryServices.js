@@ -13,7 +13,7 @@ import { filterInUsersWithValidMatchingPicUrl, getMatchingPicUrlForUsers } from 
 import moment from "moment";
 import dotenv from 'dotenv';
 import axios from 'axios';
-import cache from "../../utils/cache.js";
+import { cache } from "../../utils/cache.js";
 import { EXPIRATION_TIME_CACHED_MATCHES } from "../../globalVals.js";
 function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, idsOfUsersNotToShow = []) {
     var _a;

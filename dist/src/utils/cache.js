@@ -10,17 +10,17 @@ class Cache {
     constructor() {
         this.cache = cache;
     }
-    updateCache(key, value) {
+    update(key, value) {
         this.cache.set(key, value);
     }
-    getCacheVal(key) {
+    get(key) {
         return this.cache.get(key);
     }
-    deleteCacheVal(key) {
+    delete(key) {
         this.cache.del(key);
     }
-    resetCacheVal(key, valForReset) {
+    reset(key, valForReset) {
         this.cache.set(key, valForReset);
     }
 }
-export default cache;
+export { cache, Cache };

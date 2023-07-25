@@ -7,7 +7,7 @@ import { filterInUsersWithValidMatchingPicUrl, getMatchingPicUrlForUsers } from 
 import moment from "moment";
 import dotenv from 'dotenv';
 import axios from 'axios'
-import cache from "../../utils/cache.js";
+import { cache, Cache } from "../../utils/cache.js";
 import { DynamicKeyVal } from "../../types-and-interfaces/interfaces/globalInterfaces.js";
 import { EXPIRATION_TIME_CACHED_MATCHES } from "../../globalVals.js";
 
@@ -40,6 +40,7 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
             let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
 
             if (loopTimeElapsed > 15_000) {
+
                 matchesPage = {
                     hasReachedPaginationEnd: _hasReachedPaginationEnd,
                     canStillQueryCurrentPageForUsers: false,
@@ -131,7 +132,7 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
 
                     if ((userIdsOfMatchesToShowForMatchesPgCache as DynamicKeyVal<string[]>)?.[currentUser._id]?.length) {
                         const cachedUserIdsForCurrentUser = (userIdsOfMatchesToShowForMatchesPgCache as DynamicKeyVal<string[]>)[currentUser._id];
-                        userIdsOfMatchesToCache = userIdsOfMatchesToCache?.length ? [...userIdsOfMatchesToCache, ...cachedUserIdsForCurrentUser] :cachedUserIdsForCurrentUser;
+                        userIdsOfMatchesToCache = userIdsOfMatchesToCache?.length ? [...userIdsOfMatchesToCache, ...cachedUserIdsForCurrentUser] : cachedUserIdsForCurrentUser;
                     }
 
                     const result = cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUser._id]: userIdsOfMatchesToCache }, EXPIRATION_TIME_CACHED_MATCHES)
