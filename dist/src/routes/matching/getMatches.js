@@ -83,6 +83,19 @@ function generateMatchesPg(matchesPaginationObj) {
 // for silver and bronze:
 // for bronze: the user can only have 15 matches in a span 48 hour period
 // for silver: the user can only have 25 matches in a span 48 hour period
+function filterInUsersWithValidPromptsAndMatchingImg(potentialMatches) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            let matchesToSendToClient = yield filterInUsersWithValidMatchingPicUrl(potentialMatches);
+            matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
+            return (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
+        }
+        catch (error) {
+            console.error("Something went wrong couldn't filter in valid users: ", error);
+            return [];
+        }
+    });
+}
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e;
     console.time('getMatchesRoute, timing.');
@@ -115,7 +128,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = yield Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)]);
     const rejectedUsers = ((_a = rejectedUsersThatCurrentUserIsInResult.data) === null || _a === void 0 ? void 0 : _a.length) ? rejectedUsersThatCurrentUserIsInResult.data : [];
     const allChatUsers = ((_b = allUserChatsResult.data) === null || _b === void 0 ? void 0 : _b.length) ? allUserChatsResult.data : [];
-    const idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
+    let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
     if (!currentUser) {
         console.error('Could not find current user in the db.');
         return response.status(404).json({ msg: 'Could not find current user in the db.' });
@@ -136,12 +149,15 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // the id of the user that was received from the last test run: 01H2S38E7NMK4RAGQPTCYJSE1S
     if (savedUserIdsOfMatches.length) {
         console.log('Getting users from db based on users saved in the cache.');
-        const savedUsersInCache = yield getUsersByIds(savedUserIdsOfMatches);
+        let savedUsersInCache = yield getUsersByIds(savedUserIdsOfMatches);
         console.log("savedUsersInCache: ", savedUsersInCache);
+        savedUsersInCache = (savedUsersInCache === null || savedUsersInCache === void 0 ? void 0 : savedUsersInCache.length) ? yield filterInUsersWithValidPromptsAndMatchingImg(savedUsersInCache) : [];
+        console.log("savedUsersInCache after filter: ", savedUsersInCache);
         startingMatches = (savedUsersInCache === null || savedUsersInCache === void 0 ? void 0 : savedUsersInCache.length) ? savedUsersInCache : [];
         cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: [] });
     }
     // put the above into a function
+    idsOfUsersNotToShow = (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length) ? [...startingMatches.map(({ _id }) => _id), ...idsOfUsersNotToShow] : idsOfUsersNotToShow;
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
     const queryMatchesResults = yield getMatches(queryOptsForPagination);
     let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data;

@@ -99,6 +99,19 @@ function generateMatchesPg(matchesPaginationObj: IMatchesPagination): IMatchesPa
 // for bronze: the user can only have 15 matches in a span 48 hour period
 // for silver: the user can only have 25 matches in a span 48 hour period
 
+async function filterInUsersWithValidPromptsAndMatchingImg(potentialMatches: UserBaseModelSchema[]): Promise<UserBaseModelSchema[]> {
+    try {
+        let matchesToSendToClient: UserBaseModelSchema[] | IUserAndPrompts[] = await filterInUsersWithValidMatchingPicUrl(potentialMatches) as UserBaseModelSchema[];
+        matchesToSendToClient = matchesToSendToClient?.length ? await filterInUsersWithPrompts(matchesToSendToClient) : [];
+
+        return matchesToSendToClient?.length ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
+    } catch (error) {
+        console.error("Something went wrong couldn't filter in valid users: ", error)
+
+        return []
+    }
+}
+
 
 
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (request: Request, response: Response) => {
@@ -144,7 +157,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = await Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)])
     const rejectedUsers = (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])?.length ? (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]) : [];
     const allChatUsers = (allUserChatsResult.data as string[])?.length ? (allUserChatsResult.data as string[]) : [];
-    const idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
+    let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
 
     if (!currentUser) {
         console.error('Could not find current user in the db.');
@@ -172,13 +185,20 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // the id of the user that was received from the last test run: 01H2S38E7NMK4RAGQPTCYJSE1S
     if (savedUserIdsOfMatches.length) {
         console.log('Getting users from db based on users saved in the cache.')
-        const savedUsersInCache = await getUsersByIds(savedUserIdsOfMatches);
+        let savedUsersInCache = await getUsersByIds(savedUserIdsOfMatches);
+
         console.log("savedUsersInCache: ", savedUsersInCache)
+
+        savedUsersInCache = savedUsersInCache?.length ? await filterInUsersWithValidPromptsAndMatchingImg(savedUsersInCache) : []
+
+        console.log("savedUsersInCache after filter: ", savedUsersInCache)
+
         startingMatches = savedUsersInCache?.length ? savedUsersInCache : [];
         cache.set("userIdsOfMatchesToShowForMatchesPg", { [currentUserId]: [] })
     }
     // put the above into a function
 
+    idsOfUsersNotToShow = startingMatches?.length ? [...startingMatches.map(({ _id }) => _id), ...idsOfUsersNotToShow] : idsOfUsersNotToShow; 
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
     const queryMatchesResults = await getMatches(queryOptsForPagination);
     let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data as InterfacePotentialMatchesPage;
