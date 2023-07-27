@@ -11,7 +11,7 @@ import { Router } from 'express';
 import { createQueryOptsForPagination, getIdsOfUsersNotToShow, getLocationStrForUsers, getMatches, getPromptsAndMatchingPicForClient, getValidMatches } from '../../services/matching/matchesQueryServices.js';
 import { getAllUserChats } from '../../services/firebaseServices/firebaseDbServices.js';
 import { generateGetRejectedUsersQuery, getRejectedUsers } from '../../services/rejectingUsers/rejectedUsersService.js';
-import { getUserById, getUsersByIds } from '../../services/globalMongoDbServices.js';
+import { getUserById, getUsersByIds } from '../../services/globalServices.js';
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 import { cache } from '../../utils/cache.js';

@@ -340,4 +340,4 @@ async function getPromptsAndMatchingPicForClient(matches: IUserMatch[]) {
 }
 
 
-export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow, getPromptsAndMatchingPicForClient, getLocationStrForUsers, getValidMatches }
+export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow, getPromptsAndMatchingPicForClient, getLocationStrForUsers, getLocationStr, getValidMatches }

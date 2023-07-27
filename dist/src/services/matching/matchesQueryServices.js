@@ -275,4 +275,4 @@ function getPromptsAndMatchingPicForClient(matches) {
         }
     });
 }
-export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow, getPromptsAndMatchingPicForClient, getLocationStrForUsers, getValidMatches };
+export { getMatches, createQueryOptsForPagination, getIdsOfUsersNotToShow, getPromptsAndMatchingPicForClient, getLocationStrForUsers, getLocationStr, getValidMatches };
