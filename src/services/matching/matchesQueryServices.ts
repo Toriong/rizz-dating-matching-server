@@ -188,17 +188,15 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
     }
 
     // for testing:
-    let skipAndLimitObj = { skip: 0, limit: 150 };
+    // let skipAndLimitObj = { skip: 0, limit: 150 };
     // the above is for testing: 
 
 
-    // let skipAndLimitObj = { skip: skipDocsNum as number, limit: 5 };
+    let skipAndLimitObj = { skip: skipDocsNum as number, limit: 5 };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
 
     return returnVal;
 }
-
-// GOAL: get the users based on the current page number that the user received on the client side. 
 
 async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<InterfacePotentialMatchesPage> {
     let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;

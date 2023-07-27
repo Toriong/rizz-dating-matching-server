@@ -149,13 +149,12 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
         };
     }
     // for testing:
-    let skipAndLimitObj = { skip: 0, limit: 150 };
+    // let skipAndLimitObj = { skip: 0, limit: 150 };
     // the above is for testing: 
-    // let skipAndLimitObj = { skip: skipDocsNum as number, limit: 5 };
+    let skipAndLimitObj = { skip: skipDocsNum, limit: 5 };
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
     return returnVal;
 }
-// GOAL: get the users based on the current page number that the user received on the client side. 
 function queryForPotentialMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;

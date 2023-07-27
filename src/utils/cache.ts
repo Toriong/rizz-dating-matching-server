@@ -8,9 +8,6 @@ const cache = (() => {
     return _cache;
 })();
 
-
-// the cache class will do the following: 
-// reset the key value pair for cache by passing in the default value for that specific key
 class Cache {
     cache: NodeCache;
 
@@ -18,7 +15,7 @@ class Cache {
         this.cache = cache;
     }
 
-    update(key: string, value: any): void {
+    set(key: string, value: any): void {
         this.cache.set(key, value)
     }
 
@@ -28,10 +25,6 @@ class Cache {
 
     delete(key: string): void {
         this.cache.del(key);
-    }
-
-    reset(key: string, valForReset: [] | unknown): void {
-        this.cache.set(key, valForReset);
     }
 }
 
