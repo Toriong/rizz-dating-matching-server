@@ -11,7 +11,6 @@ import { User as Users } from "../../models/User.js";
 import { filterInUsersWithPrompts, getMatchesWithPrompts } from "../promptsServices/getPromptsServices.js";
 import { filterInUsersWithValidMatchingPicUrl, getMatchingPicUrlForUsers } from "./helper-fns/aws.js";
 import moment from "moment";
-import dotenv from 'dotenv';
 import axios from 'axios';
 import { cache } from "../../utils/cache.js";
 import { EXPIRATION_TIME_CACHED_MATCHES } from "../../globalVals.js";
@@ -184,9 +183,6 @@ function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfCha
     ];
     return [...allRejectedUserIds, ...allRecipientsOfChats];
 }
-// CASE: don't need to get all of the users from the database for a specific query.
-// brain dump:
-// still get the users from the database in order to perform validations on the user's info, checking for correct matching pic url or correct prompts
 function getMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -211,7 +207,6 @@ function getCountryName(countryCode) {
 function getLocationStr(userLocation) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            dotenv.config();
             const [longitude, latitude] = userLocation;
             const reverseGeoCodeUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.REVERSE_GEO_LOCATION_API_KEY}`;
             const response = yield axios.get(reverseGeoCodeUrl);

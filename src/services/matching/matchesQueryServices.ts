@@ -5,7 +5,6 @@ import { IGetValidMatches, IMatchesPagination, IUserMatch, InterfacePotentialMat
 import { filterInUsersWithPrompts, getMatchesWithPrompts } from "../promptsServices/getPromptsServices.js";
 import { filterInUsersWithValidMatchingPicUrl, getMatchingPicUrlForUsers } from "./helper-fns/aws.js";
 import moment from "moment";
-import dotenv from 'dotenv';
 import axios from 'axios'
 import { cache, Cache } from "../../utils/cache.js";
 import { DynamicKeyVal } from "../../types-and-interfaces/interfaces/globalInterfaces.js";
@@ -26,7 +25,12 @@ interface IQueryOptsForPagination {
     currentPageNum: number
 }
 
-async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBaseModelSchema, currentValidUserMatches: UserBaseModelSchema[], idsOfUsersNotToShow: string[] = []): Promise<IGetValidMatches> {
+async function getValidMatches(
+    userQueryOpts: UserQueryOpts,
+    currentUser: UserBaseModelSchema,
+    currentValidUserMatches: UserBaseModelSchema[],
+    idsOfUsersNotToShow: string[] = []
+): Promise<IGetValidMatches> {
     let validMatchesToSendToClient: UserBaseModelSchema[] = currentValidUserMatches;
     let _userQueryOpts: UserQueryOpts = { ...userQueryOpts }
     console.log("_userQueryOpts: ", _userQueryOpts)
@@ -40,7 +44,6 @@ async function getValidMatches(userQueryOpts: UserQueryOpts, currentUser: UserBa
             let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
 
             if (loopTimeElapsed > 15_000) {
-
                 matchesPage = {
                     hasReachedPaginationEnd: _hasReachedPaginationEnd,
                     canStillQueryCurrentPageForUsers: false,
@@ -234,9 +237,6 @@ function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUs
     return [...allRejectedUserIds, ...allRecipientsOfChats]
 }
 
-// CASE: don't need to get all of the users from the database for a specific query.
-// brain dump:
-// still get the users from the database in order to perform validations on the user's info, checking for correct matching pic url or correct prompts
 
 async function getMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<GetMatchesResult> {
     try {
@@ -264,7 +264,6 @@ function getCountryName(countryCode: string): string | undefined {
 
 async function getLocationStr(userLocation: [number, number]): Promise<{ wasSuccessful: boolean, data?: string }> {
     try {
-        dotenv.config();
         const [longitude, latitude] = userLocation;
         const reverseGeoCodeUrl = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=5&appid=${process.env.REVERSE_GEO_LOCATION_API_KEY}`
         const response = await axios.get(reverseGeoCodeUrl);
