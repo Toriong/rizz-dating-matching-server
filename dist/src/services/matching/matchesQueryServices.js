@@ -26,11 +26,11 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
             let timeBeforeLoopMs = new Date().getTime();
             while (validMatchesToSendToClient.length < 5) {
                 let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
+                // go with the current logic: send the skip docs num to the client in order to get more users if a timeout has occurred.
                 if (loopTimeElapsed > 15000) {
                     matchesPage = {
                         hasReachedPaginationEnd: _hasReachedPaginationEnd,
                         canStillQueryCurrentPageForUsers: false,
-                        updatedSkipDocsNum: _userQueryOpts === null || _userQueryOpts === void 0 ? void 0 : _userQueryOpts.skipDocsNum,
                         validMatches: validMatchesToSendToClient,
                         didTimeOutOccur: true
                     };

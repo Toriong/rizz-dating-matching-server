@@ -1,12 +1,12 @@
-import express, { Express, Request, Response, Router } from 'express';
+import express from 'express';
+import { routes } from './src/routes/index.js';
 import dotenv from 'dotenv';
 import cors from 'cors'
-import { routes } from './src/routes/index.js';
 import mongoose from 'mongoose';
 
 dotenv.config();
 
-const app: Express = express();
+const app = express();
 const { PORT, MONGO_DB_CONNECTION_STR } = process.env;
 
 mongoose.connect(MONGO_DB_CONNECTION_STR as string).then(() => {
