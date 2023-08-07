@@ -22,60 +22,117 @@ function validateFormOfObj(key, obj) {
     return { fieldName: key, receivedType: receivedType };
 }
 function getQueryOptionsValidationArr(queryOpts) {
-    const { userLocation, desiredAgeRange, skipDocsNum, minAndMaxDistanceArr, isRadiusSetToAnywhere } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
+    const { userLocation, desiredAgeRange, skipDocsNum, minAndMaxDistanceArr, isRadiusSetToAnywhere, recievedUserMatchesIdsOnClientSide } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
     console.log('userLocation: ', userLocation);
     const [latitude, longitude] = Array.isArray(userLocation) ? userLocation : [];
     let areValsInMinAndMaxQueryDistanceArrValid = false;
-    let minAndMaxDistanceQueryArrValidationObj = null;
-    let areValsInDesiredAgeRangeArrValid = false;
-    let areDesiredAgeRangeValsValidObj = null;
-    let isLongAndLatValueTypeValid = false;
-    let areLongAndLatValid = null;
+    let minAndMaxDistanceQueryArrValidationResultsObj = null;
+    let areValsInDesiredAgeRangeArrResultsObj = false;
+    let areDesiredAgeRangeValsValidResultObj = null;
+    let isLongAndLatValueTypeValidResult = false;
+    let areLongAndLatValidResults = null;
+    let recievedUserMatchesIdsOnClientSideResultObj = null;
+    if (recievedUserMatchesIdsOnClientSide) {
+        const areValsStrsInRecievedUserMatchesIdsOnClientSide = Array.isArray(recievedUserMatchesIdsOnClientSide) ? recievedUserMatchesIdsOnClientSide.every(val => typeof val === 'string') : false;
+        recievedUserMatchesIdsOnClientSideResultObj = {
+            receivedType: typeof recievedUserMatchesIdsOnClientSide,
+            correctVal: 'array',
+            fieldName: 'recievedUserMatchesIdsOnClientSide',
+            isCorrectValType: Array.isArray(recievedUserMatchesIdsOnClientSide) && areValsStrsInRecievedUserMatchesIdsOnClientSide,
+            receivedVal: recievedUserMatchesIdsOnClientSide,
+            recievedTypeOfValsInArr: recievedUserMatchesIdsOnClientSide.map(val => typeof val)
+        };
+    }
     if (!isRadiusSetToAnywhere) {
         areValsInMinAndMaxQueryDistanceArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
-        minAndMaxDistanceQueryArrValidationObj = {
+        minAndMaxDistanceQueryArrValidationResultsObj = {
             receivedType: typeof minAndMaxDistanceArr,
             correctVal: 'number',
             fieldName: 'radiusInMilesInt',
-            val: minAndMaxDistanceArr,
+            receivedVal: minAndMaxDistanceArr,
             isCorrectValType: areValsInMinAndMaxQueryDistanceArrValid
         };
-        areValsInDesiredAgeRangeArrValid = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
-        areDesiredAgeRangeValsValidObj = {
+        areValsInDesiredAgeRangeArrResultsObj = (Array.isArray(desiredAgeRange) && (desiredAgeRange.length === 2)) && desiredAgeRange.every(date => !Number.isNaN(Date.parse(date)));
+        areDesiredAgeRangeValsValidResultObj = {
             receivedType: typeof desiredAgeRange,
             recievedTypeOfValsInArr: desiredAgeRange.map(ageDate => typeof ageDate),
             correctVal: 'object',
             fieldName: 'desiredAgeRange',
-            isCorrectValType: areValsInDesiredAgeRangeArrValid, val: desiredAgeRange
+            isCorrectValType: areValsInDesiredAgeRangeArrResultsObj, receivedVal: desiredAgeRange
         };
-        isLongAndLatValueTypeValid = (!!longitude && !!latitude) && ((typeof longitude === 'string') && (typeof latitude === 'string')) && ((typeof parseFloat(longitude) === 'number') && (typeof parseFloat(latitude) === 'number'));
-        areLongAndLatValid = {
+        isLongAndLatValueTypeValidResult = (!!longitude && !!latitude) && ((typeof longitude === 'string') && (typeof latitude === 'string')) && ((typeof parseFloat(longitude) === 'number') && (typeof parseFloat(latitude) === 'number'));
+        areLongAndLatValidResults = {
             receivedType: typeof userLocation,
             recievedTypeOfValsInArr: Object.keys(userLocation).map(key => validateFormOfObj(key, userLocation)),
             correctVal: 'number',
             fieldName: 'userLocation',
-            isCorrectValType: isLongAndLatValueTypeValid,
-            val: userLocation,
+            isCorrectValType: isLongAndLatValueTypeValidResult,
+            receivedVal: userLocation,
         };
     }
-    const paginationPageNumValidationObj = { receivedType: typeof skipDocsNum, correctVal: 'number', fieldName: 'skipDocsNum', isCorrectValType: typeof parseInt(skipDocsNum) === 'number', val: skipDocsNum };
-    let defaultValidationKeyValsArr = [paginationPageNumValidationObj];
-    if (!isRadiusSetToAnywhere && minAndMaxDistanceQueryArrValidationObj && areDesiredAgeRangeValsValidObj && areLongAndLatValid) {
-        return [...defaultValidationKeyValsArr, minAndMaxDistanceQueryArrValidationObj, areDesiredAgeRangeValsValidObj, areLongAndLatValid];
-    }
-    const isRadiusSetToAnywhereValidtionObj = { receivedType: typeof isRadiusSetToAnywhere, correctVal: 'boolean', fieldName: 'isRadiusSetToAnywhere', isCorrectValType: typeof Boolean(isRadiusSetToAnywhere) === 'boolean', val: isRadiusSetToAnywhere };
-    return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj];
-}
-function generateMatchesPg(matchesPaginationObj) {
-    const { canStillQueryCurrentPageForUsers, hasReachedPaginationEnd, validMatches, updatedSkipDocsNum, didErrorOccur, didTimeOutOccur } = matchesPaginationObj !== null && matchesPaginationObj !== void 0 ? matchesPaginationObj : {};
-    return {
-        hasReachedPaginationEnd: !!hasReachedPaginationEnd,
-        validMatches: validMatches,
-        updatedSkipDocsNum: updatedSkipDocsNum,
-        canStillQueryCurrentPageForUsers: !!canStillQueryCurrentPageForUsers,
-        didErrorOccur: !!didErrorOccur,
-        didTimeOutOccur: !!didTimeOutOccur
+    const paginationPageNumValidationObj = {
+        receivedType: typeof skipDocsNum,
+        correctVal: 'number',
+        fieldName: 'skipDocsNum',
+        isCorrectValType: typeof parseInt(skipDocsNum) === 'number',
+        receivedVal: skipDocsNum
     };
+    let defaultValidationKeyValsArr = [paginationPageNumValidationObj];
+    if (!isRadiusSetToAnywhere &&
+        minAndMaxDistanceQueryArrValidationResultsObj &&
+        recievedUserMatchesIdsOnClientSideResultObj &&
+        areDesiredAgeRangeValsValidResultObj &&
+        areLongAndLatValidResults) {
+        return [
+            ...defaultValidationKeyValsArr,
+            recievedUserMatchesIdsOnClientSideResultObj,
+            minAndMaxDistanceQueryArrValidationResultsObj,
+            areDesiredAgeRangeValsValidResultObj,
+            areLongAndLatValidResults
+        ];
+    }
+    if (!isRadiusSetToAnywhere &&
+        minAndMaxDistanceQueryArrValidationResultsObj &&
+        areDesiredAgeRangeValsValidResultObj &&
+        areLongAndLatValidResults) {
+        return [
+            ...defaultValidationKeyValsArr,
+            minAndMaxDistanceQueryArrValidationResultsObj,
+            areDesiredAgeRangeValsValidResultObj,
+            areLongAndLatValidResults
+        ];
+    }
+    if (!isRadiusSetToAnywhere &&
+        recievedUserMatchesIdsOnClientSideResultObj &&
+        areDesiredAgeRangeValsValidResultObj &&
+        areLongAndLatValidResults) {
+        return [
+            ...defaultValidationKeyValsArr,
+            recievedUserMatchesIdsOnClientSideResultObj,
+            areDesiredAgeRangeValsValidResultObj,
+            areLongAndLatValidResults
+        ];
+    }
+    if (!isRadiusSetToAnywhere &&
+        areDesiredAgeRangeValsValidResultObj &&
+        areLongAndLatValidResults) {
+        return [
+            ...defaultValidationKeyValsArr,
+            areDesiredAgeRangeValsValidResultObj,
+            areLongAndLatValidResults
+        ];
+    }
+    const isRadiusSetToAnywhereValidtionObj = {
+        receivedType: typeof isRadiusSetToAnywhere,
+        correctVal: 'boolean',
+        fieldName: 'isRadiusSetToAnywhere',
+        isCorrectValType: typeof Boolean(isRadiusSetToAnywhere) === 'boolean',
+        receivedVal: isRadiusSetToAnywhere
+    };
+    if (recievedUserMatchesIdsOnClientSideResultObj) {
+        return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj, recievedUserMatchesIdsOnClientSideResultObj];
+    }
+    return [...defaultValidationKeyValsArr, isRadiusSetToAnywhereValidtionObj];
 }
 // BUG: 
 // WHAT IS HAPPENING: when the time out is completed, the updated skip nums value is not being updated. It is still zero when the time out has reached. 
@@ -117,9 +174,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log("Will get the user's matches and send them to the client.");
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum);
-    // BRAIN DUMP:
-    // if there was a timeout, and the frontend received users, then the frontend sends another request to get more users
-    // the recieved users will not be queried? 
     if ((minAndMaxDistanceArr === null || minAndMaxDistanceArr === void 0 ? void 0 : minAndMaxDistanceArr.length) && (userLocation === null || userLocation === void 0 ? void 0 : userLocation.length)) {
         const _userLocation = [userLocation[0], userLocation[1]].map(val => parseFloat(val));
         const _minAndMaxDistanceArrUpdated = minAndMaxDistanceArr.map(val => parseInt(val));
@@ -132,11 +186,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = yield Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)]);
     const rejectedUsers = ((_a = rejectedUsersThatCurrentUserIsInResult.data) === null || _a === void 0 ? void 0 : _a.length) ? rejectedUsersThatCurrentUserIsInResult.data : [];
     const allChatUsers = ((_b = allUserChatsResult.data) === null || _b === void 0 ? void 0 : _b.length) ? allUserChatsResult.data : [];
-    // brain dump:
-    // add the ids of the users that were received on the front end to the array below
-    // when there is a timeout, the frontend send another request to get more users, send the ids of the users to the backend
-    // add the ids of the user to the array below 
-    let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
+    let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers, userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.recievedUserMatchesIdsOnClientSide);
     if (!currentUser) {
         console.error('Could not find current user in the db.');
         return response.status(404).json({ msg: 'Could not find current user in the db.' });

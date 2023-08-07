@@ -51,7 +51,7 @@ async function getValidMatches(
                     validMatches: validMatchesToSendToClient,
                     didTimeOutOccur: true
                 }
-                
+
                 break;
             }
 
@@ -226,7 +226,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery, totalUsersForQuery: totalUsersForQuery }
 }
 
-function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUserInterface[], allRecipientsOfChats: string[]): string[] {
+function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUserInterface[], allRecipientsOfChats: string[], idsOfUserMatchesReceivedOnClient?: string[]): string[] {
     const allRejectedUserIds = [
         ...new Set((rejectedUsers)
             .flatMap((rejectedUserInfo: RejectedUserInterface) => {
@@ -235,7 +235,11 @@ function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUs
             .filter(userId => currentUserId !== userId))
     ]
 
-    return [...allRejectedUserIds, ...allRecipientsOfChats]
+    if (idsOfUserMatchesReceivedOnClient?.length) {
+        return [...allRejectedUserIds, ...allRecipientsOfChats, ...idsOfUserMatchesReceivedOnClient]
+    }
+
+    return [...allRejectedUserIds, ...allRecipientsOfChats];
 }
 
 

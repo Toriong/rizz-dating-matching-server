@@ -12,6 +12,7 @@ interface UserQueryOpts {
     desiredAgeRange: [string, string],
     skipDocsNum: number | string
     isRadiusSetToAnywhere?: boolean | string
+    recievedUserMatchesIdsOnClientSide?: string[]
 }
 interface ReqQueryMatchesParams {
     query: UserQueryOpts,
@@ -22,10 +23,10 @@ interface QueryValidationInterface {
     correctVal: string | string[],
     isCorrectValType: boolean,
     fieldName: string,
-    val: unknown,
+    receivedVal: unknown,
     receivedType: string,
     receivedTypeInArr?: string[],
-    recievedTypeOfValsInArr?: ({ fieldName: string, receivedType: string } | string)[]
+    recievedTypeOfValsInArr?: { fieldName?: string, receivedType: string }[] | string[]
 }
 
 export { UserQueryOpts, UserLocation, ReqQueryMatchesParams, QueryValidationInterface }

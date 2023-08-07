@@ -173,7 +173,7 @@ function queryForPotentialMatches(queryOptsForPagination) {
         return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery, totalUsersForQuery: totalUsersForQuery };
     });
 }
-function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfChats) {
+function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfChats, idsOfUserMatchesReceivedOnClient) {
     const allRejectedUserIds = [
         ...new Set((rejectedUsers)
             .flatMap((rejectedUserInfo) => {
@@ -181,6 +181,9 @@ function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfCha
         })
             .filter(userId => currentUserId !== userId))
     ];
+    if (idsOfUserMatchesReceivedOnClient === null || idsOfUserMatchesReceivedOnClient === void 0 ? void 0 : idsOfUserMatchesReceivedOnClient.length) {
+        return [...allRejectedUserIds, ...allRecipientsOfChats, ...idsOfUserMatchesReceivedOnClient];
+    }
     return [...allRejectedUserIds, ...allRecipientsOfChats];
 }
 function getMatches(queryOptsForPagination) {
