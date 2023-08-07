@@ -143,6 +143,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts as UserQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum as string)
 
+    // BRAIN DUMP:
+    // if there was a timeout, and the frontend received users, then the frontend sends another request to get more users
+    // the recieved users will not be queried? 
+
     if (minAndMaxDistanceArr?.length && userLocation?.length) {
         const _userLocation = ([userLocation[0], userLocation[1]] as [string, string]).map(val => parseFloat(val))
         const _minAndMaxDistanceArrUpdated = minAndMaxDistanceArr.map(val => parseInt(val as string))
@@ -158,6 +162,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = await Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)])
     const rejectedUsers = (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])?.length ? (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]) : [];
     const allChatUsers = (allUserChatsResult.data as string[])?.length ? (allUserChatsResult.data as string[]) : [];
+    // brain dump:
+    // add the ids of the users that were received on the front end to the array below
+    // when there is a timeout, the frontend send another request to get more users, send the ids of the users to the backend
+    // add the ids of the user to the array below 
     let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
 
     if (!currentUser) {

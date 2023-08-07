@@ -117,6 +117,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log("Will get the user's matches and send them to the client.");
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum);
+    // BRAIN DUMP:
+    // if there was a timeout, and the frontend received users, then the frontend sends another request to get more users
+    // the recieved users will not be queried? 
     if ((minAndMaxDistanceArr === null || minAndMaxDistanceArr === void 0 ? void 0 : minAndMaxDistanceArr.length) && (userLocation === null || userLocation === void 0 ? void 0 : userLocation.length)) {
         const _userLocation = [userLocation[0], userLocation[1]].map(val => parseFloat(val));
         const _minAndMaxDistanceArrUpdated = minAndMaxDistanceArr.map(val => parseInt(val));
@@ -129,6 +132,10 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = yield Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)]);
     const rejectedUsers = ((_a = rejectedUsersThatCurrentUserIsInResult.data) === null || _a === void 0 ? void 0 : _a.length) ? rejectedUsersThatCurrentUserIsInResult.data : [];
     const allChatUsers = ((_b = allUserChatsResult.data) === null || _b === void 0 ? void 0 : _b.length) ? allUserChatsResult.data : [];
+    // brain dump:
+    // add the ids of the users that were received on the front end to the array below
+    // when there is a timeout, the frontend send another request to get more users, send the ids of the users to the backend
+    // add the ids of the user to the array below 
     let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers);
     if (!currentUser) {
         console.error('Could not find current user in the db.');
