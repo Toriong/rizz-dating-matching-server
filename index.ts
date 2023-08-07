@@ -8,7 +8,8 @@ import ip from 'ip';
 dotenv.config();
 
 const app = express();
-const { PORT, MONGO_DB_CONNECTION_STR } = process.env;
+let { PORT, MONGO_DB_CONNECTION_STR } = process.env;
+
 
 (async () => {
   try {
@@ -38,6 +39,8 @@ app.use(cors({
 
 app.use("/", routes);
 
-app.listen(PORT, () => {
+PORT = typeof PORT === 'string' ? parseInt(PORT) : PORT;
+
+app.listen(PORT, ip.address(),() => {
   console.log(`[server]: The server is live⚡️! Server is running on the following PORT: ${PORT}`);
 });
