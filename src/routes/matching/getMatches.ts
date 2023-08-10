@@ -233,6 +233,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts as UserQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum as string)
 
+    console.log('paginationPageNumUpdated: ', paginationPageNumUpdated)
+
     if (minAndMaxDistanceArr?.length && userLocation?.length) {
         const _userLocation = ([userLocation[0], userLocation[1]] as [string, string]).map(val => parseFloat(val))
         const _minAndMaxDistanceArrUpdated = minAndMaxDistanceArr.map(val => parseInt(val as string))

@@ -176,6 +176,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log("Will get the user's matches and send them to the client.");
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum);
+    console.log('paginationPageNumUpdated: ', paginationPageNumUpdated);
     if ((minAndMaxDistanceArr === null || minAndMaxDistanceArr === void 0 ? void 0 : minAndMaxDistanceArr.length) && (userLocation === null || userLocation === void 0 ? void 0 : userLocation.length)) {
         const _userLocation = [userLocation[0], userLocation[1]].map(val => parseFloat(val));
         const _minAndMaxDistanceArrUpdated = minAndMaxDistanceArr.map(val => parseInt(val));

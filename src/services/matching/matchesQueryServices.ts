@@ -42,15 +42,15 @@ async function getValidMatches(
 
         while (validMatchesToSendToClient.length < 5) {
             let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
-            // go with the current logic: send the skip docs num to the client in order to get more users if a timeout has occurred.
 
-            if (loopTimeElapsed > 15_000) {
+            if (loopTimeElapsed > 10_000) {
                 console.log('Time out has occurred.')
                 matchesPage = {
                     hasReachedPaginationEnd: _hasReachedPaginationEnd,
                     canStillQueryCurrentPageForUsers: false,
                     validMatches: validMatchesToSendToClient,
-                    didTimeOutOccur: true
+                    didTimeOutOccur: true,
+                    updatedSkipDocsNum: _userQueryOpts.skipDocsNum as number,
                 }
 
                 break;
@@ -78,7 +78,7 @@ async function getValidMatches(
                     validMatches: currentValidUserMatches,
                     updatedSkipDocsNum: _userQueryOpts.skipDocsNum as number,
                     canStillQueryCurrentPageForUsers: false,
-                    didErrorOccur: true
+                    didErrorOccur: true,
                 };
                 break;
             }
@@ -207,7 +207,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
 
     // BELOW, FOR TESTING:
-    skipAndLimitObj = { skip: 0, limit: 150 };
+    // skipAndLimitObj = { skip: 0, limit: 150 };
     // ABOVE, FOR TESTING:
     if (paginationQueryOpts?.location) {
         (Users as any).createIndexes([{ location: '2dsphere' }])

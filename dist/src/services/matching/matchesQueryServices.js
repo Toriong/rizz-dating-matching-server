@@ -26,14 +26,14 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
             let timeBeforeLoopMs = new Date().getTime();
             while (validMatchesToSendToClient.length < 5) {
                 let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
-                // go with the current logic: send the skip docs num to the client in order to get more users if a timeout has occurred.
-                if (loopTimeElapsed > 15000) {
+                if (loopTimeElapsed > 10000) {
                     console.log('Time out has occurred.');
                     matchesPage = {
                         hasReachedPaginationEnd: _hasReachedPaginationEnd,
                         canStillQueryCurrentPageForUsers: false,
                         validMatches: validMatchesToSendToClient,
-                        didTimeOutOccur: true
+                        didTimeOutOccur: true,
+                        updatedSkipDocsNum: _userQueryOpts.skipDocsNum,
                     };
                     break;
                 }
@@ -57,7 +57,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                         validMatches: currentValidUserMatches,
                         updatedSkipDocsNum: _userQueryOpts.skipDocsNum,
                         canStillQueryCurrentPageForUsers: false,
-                        didErrorOccur: true
+                        didErrorOccur: true,
                     };
                     break;
                 }
@@ -159,7 +159,7 @@ function queryForPotentialMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
         // BELOW, FOR TESTING:
-        skipAndLimitObj = { skip: 0, limit: 150 };
+        // skipAndLimitObj = { skip: 0, limit: 150 };
         // ABOVE, FOR TESTING:
         if (paginationQueryOpts === null || paginationQueryOpts === void 0 ? void 0 : paginationQueryOpts.location) {
             Users.createIndexes([{ location: '2dsphere' }]);
