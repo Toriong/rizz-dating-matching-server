@@ -159,6 +159,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.time('getMatchesRoute, timing.');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
+        console.error("An error has occurred. Missing query parameters. Missing 'query' or 'userId' query parameters.");
         return response.status(400).json({ msg: 'Missing query parameters.' });
     }
     let userQueryOpts = query.query;
@@ -217,29 +218,32 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     if ((potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length) && (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length)) {
         potentialMatches = [...startingMatches, ...potentialMatches];
     }
-    console.log("potentialMatches: ", potentialMatches);
-    console.log('potentialMatches.length: ', potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length);
     // FOR TESTING PURPOSES, BELOW:
-    // let _potentialMatches = potentialMatches as UserBaseModelSchema[];
-    // const usersOfPromptsToDelete = _potentialMatches?.filter(({ pics }) => {
-    //     const matchingPic = pics.find(({ isMatching }) => isMatching);
-    //     return (matchingPic?.picFileNameOnAws !== 'test-img-3.jpg');
-    // })
-    // const potentialMatchesWithTestImg3 = _potentialMatches?.filter(({ pics }) => {
-    //     const matchingPic = pics.find(({ isMatching }) => isMatching);
-    //     return (matchingPic?.picFileNameOnAws === 'test-img-3.jpg');
-    // })
-    // const userIdsOfPromptsToDelete = usersOfPromptsToDelete.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
-    // const userIds = usersOfPromptsToDelete.map(({ _id }) => _id);
-    // const potentialMatchesWithTestImg3UserIds = potentialMatchesWithTestImg3.map(({ _id }) => _id)
-    // const totalUsersQueried = userIdsOfPromptsToDelete.length + potentialMatchesWithTestImg3UserIds.length
-    // const userIdsAndRatingNum = _potentialMatches.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
-    // console.log('userIdsAndRatingNum: ', userIdsAndRatingNum)
-    // console.log('totalUsersQueried: ', totalUsersQueried)
-    // console.log('userIdsOfPromptsToDelete: ', userIdsOfPromptsToDelete)
-    // console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
-    // return response.status(200).json({ msg: "Users received!", userIds: userIds })
+    // return response.status(200).json({ matches: potentialMatches })
     // FOR TESTING PURPOSES, ABOVE:
+    // console.log("potentialMatches: ", potentialMatches)
+    // console.log('potentialMatches.length: ', potentialMatches?.length)
+    // // FOR TESTING PURPOSES, BELOW:
+    // // let _potentialMatches = potentialMatches as UserBaseModelSchema[];
+    // // const usersOfPromptsToDelete = _potentialMatches?.filter(({ pics }) => {
+    // //     const matchingPic = pics.find(({ isMatching }) => isMatching);
+    // //     return (matchingPic?.picFileNameOnAws !== 'test-img-3.jpg');
+    // // })
+    // // const potentialMatchesWithTestImg3 = _potentialMatches?.filter(({ pics }) => {
+    // //     const matchingPic = pics.find(({ isMatching }) => isMatching);
+    // //     return (matchingPic?.picFileNameOnAws === 'test-img-3.jpg');
+    // // })
+    // // const userIdsOfPromptsToDelete = usersOfPromptsToDelete.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
+    // // const userIds = usersOfPromptsToDelete.map(({ _id }) => _id);
+    // // const potentialMatchesWithTestImg3UserIds = potentialMatchesWithTestImg3.map(({ _id }) => _id)
+    // // const totalUsersQueried = userIdsOfPromptsToDelete.length + potentialMatchesWithTestImg3UserIds.length
+    // // const userIdsAndRatingNum = _potentialMatches.map(({ _id, ratingNum }) => ({ _id, ratingNum }))
+    // // console.log('userIdsAndRatingNum: ', userIdsAndRatingNum)
+    // // console.log('totalUsersQueried: ', totalUsersQueried)
+    // // console.log('userIdsOfPromptsToDelete: ', userIdsOfPromptsToDelete)
+    // // console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
+    // // return response.status(200).json({ msg: "Users received!", userIds: userIds })
+    // // FOR TESTING PURPOSES, ABOVE:
     const _updateSkipDocsNum = (typeof (userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.skipDocsNum) === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
     if (queryMatchesResults.status !== 200) {
         return response.status(queryMatchesResults.status).json({ msg: queryMatchesResults.msg });
@@ -252,6 +256,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? yield filterInUsersWithPrompts(matchesToSendToClient) : [];
     matchesToSendToClient = (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length) ? matchesToSendToClient.sort((userA, userB) => userB.ratingNum - userA.ratingNum) : [];
     const areCachedUsersValid = ((savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) && (matchesToSendToClient === null || matchesToSendToClient === void 0 ? void 0 : matchesToSendToClient.length)) ? matchesToSendToClient.some(({ _id }) => savedUserIdsOfMatches.includes(_id)) : false;
+    // Putting the cached users first in the array in order to send to the client first.
     if (areCachedUsersValid && (matchesToSendToClient.length > 5)) {
         console.log('Adding users who were saved in the cache first to the array that will be sent to the client.');
         let usersToSendToClientUpdated = matchesToSendToClient.filter(({ _id }) => savedUserIdsOfMatches.includes(_id));
@@ -321,8 +326,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
     potentialMatchesForClient = yield getLocationStrForUsers(potentialMatchesForClient);
     paginationMatchesObj.potentialMatches = potentialMatchesForClient;
-    console.log('paginationMatchesObj: ', paginationMatchesObj);
-    console.log("paginationMatchesObj.potentialMatches ids: ", paginationMatchesObj.potentialMatches.map(({ _id }) => _id));
     response.status(200).json({ paginationMatches: paginationMatchesObj });
     console.timeEnd('getMatchesRoute, timing.');
 }));

@@ -206,6 +206,9 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
 async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<InterfacePotentialMatchesPage> {
     let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
 
+    // BELOW, FOR TESTING:
+    skipAndLimitObj = { skip: 0, limit: 150 };
+    // ABOVE, FOR TESTING:
     if (paginationQueryOpts?.location) {
         (Users as any).createIndexes([{ location: '2dsphere' }])
     }

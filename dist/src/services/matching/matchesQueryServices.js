@@ -158,6 +158,9 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
 function queryForPotentialMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
+        // BELOW, FOR TESTING:
+        skipAndLimitObj = { skip: 0, limit: 150 };
+        // ABOVE, FOR TESTING:
         if (paginationQueryOpts === null || paginationQueryOpts === void 0 ? void 0 : paginationQueryOpts.location) {
             Users.createIndexes([{ location: '2dsphere' }]);
         }
