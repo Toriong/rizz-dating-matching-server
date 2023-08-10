@@ -28,6 +28,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
                 // go with the current logic: send the skip docs num to the client in order to get more users if a timeout has occurred.
                 if (loopTimeElapsed > 15000) {
+                    console.log('Time out has occurred.');
                     matchesPage = {
                         hasReachedPaginationEnd: _hasReachedPaginationEnd,
                         canStillQueryCurrentPageForUsers: false,
@@ -164,6 +165,7 @@ function queryForPotentialMatches(queryOptsForPagination) {
         const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
+        console.log('totalUsersForQuery: ', totalUsersForQuery);
         if (totalUsersForQuery === 0) {
             return { potentialMatches: [], hasReachedPaginationEnd: true };
         }
@@ -189,8 +191,9 @@ function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfCha
 function getMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            console.log('queryOptsForPagination, getMatches fn: ', queryOptsForPagination);
             const potentialMatchesPaginationObj = yield queryForPotentialMatches(queryOptsForPagination);
-            console.log("potentialMatchesPaginationObj.totalUsersForQuery: ", potentialMatchesPaginationObj.totalUsersForQuery);
+            console.log("potentialMatchesPaginationObj.potentialMatches: ", potentialMatchesPaginationObj.potentialMatches);
             return {
                 status: 200,
                 data: potentialMatchesPaginationObj

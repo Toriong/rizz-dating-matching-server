@@ -182,6 +182,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     let userQueryOpts: RequestQuery | UserQueryOpts = (query as ReqQueryMatchesParams).query;
     const currentUserId = (query as ReqQueryMatchesParams).userId;
+    console.log('currentUserId: ', currentUserId)
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType)
 
@@ -224,7 +225,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     // put the below into a function 
     const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg") as ICacheKeyVals;
-    console.log("userIdsOfMatchesToShowForMatchesPg?.[currentUserId]: ", userIdsOfMatchesToShowForMatchesPg?.[currentUserId])
     let savedUserIdsOfMatches = userIdsOfMatchesToShowForMatchesPg?.[currentUserId] ?? [];
     savedUserIdsOfMatches = savedUserIdsOfMatches?.length ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : []
     let startingMatches: UserBaseModelSchema[] | null = null;
@@ -249,6 +249,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     idsOfUsersNotToShow = startingMatches?.length ? [...startingMatches.map(({ _id }) => _id), ...idsOfUsersNotToShow] : idsOfUsersNotToShow;
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow)
+    console.log('queryOptsForPagination: ', queryOptsForPagination)
     const queryMatchesResults = await getMatches(queryOptsForPagination);
     let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data as InterfacePotentialMatchesPage;
 
@@ -284,7 +285,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     // console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
 
 
-    // response.status(200).json({ msg: "Users received!", userIds: userIds })
+    // return response.status(200).json({ msg: "Users received!", userIds: userIds })
 
     // FOR TESTING PURPOSES, ABOVE:
 

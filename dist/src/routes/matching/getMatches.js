@@ -163,6 +163,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     let userQueryOpts = query.query;
     const currentUserId = query.userId;
+    console.log('currentUserId: ', currentUserId);
     const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
     const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType);
     if (!areQueryOptsValid) {
@@ -193,7 +194,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     // put the below into a function 
     const userIdsOfMatchesToShowForMatchesPg = cache.get("userIdsOfMatchesToShowForMatchesPg");
-    console.log("userIdsOfMatchesToShowForMatchesPg?.[currentUserId]: ", userIdsOfMatchesToShowForMatchesPg === null || userIdsOfMatchesToShowForMatchesPg === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPg[currentUserId]);
     let savedUserIdsOfMatches = (_c = userIdsOfMatchesToShowForMatchesPg === null || userIdsOfMatchesToShowForMatchesPg === void 0 ? void 0 : userIdsOfMatchesToShowForMatchesPg[currentUserId]) !== null && _c !== void 0 ? _c : [];
     savedUserIdsOfMatches = (savedUserIdsOfMatches === null || savedUserIdsOfMatches === void 0 ? void 0 : savedUserIdsOfMatches.length) ? savedUserIdsOfMatches.filter(userId => !idsOfUsersNotToShow.includes(userId)) : [];
     let startingMatches = null;
@@ -211,6 +211,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // put the above into a function
     idsOfUsersNotToShow = (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length) ? [...startingMatches.map(({ _id }) => _id), ...idsOfUsersNotToShow] : idsOfUsersNotToShow;
     const queryOptsForPagination = createQueryOptsForPagination(userQueryOpts, currentUser, idsOfUsersNotToShow);
+    console.log('queryOptsForPagination: ', queryOptsForPagination);
     const queryMatchesResults = yield getMatches(queryOptsForPagination);
     let { hasReachedPaginationEnd, canStillQueryCurrentPageForUsers, potentialMatches } = queryMatchesResults.data;
     if ((potentialMatches === null || potentialMatches === void 0 ? void 0 : potentialMatches.length) && (startingMatches === null || startingMatches === void 0 ? void 0 : startingMatches.length)) {
@@ -237,7 +238,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     // console.log('totalUsersQueried: ', totalUsersQueried)
     // console.log('userIdsOfPromptsToDelete: ', userIdsOfPromptsToDelete)
     // console.log('potentialMatchesWithTestImg3UserIds: ', potentialMatchesWithTestImg3UserIds)
-    // response.status(200).json({ msg: "Users received!", userIds: userIds })
+    // return response.status(200).json({ msg: "Users received!", userIds: userIds })
     // FOR TESTING PURPOSES, ABOVE:
     const _updateSkipDocsNum = (typeof (userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.skipDocsNum) === 'string') ? parseInt(userQueryOpts.skipDocsNum) : userQueryOpts.skipDocsNum;
     if (queryMatchesResults.status !== 200) {

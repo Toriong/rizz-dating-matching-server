@@ -15,7 +15,8 @@ import mongoose from 'mongoose';
 import ip from 'ip';
 dotenv.config();
 const app = express();
-let { PORT, MONGO_DB_CONNECTION_STR } = process.env;
+const MONGO_DB_CONNECTION_STR = process.env.MONGO_DB_CONNECTION_STR;
+let PORT = process.env.PORT || 5000;
 (() => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const connectionResult = yield mongoose.connect(MONGO_DB_CONNECTION_STR);
@@ -40,7 +41,8 @@ app.use(cors({
     origin: ["http://localhost:19006"]
 }));
 app.use("/", routes);
-PORT = typeof PORT === 'string' ? parseInt(PORT) : PORT;
+PORT = (typeof PORT === 'string') ? parseInt(PORT) : PORT;
+console.log('ip.address(): ', ip.address());
 app.listen(PORT, ip.address(), () => {
     console.log(`[server]: The server is live⚡️! Server is running on the following PORT: ${PORT}`);
 });

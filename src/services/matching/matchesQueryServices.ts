@@ -45,6 +45,7 @@ async function getValidMatches(
             // go with the current logic: send the skip docs num to the client in order to get more users if a timeout has occurred.
 
             if (loopTimeElapsed > 15_000) {
+                console.log('Time out has occurred.')
                 matchesPage = {
                     hasReachedPaginationEnd: _hasReachedPaginationEnd,
                     canStillQueryCurrentPageForUsers: false,
@@ -213,6 +214,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean()
     let [totalUsersForQuery, potentialMatches]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
     const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
+    console.log('totalUsersForQuery: ', totalUsersForQuery)
 
     if (totalUsersForQuery === 0) {
         return { potentialMatches: [], hasReachedPaginationEnd: true }
@@ -245,8 +247,9 @@ function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUs
 
 async function getMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<GetMatchesResult> {
     try {
+        console.log('queryOptsForPagination, getMatches fn: ', queryOptsForPagination)
         const potentialMatchesPaginationObj = await queryForPotentialMatches(queryOptsForPagination);
-        console.log("potentialMatchesPaginationObj.totalUsersForQuery: ", potentialMatchesPaginationObj.totalUsersForQuery);
+        console.log("potentialMatchesPaginationObj.potentialMatches: ", potentialMatchesPaginationObj.potentialMatches);
 
         return {
             status: 200,
