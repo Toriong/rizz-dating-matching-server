@@ -25,12 +25,6 @@ let PORT = process.env.PORT || 5000;
   }
 })();
 
-mongoose.connect(MONGO_DB_CONNECTION_STR as string).then(() => {
-  console.log("[mongoose]: Connection to the mongodb database via mongoose was successful!")
-}).catch(error => {
-  console.log(`[mongoose]: Error in connecting to DB via mongoose: ${error}`)
-});
-
 app.use(express.json());
 
 app.use(cors({
@@ -40,6 +34,8 @@ app.use(cors({
 app.use("/", routes);
 
 PORT = (typeof PORT === 'string') ? parseInt(PORT) : PORT
+
+// GOAL: create middleware to perform authorization
 
 console.log('ip.address(): ', ip.address())
 

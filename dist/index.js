@@ -31,17 +31,13 @@ let PORT = process.env.PORT || 5000;
         console.error("Mongoose Error: ", error);
     }
 }))();
-mongoose.connect(MONGO_DB_CONNECTION_STR).then(() => {
-    console.log("[mongoose]: Connection to the mongodb database via mongoose was successful!");
-}).catch(error => {
-    console.log(`[mongoose]: Error in connecting to DB via mongoose: ${error}`);
-});
 app.use(express.json());
 app.use(cors({
     origin: ["http://localhost:19006"]
 }));
 app.use("/", routes);
 PORT = (typeof PORT === 'string') ? parseInt(PORT) : PORT;
+// GOAL: create middleware to perform authorization
 console.log('ip.address(): ', ip.address());
 app.listen(PORT, ip.address(), () => {
     console.log(`[server]: The server is live⚡️! Server is running on the following PORT: ${PORT}`);

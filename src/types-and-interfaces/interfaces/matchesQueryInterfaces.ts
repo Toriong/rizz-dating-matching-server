@@ -31,7 +31,6 @@ interface IUserMatch extends TUser {
     locationErrorMsg?: LocationErrorMsgStr,
     firstName?: string,
     location?: UserLocation,
-    // the first value is the latitude, the second is the longitude
     userLocationArr?: [number, number],
 }
 interface IMatchesPagination {
