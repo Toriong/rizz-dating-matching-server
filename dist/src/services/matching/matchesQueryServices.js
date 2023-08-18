@@ -165,7 +165,7 @@ function queryForPotentialMatches(queryOptsForPagination) {
             Users.createIndexes([{ location: '2dsphere' }]);
         }
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
-        const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
+        const potentialMatchesPromise = Users.find(paginationQueryOpts, { password: 0, email: 0, phoneNum: 0, }, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
         console.log('totalUsersForQuery: ', totalUsersForQuery);

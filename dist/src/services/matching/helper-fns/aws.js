@@ -74,7 +74,8 @@ function getMatchingPicUrlForUsers(users) {
                 if (mathcingPicObj === null || mathcingPicObj === void 0 ? void 0 : mathcingPicObj.isMatching) {
                     const { wasSuccessful, matchPicUrl } = yield getMatchPicUrl(mathcingPicObj.picFileNameOnAws);
                     if (wasSuccessful) {
-                        matches.push(Object.assign(Object.assign({}, user), { matchingPicUrl: matchPicUrl }));
+                        const match = Object.assign(Object.assign({}, user), { matchingPicUrl: matchPicUrl });
+                        matches.push(match);
                     }
                 }
             }

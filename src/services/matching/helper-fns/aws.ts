@@ -2,6 +2,7 @@ import aws from 'aws-sdk'
 import dotenv from 'dotenv';
 import { Picture, UserBaseModelSchema } from '../../../models/User.js';
 import { IUserMatch } from '../../../types-and-interfaces/interfaces/matchesQueryInterfaces.js';
+import { CRUDResult } from '../../../types-and-interfaces/interfaces/globalInterfaces.js';
 
 function getS3Instance(accessKeyId: string, secretAccessKey: string) {
     return new aws.S3({
@@ -71,9 +72,10 @@ async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 
 type TMatchingPicUser = Pick<UserBaseModelSchema, 'pics'>;
 interface IMatchingPicUser extends IUserMatch {}
 
-async function getMatchingPicUrlForUsers(users: IMatchingPicUser[]) {
+
+async function getMatchingPicUrlForUsers(users: UserBaseModelSchema[]):Promise<CRUDResult> {
     try {
-        let matches = [] as IMatchingPicUser[];
+        let matches = [] as UserBaseModelSchema[];
 
         for (let numIteration = 0; numIteration < users.length; numIteration++) {
             const user = users[numIteration];
@@ -83,7 +85,8 @@ async function getMatchingPicUrlForUsers(users: IMatchingPicUser[]) {
                 const { wasSuccessful, matchPicUrl } = await getMatchPicUrl(mathcingPicObj.picFileNameOnAws);
 
                 if (wasSuccessful) {
-                    matches.push({ ...user, matchingPicUrl: matchPicUrl })
+                    const match = { ...user, matchingPicUrl: matchPicUrl }
+                    matches.push(match)
                 }
             }
         }

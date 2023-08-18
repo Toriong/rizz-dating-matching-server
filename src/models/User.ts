@@ -65,11 +65,11 @@ interface UserBaseModelSchema {
     ratingNum: number,
     looks?: Look[]
 }
-type SelectType = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
+type TProjection = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
 interface PaginationArgsOpts {
     query: PaginationQueryingOpts,
     sort: SortObj,
-    select?: SelectType,
+    select?: TProjection,
     page: number,
     limit: number
 }
@@ -137,4 +137,4 @@ UserSchema.plugin(mongoosePagination)
 
 const User = model('users', UserSchema);
 
-export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema, Picture, UserNames, UserLocation };
+export { User, PaginatedModel, ReturnTypeOfPaginateFn, PaginationQueryingOpts, PaginationArgsOpts, UserBaseModelSchema, Picture, UserNames, UserLocation, TProjection };

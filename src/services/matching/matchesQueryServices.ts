@@ -203,6 +203,7 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
     return returnVal;
 }
 
+
 async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<InterfacePotentialMatchesPage> {
     let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
 
@@ -214,7 +215,7 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
     }
 
     const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
-    const potentialMatchesPromise = Users.find(paginationQueryOpts, null, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean()
+    const potentialMatchesPromise = Users.find(paginationQueryOpts, { password: 0, email: 0, phoneNum: 0,  }, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean()
     let [totalUsersForQuery, potentialMatches]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
     const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
     console.log('totalUsersForQuery: ', totalUsersForQuery)
@@ -334,7 +335,7 @@ async function getPromptsAndMatchingPicForClient(matches: IUserMatch[]) {
             throw new Error('Failed to get prompts for matches.')
         }
 
-        const matchesWithPicsResult = await getMatchingPicUrlForUsers(matchesWithPromptsResult.data as IUserMatch[])
+        const matchesWithPicsResult = await getMatchingPicUrlForUsers(matchesWithPromptsResult.data as UserBaseModelSchema[])
 
         if (!matchesWithPicsResult.wasSuccessful) {
             throw new Error('An error has occurred in getting matching pic for users.')
