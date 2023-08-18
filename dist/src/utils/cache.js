@@ -8,7 +8,11 @@ class Cache {
     constructor() {
         this.cache = cache;
     }
-    set(key, value) {
+    set(key, value, expirationMs) {
+        if (expirationMs !== undefined) {
+            this.cache.set(key, value, expirationMs);
+            return;
+        }
         this.cache.set(key, value);
     }
     get(key) {

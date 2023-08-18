@@ -1,7 +1,7 @@
-import { 
-    Router, 
-    Request, 
-    Response 
+import {
+    Router,
+    Request,
+    Response
 } from 'express'
 import {
     createQueryOptsForPagination,
@@ -24,9 +24,9 @@ import {
     getRejectedUsers
 } from '../../services/rejectingUsers/rejectedUsersService.js';
 import { RejectedUserInterface } from '../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js';
-import { 
-    getUserById, 
-    getUsersByIds 
+import {
+    getUserById,
+    getUsersByIds
 } from '../../services/globalServices.js';
 import { filterInUsersWithPrompts } from '../../services/promptsServices/getPromptsServices.js';
 import {
@@ -42,11 +42,12 @@ import { IResponseBodyGetMatches } from '../../types-and-interfaces/interfaces/r
 import { ICacheKeyVals } from '../../types-and-interfaces/interfaces/cacheInterfaces.js';
 import { RequestQuery } from '../../types-and-interfaces/interfaces/requests/getMatchesReqQuery.js';
 import { cache } from '../../utils/cache.js';
-import { 
-    GLOBAL_VALS, 
-    EXPIRATION_TIME_CACHED_MATCHES 
+import {
+    GLOBAL_VALS,
+    EXPIRATION_TIME_CACHED_MATCHES
 } from '../../globalVals.js';
 import { DynamicKeyVal } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
+import { Cache } from '../../utils/cache.js';
 
 export const getMatchesRoute = Router();
 
@@ -232,6 +233,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
 
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts as UserQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum as string)
+    const nodeCache = new Cache();
 
     console.log('paginationPageNumUpdated: ', paginationPageNumUpdated)
 
@@ -417,11 +419,27 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(200).json({ paginationMatches: paginationMatchesObj })
     }
 
-    const matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
+    // Valid matches were received at this point. 
+
+    let matchesToSendToClientUpdated: IUserMatch[] = matchesToSendToClient.map((user: unknown) => {
         const _user = (user as UserBaseModelSchema);
 
         return { ..._user, firstName: _user.name.first } as unknown as IUserMatch;
-    })
+    }).sort((userA, userB) => userB.ratingNum - userA.ratingNum)
+
+    if ((userQueryOpts as unknown as RequestQuery).numOfMatchesToReceiveForClient) {
+        const sliceEndingIndex = ((userQueryOpts as unknown as RequestQuery).numOfMatchesToReceiveForClient as number)
+        matchesToSendToClientUpdated = matchesToSendToClientUpdated.slice(0, sliceEndingIndex);
+        const userIdsOfMatchesToCache = matchesToSendToClientUpdated.slice(sliceEndingIndex).map(({ _id }) => _id);
+        const currentlyCachedMatches = nodeCache.get("userIdsOfMatchesToShowForMatchesPg") as DynamicKeyVal<string[]>;
+        const currentUserCachedMatches = currentlyCachedMatches?.[currentUserId] ?? [];
+        nodeCache.set("userIdsOfMatchesToShowForMatchesPg", {
+            [currentUserId]: currentUserCachedMatches?.length ? [...currentUserCachedMatches, ...userIdsOfMatchesToCache] : userIdsOfMatchesToCache
+        },
+            EXPIRATION_TIME_CACHED_MATCHES
+        )
+    }
+
     const promptsAndMatchingPicForClientResult = await getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
 
     if (!promptsAndMatchingPicForClientResult.wasSuccessful) {

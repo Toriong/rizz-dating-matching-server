@@ -15,7 +15,12 @@ class Cache {
         this.cache = cache;
     }
 
-    set(key: string, value: any): void {
+    set(key: string, value: any, expirationMs: number): void {
+        if(expirationMs !== undefined){
+            this.cache.set(key, value, expirationMs)
+            return;
+        }
+
         this.cache.set(key, value)
     }
 

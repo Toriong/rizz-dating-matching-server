@@ -16,6 +16,7 @@ import { filterInUsersWithPrompts } from '../../services/promptsServices/getProm
 import { filterInUsersWithValidMatchingPicUrl } from '../../services/matching/helper-fns/aws.js';
 import { cache } from '../../utils/cache.js';
 import { GLOBAL_VALS, EXPIRATION_TIME_CACHED_MATCHES } from '../../globalVals.js';
+import { Cache } from '../../utils/cache.js';
 export const getMatchesRoute = Router();
 function validateFormOfObj(key, obj) {
     const receivedType = typeof obj[key];
@@ -155,7 +156,7 @@ function filterInUsersWithValidPromptsAndMatchingImg(potentialMatches) {
     });
 }
 getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     console.time('getMatchesRoute, timing.');
     let query = request.query;
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
@@ -176,6 +177,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     console.log("Will get the user's matches and send them to the client.");
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum);
+    const nodeCache = new Cache();
     console.log('paginationPageNumUpdated: ', paginationPageNumUpdated);
     if ((minAndMaxDistanceArr === null || minAndMaxDistanceArr === void 0 ? void 0 : minAndMaxDistanceArr.length) && (userLocation === null || userLocation === void 0 ? void 0 : userLocation.length)) {
         const _userLocation = [userLocation[0], userLocation[1]].map(val => parseFloat(val));
@@ -315,10 +317,21 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         paginationMatchesObj.potentialMatches = [];
         return response.status(200).json({ paginationMatches: paginationMatchesObj });
     }
-    const matchesToSendToClientUpdated = matchesToSendToClient.map((user) => {
+    // Valid matches were received at this point. 
+    let matchesToSendToClientUpdated = matchesToSendToClient.map((user) => {
         const _user = user;
         return Object.assign(Object.assign({}, _user), { firstName: _user.name.first });
-    });
+    }).sort((userA, userB) => userB.ratingNum - userA.ratingNum);
+    if (userQueryOpts.numOfMatchesToReceiveForClient) {
+        const sliceEndingIndex = userQueryOpts.numOfMatchesToReceiveForClient;
+        matchesToSendToClientUpdated = matchesToSendToClientUpdated.slice(0, sliceEndingIndex);
+        const userIdsOfMatchesToCache = matchesToSendToClientUpdated.slice(sliceEndingIndex).map(({ _id }) => _id);
+        const currentlyCachedMatches = nodeCache.get("userIdsOfMatchesToShowForMatchesPg");
+        const currentUserCachedMatches = (_f = currentlyCachedMatches === null || currentlyCachedMatches === void 0 ? void 0 : currentlyCachedMatches[currentUserId]) !== null && _f !== void 0 ? _f : [];
+        nodeCache.set("userIdsOfMatchesToShowForMatchesPg", {
+            [currentUserId]: (currentUserCachedMatches === null || currentUserCachedMatches === void 0 ? void 0 : currentUserCachedMatches.length) ? [...currentUserCachedMatches, ...userIdsOfMatchesToCache] : userIdsOfMatchesToCache
+        }, EXPIRATION_TIME_CACHED_MATCHES);
+    }
     const promptsAndMatchingPicForClientResult = yield getPromptsAndMatchingPicForClient(matchesToSendToClientUpdated);
     if (!promptsAndMatchingPicForClientResult.wasSuccessful) {
         console.error('Something went wrong. Couldn\'t get prompts and matching pic for client.');
