@@ -46,7 +46,7 @@ import {
     GLOBAL_VALS,
     EXPIRATION_TIME_CACHED_MATCHES
 } from '../../globalVals.js';
-import { DynamicKeyVal } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
+import { CRUDResult, DynamicKeyVal } from '../../types-and-interfaces/interfaces/globalInterfaces.js';
 import { Cache } from '../../utils/cache.js';
 
 export const getMatchesRoute = Router();
@@ -447,10 +447,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(500).json({ msg: promptsAndMatchingPicForClientResult.msg })
     }
 
-    let potentialMatchesForClient = promptsAndMatchingPicForClientResult.data;
-    potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IMatchingPicUser[])
-    console.log('matches to send to the client, potentialMatchesForClient: ', potentialMatchesForClient)
-    paginationMatchesObj.potentialMatches = potentialMatchesForClient;
+    let potentialMatchesForClient: unknown | CRUDResult = promptsAndMatchingPicForClientResult.data;
+    potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IUserMatch[])
+    paginationMatchesObj.potentialMatches = potentialMatchesForClient as IUserMatch[];
+
+    console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches)
 
     response.status(200).json({ paginationMatches: paginationMatchesObj })
     console.timeEnd('getMatchesRoute, timing.')

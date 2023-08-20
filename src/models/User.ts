@@ -33,7 +33,7 @@ interface Picture {
     isMatching: boolean,
     picFileNameOnAws: string
 }
-interface Look{
+interface Look {
     // example: 'eyes'
     bodyPart: string,
     // example: 'brown'
@@ -45,7 +45,14 @@ interface UserLocation {
     // [longitude, latitude]
     coordinates: [number, number]
 }
-interface UserBaseModelSchema {
+
+interface UserBaseModelSchemaOptionalFields {
+    createdAt?: Date
+    updatedAt?: Date
+    __v?: number
+}
+
+interface UserBaseModelSchema extends UserBaseModelSchemaOptionalFields {
     _id: string,
     name: UserNames,
     sexAttraction: string,
@@ -63,7 +70,7 @@ interface UserBaseModelSchema {
     phoneNum: number,
     hasPrompts: boolean,
     ratingNum: number,
-    looks?: Look[]
+    looks?: Look[],
 }
 type TProjection = { [KeyName in keyof UserBaseModelSchema]: 0 | 1 }
 interface PaginationArgsOpts {

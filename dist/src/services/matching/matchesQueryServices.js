@@ -155,20 +155,32 @@ function createQueryOptsForPagination(userQueryOpts, currentUser, allUnshowableU
     const returnVal = { skipAndLimitObj, paginationQueryOpts, currentPageNum };
     return returnVal;
 }
+function getProjectionObj(projectedFields) {
+    return projectedFields.reduce((projectedFieldObj, projectedFieldsArr) => {
+        const [userKeyName, zeroOrOneNum] = projectedFieldsArr;
+        projectedFieldObj[userKeyName] = zeroOrOneNum;
+        return projectedFieldObj;
+    }, {});
+}
 function queryForPotentialMatches(queryOptsForPagination) {
     return __awaiter(this, void 0, void 0, function* () {
         let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
-        // BELOW, FOR TESTING:
-        // skipAndLimitObj = { skip: 0, limit: 150 };
-        // ABOVE, FOR TESTING:
         if (paginationQueryOpts === null || paginationQueryOpts === void 0 ? void 0 : paginationQueryOpts.location) {
             Users.createIndexes([{ location: '2dsphere' }]);
         }
+        const projectionObj = getProjectionObj([
+            ['createdAt', 0],
+            ['updatedAt', 0],
+            ['phoneNum', 0],
+            ['email', 0],
+            ['password', 0],
+            ['hasPrompts', 0],
+            ['__v', 0],
+        ]);
         const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count();
-        const potentialMatchesPromise = Users.find(paginationQueryOpts, { password: 0, email: 0, phoneNum: 0, }, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
+        const potentialMatchesPromise = Users.find(paginationQueryOpts, projectionObj, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean();
         let [totalUsersForQuery, potentialMatches] = yield Promise.all([totalUsersForQueryPromise, potentialMatchesPromise]);
         const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
-        console.log('totalUsersForQuery: ', totalUsersForQuery);
         if (totalUsersForQuery === 0) {
             return { potentialMatches: [], hasReachedPaginationEnd: true };
         }

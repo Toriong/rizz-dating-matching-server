@@ -1,4 +1,4 @@
-import { User as Users, PaginationQueryingOpts, UserBaseModelSchema, UserLocation } from "../../models/User.js"
+import { User as Users, PaginationQueryingOpts, UserBaseModelSchema, UserLocation, TProjection } from "../../models/User.js"
 import { UserQueryOpts } from "../../types-and-interfaces/interfaces/userQueryInterfaces.js";
 import { RejectedUserInterface } from "../../types-and-interfaces/interfaces/rejectedUserDocsInterfaces.js";
 import { IGetValidMatches, IMatchesPagination, IUserMatch, InterfacePotentialMatchesPage } from "../../types-and-interfaces/interfaces/matchesQueryInterfaces.js";
@@ -204,21 +204,41 @@ function createQueryOptsForPagination(userQueryOpts: UserQueryOpts, currentUser:
 }
 
 
+type TUserBaseModelSchemaKeys = keyof UserBaseModelSchema
+type TProjectedFields = [TUserBaseModelSchemaKeys, 0 | 1][]
+
+function getProjectionObj(projectedFields: TProjectedFields): TProjection {
+    return projectedFields.reduce((projectedFieldObj: TProjection, projectedFieldsArr: [TUserBaseModelSchemaKeys, 0 | 1]) => {
+        const [userKeyName, zeroOrOneNum] = projectedFieldsArr;
+        projectedFieldObj[userKeyName] = zeroOrOneNum;
+
+        return projectedFieldObj;
+    }, {} as TProjection)
+}
+
+
 async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPagination): Promise<InterfacePotentialMatchesPage> {
     let { skipAndLimitObj, paginationQueryOpts, currentPageNum } = queryOptsForPagination;
 
-    // BELOW, FOR TESTING:
-    // skipAndLimitObj = { skip: 0, limit: 150 };
-    // ABOVE, FOR TESTING:
     if (paginationQueryOpts?.location) {
         (Users as any).createIndexes([{ location: '2dsphere' }])
     }
 
+    const projectionObj = getProjectionObj(
+        [
+            ['createdAt', 0],
+            ['updatedAt', 0],
+            ['phoneNum', 0],
+            ['email', 0],
+            ['password', 0],
+            ['hasPrompts', 0],
+            ['__v', 0],
+        ]
+    );
     const totalUsersForQueryPromise = Users.find(paginationQueryOpts).sort({ ratingNum: 'desc' }).count()
-    const potentialMatchesPromise = Users.find(paginationQueryOpts, { password: 0, email: 0, phoneNum: 0,  }, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean()
+    const potentialMatchesPromise = Users.find(paginationQueryOpts, projectionObj, skipAndLimitObj).sort({ ratingNum: 'desc' }).lean()
     let [totalUsersForQuery, potentialMatches]: [number, UserBaseModelSchema[]] = await Promise.all([totalUsersForQueryPromise, potentialMatchesPromise])
     const hasReachedPaginationEnd = (5 * currentPageNum) >= totalUsersForQuery;
-    console.log('totalUsersForQuery: ', totalUsersForQuery)
 
     if (totalUsersForQuery === 0) {
         return { potentialMatches: [], hasReachedPaginationEnd: true }
