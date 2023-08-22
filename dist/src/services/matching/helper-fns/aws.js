@@ -55,7 +55,8 @@ function getMatchPicUrl(pathToImg, expiresNum = (60000 * 60)) {
                 Key: pathToImg,
                 Expires: expiresNum
             };
-            const url = yield s3.getSignedUrlPromise('getObject', params);
+            const url = s3.getSignedUrl('getObject', params);
+            console.log('The URL is: ', url);
             return { wasSuccessful: true, matchPicUrl: url };
         }
         catch (error) {

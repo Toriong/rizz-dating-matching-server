@@ -59,7 +59,9 @@ async function getMatchPicUrl(pathToImg: string, expiresNum: number = (60_000 * 
             Key: pathToImg,
             Expires: expiresNum
         }
-        const url = await s3.getSignedUrlPromise('getObject', params);
+        const url = s3.getSignedUrl('getObject', params);
+
+        console.log('The URL is: ', url)
 
         return { wasSuccessful: true, matchPicUrl: url }
     } catch (error) {
