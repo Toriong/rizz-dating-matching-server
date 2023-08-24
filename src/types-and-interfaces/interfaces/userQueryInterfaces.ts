@@ -18,7 +18,6 @@ interface ReqQueryMatchesParams {
     query: UserQueryOpts,
     userId: string
 }
-
 interface QueryValidationInterface {
     correctVal: string | string[],
     isCorrectValType: boolean,

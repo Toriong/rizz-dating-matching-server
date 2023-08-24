@@ -19,7 +19,6 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
     return __awaiter(this, void 0, void 0, function* () {
         let validMatchesToSendToClient = currentValidUserMatches;
         let _userQueryOpts = Object.assign({}, userQueryOpts);
-        console.log("_userQueryOpts: ", _userQueryOpts);
         let matchesPage = {};
         let _hasReachedPaginationEnd = false;
         try {
@@ -27,7 +26,7 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
             while (validMatchesToSendToClient.length < 5) {
                 let loopTimeElapsed = new Date().getTime() - timeBeforeLoopMs;
                 if (loopTimeElapsed > 10000) {
-                    console.log('Time out has occurred.');
+                    console.error('Time out has occurred.');
                     matchesPage = {
                         hasReachedPaginationEnd: _hasReachedPaginationEnd,
                         canStillQueryCurrentPageForUsers: false,
@@ -39,9 +38,10 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                 }
                 const queryOptsForPagination = createQueryOptsForPagination(_userQueryOpts, currentUser, idsOfUsersNotToShow);
                 const queryMatchesResults = yield getMatches(queryOptsForPagination);
-                const { hasReachedPaginationEnd, potentialMatches } = queryMatchesResults.data;
+                const { data, status } = queryMatchesResults;
+                const { hasReachedPaginationEnd, potentialMatches } = data;
                 _hasReachedPaginationEnd = hasReachedPaginationEnd;
-                if (queryMatchesResults.status !== 200) {
+                if (status !== 200) {
                     matchesPage = {
                         hasReachedPaginationEnd: true,
                         validMatches: currentValidUserMatches,
@@ -90,8 +90,6 @@ function getValidMatches(userQueryOpts, currentUser, currentValidUserMatches, id
                     // if the usersToAddNum does not equal to 5, then the user can still query the current page for more users
                     // or if the usersToAddNum does not equal the length of potentialMatches array minus one, then the current user can still query the current page for more users
                     if (!_hasReachedPaginationEnd) {
-                        console.log("usersToAddNum: ", usersToAddNum);
-                        console.log("potentialMatches.length: ", potentialMatches.length);
                         const userIdsOfMatchesToCacheSliced = matchesToSendToClientCopy.slice(usersToAddNum, potentialMatches.length);
                         let userIdsOfMatchesToCache = (userIdsOfMatchesToCacheSliced === null || userIdsOfMatchesToCacheSliced === void 0 ? void 0 : userIdsOfMatchesToCacheSliced.length) ? userIdsOfMatchesToCacheSliced.map(({ _id }) => _id) : [];
                         matchesPage.canStillQueryCurrentPageForUsers = (usersToAddNum !== (potentialMatches.length - 1));

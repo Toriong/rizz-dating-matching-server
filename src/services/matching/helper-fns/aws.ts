@@ -26,7 +26,7 @@ async function getDoesImgAwsObjExist(pathToImg: string): Promise<boolean> {
 
         return true;
     } catch (error) {
-        // console.error(`'${pathToImg}' does not exist. Error message: `, error)
+        console.error(`'${pathToImg}' does not exist. Error message: `, error)
 
         return false;
     }

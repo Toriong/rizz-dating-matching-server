@@ -25,7 +25,7 @@ function getDoesImgAwsObjExist(pathToImg) {
             return true;
         }
         catch (error) {
-            // console.error(`'${pathToImg}' does not exist. Error message: `, error)
+            console.error(`'${pathToImg}' does not exist. Error message: `, error);
             return false;
         }
     });
