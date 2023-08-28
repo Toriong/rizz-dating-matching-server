@@ -12,7 +12,7 @@ interface UserQueryOpts {
     desiredAgeRange: [string, string],
     skipDocsNum: number | string
     isRadiusSetToAnywhere?: boolean | string
-    recievedUserMatchesIdsOnClientSide?: string[]
+    receivedUserMatchesIdsOnClientSide?: string[]
 }
 interface ReqQueryMatchesParams {
     query: UserQueryOpts,

@@ -11,6 +11,7 @@ interface PromptInterface {
     prompt: string;
     answer: string;
     reactionNumObj: ReactionNumObjInterface
+    isStory: boolean
 }
 
 interface PromptModelInterface {

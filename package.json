@@ -7,6 +7,7 @@
   "scripts": {
     "build": "npx tsc",
     "start": "nodemon dist/index.js",
+    "tunn": "ssh -R 80:localhost:5000 serveo.net",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\"",
     "debug": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\" --inspect-brk"
   },

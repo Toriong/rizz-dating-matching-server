@@ -3,9 +3,9 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors'
 import mongoose from 'mongoose';
-import ip from 'ip';
+import ip from 'ip'
 
-console.log('ip.address(): ', ip.address())
+const IP_ADDRESS = ip.address()
 
 dotenv.config();
 
@@ -33,13 +33,16 @@ app.use(cors({
   origin: ["http://localhost:19006"]
 }));
 
+app.get('/', (request, response) => {
+  response.send("The server is live! YO!")
+})
+
 app.use("/", routes);
 
-PORT = (typeof PORT === 'string') ? parseInt(PORT) : PORT
-const SERVER_IP_ADDRESS = ip.address()
+PORT = (typeof PORT === 'string') ? parseInt(PORT) : PORT;
 
-console.log('SERVER_IP_ADDRESS: ', SERVER_IP_ADDRESS)
+console.log('IP_ADDRESS: ', IP_ADDRESS)
 
-app.listen(PORT, SERVER_IP_ADDRESS as string, () => {
+app.listen(PORT, IP_ADDRESS, () => {
   console.log(`[server]: The server is live⚡️! Server is running on the following PORT: ${PORT}`);
 })

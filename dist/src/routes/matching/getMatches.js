@@ -23,7 +23,7 @@ function validateFormOfObj(key, obj) {
     return { fieldName: key, receivedType: receivedType };
 }
 function getQueryOptionsValidationArr(queryOpts) {
-    const { userLocation, desiredAgeRange, skipDocsNum, minAndMaxDistanceArr, isRadiusSetToAnywhere, recievedUserMatchesIdsOnClientSide } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
+    const { userLocation, desiredAgeRange, skipDocsNum, minAndMaxDistanceArr, isRadiusSetToAnywhere, receivedUserMatchesIdsOnClientSide } = queryOpts !== null && queryOpts !== void 0 ? queryOpts : {};
     console.log('userLocation: ', userLocation);
     const [latitude, longitude] = Array.isArray(userLocation) ? userLocation : [];
     let areValsInMinAndMaxQueryDistanceArrValid = false;
@@ -33,15 +33,15 @@ function getQueryOptionsValidationArr(queryOpts) {
     let isLongAndLatValueTypeValidResult = false;
     let areLongAndLatValidResults = null;
     let recievedUserMatchesIdsOnClientSideResultObj = null;
-    if (recievedUserMatchesIdsOnClientSide) {
-        const areValsStrsInRecievedUserMatchesIdsOnClientSide = Array.isArray(recievedUserMatchesIdsOnClientSide) ? recievedUserMatchesIdsOnClientSide.every(val => typeof val === 'string') : false;
+    if (receivedUserMatchesIdsOnClientSide) {
+        const areValsStrsInRecievedUserMatchesIdsOnClientSide = Array.isArray(receivedUserMatchesIdsOnClientSide) ? receivedUserMatchesIdsOnClientSide.every(val => typeof val === 'string') : false;
         recievedUserMatchesIdsOnClientSideResultObj = {
-            receivedType: typeof recievedUserMatchesIdsOnClientSide,
+            receivedType: typeof receivedUserMatchesIdsOnClientSide,
             correctVal: 'array',
-            fieldName: 'recievedUserMatchesIdsOnClientSide',
-            isCorrectValType: Array.isArray(recievedUserMatchesIdsOnClientSide) && areValsStrsInRecievedUserMatchesIdsOnClientSide,
-            receivedVal: recievedUserMatchesIdsOnClientSide,
-            recievedTypeOfValsInArr: recievedUserMatchesIdsOnClientSide.map(val => typeof val)
+            fieldName: 'receivedUserMatchesIdsOnClientSide',
+            isCorrectValType: Array.isArray(receivedUserMatchesIdsOnClientSide) && areValsStrsInRecievedUserMatchesIdsOnClientSide,
+            receivedVal: receivedUserMatchesIdsOnClientSide,
+            recievedTypeOfValsInArr: receivedUserMatchesIdsOnClientSide.map(val => typeof val)
         };
     }
     if (!isRadiusSetToAnywhere) {
@@ -191,7 +191,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = yield Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)]);
     const rejectedUsers = ((_a = rejectedUsersThatCurrentUserIsInResult.data) === null || _a === void 0 ? void 0 : _a.length) ? rejectedUsersThatCurrentUserIsInResult.data : [];
     const allChatUsers = ((_b = allUserChatsResult.data) === null || _b === void 0 ? void 0 : _b.length) ? allUserChatsResult.data : [];
-    let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers, userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.recievedUserMatchesIdsOnClientSide);
+    let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers, userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.receivedUserMatchesIdsOnClientSide);
     if (!currentUser) {
         console.error('Could not find current user in the db.');
         return response.status(404).json({ msg: 'Could not find current user in the db.' });
