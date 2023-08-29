@@ -47,7 +47,6 @@ function filterInUsersWithValidMatchingPicUrl(users) {
 function getMatchPicUrl(pathToImg, expiresNum = (60000 * 60)) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            dotenv.config();
             const { AWS_S3_SECRET_KEY, AWS_S3_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
             const s3 = getS3Instance(AWS_S3_ACCESS_KEY, AWS_S3_SECRET_KEY);
             const params = {

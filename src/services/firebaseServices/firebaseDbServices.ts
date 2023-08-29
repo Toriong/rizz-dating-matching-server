@@ -39,9 +39,9 @@ async function getChatById(chatId: String): Promise<CRUDResult> {
     }
 }
 
-async function getAllUserChats(currentUserId: string): Promise<CRUDResult> {
+async function getAllUserChats(userId: string): Promise<CRUDResult> {
     try {
-        const getChatUserByIdResult = await getChatUserById(currentUserId);
+        const getChatUserByIdResult = await getChatUserById(userId);
 
 
         if (!getChatUserByIdResult.wasSuccessful) {
@@ -66,7 +66,7 @@ async function getAllUserChats(currentUserId: string): Promise<CRUDResult> {
             ...new Set(
                 currentUserChats
                     .flatMap(({ userIdA, userIdB }: ChatInterface) => [userIdA, userIdB])
-                    .filter(userId => currentUserId !== userId)
+                    .filter(_userId => _userId !== userId)
             )
         ]
 

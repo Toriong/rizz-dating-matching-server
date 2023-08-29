@@ -41,11 +41,11 @@ function getChatById(chatId) {
         }
     });
 }
-function getAllUserChats(currentUserId) {
+function getAllUserChats(userId) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const getChatUserByIdResult = yield getChatUserById(currentUserId);
+            const getChatUserByIdResult = yield getChatUserById(userId);
             if (!getChatUserByIdResult.wasSuccessful) {
                 throw new Error('An error has occurred in getting the chat user from the database.');
             }
@@ -63,7 +63,7 @@ function getAllUserChats(currentUserId) {
             let chatUserRecipientIds = [
                 ...new Set(currentUserChats
                     .flatMap(({ userIdA, userIdB }) => [userIdA, userIdB])
-                    .filter(userId => currentUserId !== userId))
+                    .filter(_userId => _userId !== userId))
             ];
             return { wasSuccessful: true, data: chatUserRecipientIds };
         }
