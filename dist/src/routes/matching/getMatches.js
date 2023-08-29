@@ -327,6 +327,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
         const userIdsOfMatchesToCache = matchesToSendToClientUpdated.slice(sliceEndingIndex).map(({ _id }) => _id);
         const currentlyCachedMatches = nodeCache.get("userIdsOfMatchesToShowForMatchesPg");
         const currentUserCachedMatches = (_f = currentlyCachedMatches === null || currentlyCachedMatches === void 0 ? void 0 : currentlyCachedMatches[currentUserId]) !== null && _f !== void 0 ? _f : [];
+        console.log('currentUserCachedMatches: ', currentUserCachedMatches);
         nodeCache.set("userIdsOfMatchesToShowForMatchesPg", {
             [currentUserId]: (currentUserCachedMatches === null || currentUserCachedMatches === void 0 ? void 0 : currentUserCachedMatches.length) ? [...currentUserCachedMatches, ...userIdsOfMatchesToCache] : userIdsOfMatchesToCache
         }, EXPIRATION_TIME_CACHED_MATCHES);

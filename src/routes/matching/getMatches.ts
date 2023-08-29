@@ -432,6 +432,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         const userIdsOfMatchesToCache = matchesToSendToClientUpdated.slice(sliceEndingIndex).map(({ _id }) => _id);
         const currentlyCachedMatches = nodeCache.get("userIdsOfMatchesToShowForMatchesPg") as DynamicKeyVal<string[]>;
         const currentUserCachedMatches = currentlyCachedMatches?.[currentUserId] ?? [];
+        console.log('currentUserCachedMatches: ', currentUserCachedMatches);
         nodeCache.set("userIdsOfMatchesToShowForMatchesPg", {
             [currentUserId]: currentUserCachedMatches?.length ? [...currentUserCachedMatches, ...userIdsOfMatchesToCache] : userIdsOfMatchesToCache
         },

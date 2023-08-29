@@ -33,6 +33,9 @@ app.use(cors({
   origin: ["http://localhost:19006"]
 }));
 
+// GOAL: create middleware to have the server be secured
+// USE HTTPS
+
 app.get('/', (request, response) => {
   response.send("The server is live! YO!")
 })

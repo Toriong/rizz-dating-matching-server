@@ -188,6 +188,8 @@ function queryForPotentialMatches(queryOptsForPagination) {
         return { potentialMatches: potentialMatches, hasReachedPaginationEnd: (5 * currentPageNum) >= totalUsersForQuery, totalUsersForQuery: totalUsersForQuery };
     });
 }
+// REFACTOR NOTES FOR THIS FN:
+// change add all of the ids of the users into a single array and pass it in as a parameter to this function
 function getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allRecipientsOfChats, idsOfUserMatchesReceivedOnClient) {
     const allRejectedUserIds = [
         ...new Set((rejectedUsers)
