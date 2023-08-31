@@ -159,6 +159,7 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     var _a, _b, _c, _d, _e, _f;
     console.time('getMatchesRoute, timing.');
     let query = request.query;
+    console.log('request.query: ', request.query);
     if (!query || !(query === null || query === void 0 ? void 0 : query.query) || !query.userId) {
         console.error("An error has occurred. Missing query parameters. Missing 'query' or 'userId' query parameters.");
         return response.status(400).json({ msg: 'Missing query parameters.' });
@@ -166,14 +167,15 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     let userQueryOpts = query.query;
     const currentUserId = query.userId;
     console.log('currentUserId: ', currentUserId);
-    const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
-    const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType);
+    const queryOptsValidationArr = getQueryOptionsValidationArr(userQueryOpts);
+    const areQueryOptsValid = queryOptsValidationArr.every(queryValidationObj => queryValidationObj.isCorrectValType);
     if (!areQueryOptsValid) {
-        const invalidQueryOpts = queryOptsValidArr.filter(({ isCorrectValType }) => !isCorrectValType);
+        const invalidQueryOpts = queryOptsValidationArr.filter(({ isCorrectValType }) => !isCorrectValType);
         console.table(invalidQueryOpts);
         console.error('An errror has occurred. Invalid query parameters.');
         return response.status(400).json({ msg: 'Invalid query parameters.' });
     }
+    console.log('userQueryOpts after validation: ', userQueryOpts);
     console.log("Will get the user's matches and send them to the client.");
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum);
@@ -189,8 +191,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, (request, res
     }
     const rejectedUsersQuery = generateGetRejectedUsersQuery([currentUserId], true);
     const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = yield Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)]);
+    console.log('allUserChatsResult: ', allUserChatsResult);
     const rejectedUsers = ((_a = rejectedUsersThatCurrentUserIsInResult.data) === null || _a === void 0 ? void 0 : _a.length) ? rejectedUsersThatCurrentUserIsInResult.data : [];
     const allChatUsers = ((_b = allUserChatsResult.data) === null || _b === void 0 ? void 0 : _b.length) ? allUserChatsResult.data : [];
+    console.log('allChatUsers: ', allChatUsers);
+    console.log('userQueryOpts?.receivedUserMatchesIdsOnClientSide: ', userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.receivedUserMatchesIdsOnClientSide);
     let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers, userQueryOpts === null || userQueryOpts === void 0 ? void 0 : userQueryOpts.receivedUserMatchesIdsOnClientSide);
     if (!currentUser) {
         console.error('Could not find current user in the db.');

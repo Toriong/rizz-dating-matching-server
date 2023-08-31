@@ -43,7 +43,6 @@ async function getAllUserChats(userId: string): Promise<CRUDResult> {
     try {
         const getChatUserByIdResult = await getChatUserById(userId);
 
-
         if (!getChatUserByIdResult.wasSuccessful) {
             throw new Error('An error has occurred in getting the chat user from the database.')
         }
@@ -61,6 +60,9 @@ async function getAllUserChats(userId: string): Promise<CRUDResult> {
 
         const currentUserChatsPromises = userChatIdsObj.chatIds.map(chatId => getChatById(chatId))
         let currentUserChats: CRUDResult[] | ChatInterface[] = await Promise.all(currentUserChatsPromises);
+
+        console.log('currentUserChats: ', currentUserChats)
+
         currentUserChats = currentUserChats.filter(chat => chat.wasSuccessful).map(chat => (chat.data as ChatInterface))
         let chatUserRecipientIds = [
             ...new Set(
@@ -70,6 +72,7 @@ async function getAllUserChats(userId: string): Promise<CRUDResult> {
             )
         ]
 
+        console.log('chatUserRecipientIds: ', chatUserRecipientIds)
 
         return { wasSuccessful: true, data: chatUserRecipientIds }
     } catch (error: any) {

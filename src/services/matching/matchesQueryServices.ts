@@ -252,6 +252,8 @@ async function queryForPotentialMatches(queryOptsForPagination: IQueryOptsForPag
 // REFACTOR NOTES FOR THIS FN:
 // change add all of the ids of the users into a single array and pass it in as a parameter to this function
 function getIdsOfUsersNotToShow(currentUserId: string, rejectedUsers: RejectedUserInterface[], allRecipientsOfChats: string[], idsOfUserMatchesReceivedOnClient?: string[]): string[] {
+    console.log('allRecipientsOfChats: ', allRecipientsOfChats)
+    
     const allRejectedUserIds = [
         ...new Set((rejectedUsers)
             .flatMap((rejectedUserInfo: RejectedUserInterface) => {

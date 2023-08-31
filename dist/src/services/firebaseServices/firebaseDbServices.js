@@ -59,12 +59,14 @@ function getAllUserChats(userId) {
             }
             const currentUserChatsPromises = userChatIdsObj.chatIds.map(chatId => getChatById(chatId));
             let currentUserChats = yield Promise.all(currentUserChatsPromises);
+            console.log('currentUserChats: ', currentUserChats);
             currentUserChats = currentUserChats.filter(chat => chat.wasSuccessful).map(chat => chat.data);
             let chatUserRecipientIds = [
                 ...new Set(currentUserChats
                     .flatMap(({ userIdA, userIdB }) => [userIdA, userIdB])
                     .filter(_userId => _userId !== userId))
             ];
+            console.log('chatUserRecipientIds: ', chatUserRecipientIds);
             return { wasSuccessful: true, data: chatUserRecipientIds };
         }
         catch (error) {

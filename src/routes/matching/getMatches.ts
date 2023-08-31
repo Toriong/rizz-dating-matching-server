@@ -208,6 +208,8 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     console.time('getMatchesRoute, timing.')
     let query: unknown | ReqQueryMatchesParams = request.query
 
+    console.log('request.query: ', request.query)
+
     if (!query || !(query as ReqQueryMatchesParams)?.query || !(query as ReqQueryMatchesParams).userId) {
         console.error("An error has occurred. Missing query parameters. Missing 'query' or 'userId' query parameters.")
         return response.status(400).json({ msg: 'Missing query parameters.' })
@@ -216,11 +218,11 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     let userQueryOpts: RequestQuery | UserQueryOpts = (query as ReqQueryMatchesParams).query;
     const currentUserId = (query as ReqQueryMatchesParams).userId;
     console.log('currentUserId: ', currentUserId)
-    const queryOptsValidArr = getQueryOptionsValidationArr(userQueryOpts);
-    const areQueryOptsValid = queryOptsValidArr.every(queryValidationObj => queryValidationObj.isCorrectValType)
+    const queryOptsValidationArr = getQueryOptionsValidationArr(userQueryOpts);
+    const areQueryOptsValid = queryOptsValidationArr.every(queryValidationObj => queryValidationObj.isCorrectValType)
 
     if (!areQueryOptsValid) {
-        const invalidQueryOpts = queryOptsValidArr.filter(({ isCorrectValType }) => !isCorrectValType)
+        const invalidQueryOpts = queryOptsValidationArr.filter(({ isCorrectValType }) => !isCorrectValType)
 
         console.table(invalidQueryOpts)
 
@@ -229,13 +231,9 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
         return response.status(400).json({ msg: 'Invalid query parameters.' })
     }
 
-    console.log("Will get the user's matches and send them to the client.")
-
     const { userLocation, skipDocsNum, minAndMaxDistanceArr } = userQueryOpts as UserQueryOpts;
     const paginationPageNumUpdated = parseInt(skipDocsNum as string)
     const nodeCache = new Cache();
-
-    console.log('paginationPageNumUpdated: ', paginationPageNumUpdated)
 
     if (minAndMaxDistanceArr?.length && userLocation?.length) {
         const _userLocation = ([userLocation[0], userLocation[1]] as [string, string]).map(val => parseFloat(val))
@@ -249,7 +247,13 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     }
 
     const rejectedUsersQuery = generateGetRejectedUsersQuery([currentUserId], true);
-    const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = await Promise.all([getAllUserChats(currentUserId), getRejectedUsers(rejectedUsersQuery), getUserById(currentUserId)])
+    const [allUserChatsResult, rejectedUsersThatCurrentUserIsInResult, currentUser] = await Promise.all(
+        [
+            getAllUserChats(currentUserId),
+            getRejectedUsers(rejectedUsersQuery),
+            getUserById(currentUserId)
+        ]
+    )
     const rejectedUsers = (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[])?.length ? (rejectedUsersThatCurrentUserIsInResult.data as RejectedUserInterface[]) : [];
     const allChatUsers = (allUserChatsResult.data as string[])?.length ? (allUserChatsResult.data as string[]) : [];
     let idsOfUsersNotToShow = getIdsOfUsersNotToShow(currentUserId, rejectedUsers, allChatUsers, userQueryOpts?.receivedUserMatchesIdsOnClientSide);
@@ -451,7 +455,6 @@ getMatchesRoute.get(`/${GLOBAL_VALS.matchesRootPath}/get-matches`, async (reques
     potentialMatchesForClient = await getLocationStrForUsers(potentialMatchesForClient as IUserMatch[])
     paginationMatchesObj.potentialMatches = potentialMatchesForClient as IUserMatch[];
 
-    console.log("paginationMatchesObj.potentialMatches: ", paginationMatchesObj.potentialMatches)
 
     response.status(200).json({ paginationMatches: paginationMatchesObj })
     console.timeEnd('getMatchesRoute, timing.')
